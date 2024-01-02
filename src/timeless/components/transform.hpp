@@ -7,7 +7,7 @@
 #include <cmath>
 #include <queue>
 #include <iostream>
-#include "timeless/v2/settings.hpp"
+#include "timeless/settings.hpp"
 
 class Transform
 {
