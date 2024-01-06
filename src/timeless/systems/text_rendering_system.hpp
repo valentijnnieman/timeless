@@ -79,13 +79,14 @@ public:
         auto shader = cm.shaders.at(entity);
         auto transform = cm.transforms.at(entity);
         auto font = cm.fonts.at(entity);
+        auto text = cm.texts.at(entity);
         // glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f);
 
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(transform->projection));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(transform->model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(transform->view));
 
-        glUniform3f(glGetUniformLocation(shader->ID, "textColor"), 0.0f, 0.0f, 0.0f);
+        glUniform3f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(font->VAO);
     }

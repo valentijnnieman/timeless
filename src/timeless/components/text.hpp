@@ -5,14 +5,15 @@ class Text
 public:
     std::string text;
     std::string printed;
+    glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f);
     bool center;
 
     float type_speed = 0.0f;
     bool completed;
     int print_length = 0;
 
-    Text(std::string t, bool c = true)
-        : text(t), center(c)
+    Text(std::string t, bool c = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f))
+        : text(t), center(c), color(color)
     {
         if (type_speed > 0.0)
         {

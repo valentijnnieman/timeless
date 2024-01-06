@@ -170,7 +170,7 @@ public:
 
     int cost(std::shared_ptr<Node> current, std::shared_ptr<Node> next)
     {
-        return next->layer - current->layer;
+        return (next->layer - current->layer) + 1;
     }
 
     std::vector<std::shared_ptr<Node>> get_path_to_node(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)

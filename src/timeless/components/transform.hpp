@@ -60,7 +60,7 @@ public:
 
         glm::vec3 start = position;
 
-        for (double i = 0.0; i <= 1.0; i += 0.05)
+        for (double i = 0.0; i <= 1.0; i += 1.0 / 60.0)
         {
             double x_l = std::lerp(start.x, destination.x, i);
             double y_l = std::lerp(start.y, destination.y, i);

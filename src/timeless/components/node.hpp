@@ -7,6 +7,7 @@ public:
     int layer;
     int width, height;
     int index;
+    bool inside;
 
     Collider collider;
 
@@ -17,8 +18,8 @@ public:
     }
     Node() {}
 
-    Node(int x, int y, int z, int width, int height, int index, int layer)
-        : x(x), y(y), z(z), layer(layer), width(width), height(height), index(index)
+    Node(int x, int y, int z, int width, int height, int index, int layer, bool inside = false)
+        : x(x), y(y), z(z), layer(layer), width(width), height(height), index(index), inside(inside)
     {
         float x1 = x - width;
         float x2 = x + width;

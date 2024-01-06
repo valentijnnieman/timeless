@@ -64,6 +64,7 @@ public:
         }
         // glEnable(GL_CULL_FACE);
         glEnable(GL_BLEND);
+        // glEnable(GL_DEPTH_TEST);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         std::cout << "OpenGL Initialized!" << std::endl;
@@ -152,17 +153,17 @@ public:
             /** render scene into framebuffer */
             if (screen_shader != nullptr)
             {
+                // glEnable(GL_DEPTH_TEST);
                 glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                glEnable(GL_DEPTH_TEST);
-            }
-            else
-            {
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g, TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             }
+            // else
+            // {
+            //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // }
 
             g_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
             rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
@@ -180,16 +181,16 @@ public:
                 screen_shader->use();
                 set_shader_time();
                 glBindVertexArray(ScreenVAO);
-                glDisable(GL_DEPTH_TEST);
+                // glDisable(GL_DEPTH_TEST);
                 // glDisable(GL_BLEND);
                 glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
-            else
-            {
-                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            }
+            // else
+            // {
+            //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // }
 
             glfwSwapBuffers(window);
             glfwPollEvents();
@@ -237,6 +238,20 @@ public:
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
             MouseInputSystem::mouse_click_handler(new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos)));
+        }
+        if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
+        {
+            double xpos, ypos;
+            // getting cursor position
+            glfwGetCursorPos(window, &xpos, &ypos);
+            MouseInputSystem::mouse_click_handler(new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos)));
+        }
+        if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
+        {
+            double xpos, ypos;
+            // getting cursor position
+            glfwGetCursorPos(window, &xpos, &ypos);
+            MouseInputSystem::mouse_click_handler(new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos)));
         }
     }
 };
