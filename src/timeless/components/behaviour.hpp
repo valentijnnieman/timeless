@@ -65,8 +65,6 @@ public:
     {
         next_instructions.insert(next_instructions.end(), f_instructions.begin(), f_instructions.end());
         prev_instructions.insert(prev_instructions.end(), b_instructions.begin(), b_instructions.end());
-
-        fill_instructions_with_idle();
     }
 
     /** copy set instructions n times so it fits in max timeline*/

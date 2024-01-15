@@ -45,12 +45,12 @@ public:
         }
         return width;
     }
-    float get_width(std::shared_ptr<Font> font, std::shared_ptr<Text> text)
+    float get_width(std::shared_ptr<Font> font, std::string text)
     {
         float width;
         // Get width of string
         std::string::const_iterator c;
-        for (c = text->text.begin(); c != text->text.end(); c++)
+        for (c = text.begin(); c != text.end(); c++)
         {
             Glyph glyph = font->glyphs.at(*c);
             width += glyph.advance >> 6;
@@ -91,20 +91,27 @@ public:
         glBindVertexArray(font->VAO);
     }
 
-    void render(ComponentManager &cm)
+    void render(ComponentManager &cm, int x, int y)
     {
         std::shared_ptr<Camera> cam = cm.get_camera(camera);
         for (auto &entity : registered_entities)
         {
+            auto text = cm.texts.at(entity);
+            auto font = cm.fonts.at(entity);
             cm.shaders.at(entity)->use();
-            cm.transforms.at(entity)->update();
+            cm.transforms.at(entity)->update(x, y);
+
             if (cam != nullptr)
             {
                 cm.transforms.at(entity)->update_camera(cam->position);
             }
+            if (text->center)
+            {
+                cm.transforms.at(entity)->update(x, y, glm::vec3(-getWidth(entity, cm) * 0.5f, 0.0f, 0.0f));
+            }
+
             set_shader_uniforms(entity, cm);
-            auto font = cm.fonts.at(entity);
-            cm.texts.at(entity)->render(*font, cm.transforms.at(entity)->get_position_from_camera().x, cm.transforms.at(entity)->get_position_from_camera().y, getHeight(entity, cm));
+            text->render(*font, 0.0f, 0.0f, getHeight(entity, cm));
         }
     }
 };

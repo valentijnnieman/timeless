@@ -55,7 +55,7 @@ public:
         }
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-        // glfwSetWindowSizeCallback(window, window_size_callback);
+        glfwSetWindowSizeCallback(window, window_size_callback);
         glfwSetWindowUserPointer(window, this);
 
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -69,6 +69,7 @@ public:
 
         std::cout << "OpenGL Initialized!" << std::endl;
         glViewport(0, 0, TESettings::SCREEN_X, TESettings::SCREEN_Y);
+        glfwSetWindowAspectRatio(window, 16, 9);
 
         glfwSetMouseButtonCallback(window, &mouse_button_callback);
         glfwSetScrollCallback(window, MouseInputSystem::scroll_callback);
@@ -112,6 +113,8 @@ public:
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+
+        glViewport(0, 0, TESettings::SCREEN_X, TESettings::SCREEN_Y);
     }
     ~WindowManager()
     {
@@ -167,9 +170,9 @@ public:
 
             g_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
             rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-            ui_rendering_sys.render(cm, TESettings::SCREEN_X, TESettings::SCREEN_Y);
-            t_rendering_sys.render(cm);
-            ui_t_rendering_sys.render(cm);
+            ui_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+            t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+            ui_t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
             if (screen_shader != nullptr)
             {
@@ -196,17 +199,17 @@ public:
             glfwPollEvents();
         }
     }
+    static void window_size_callback(GLFWwindow *window, int width, int height)
+    {
+        TESettings::rescale_window(width, height);
+        WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+        wm->enable_screen_shader(wm->screen_shader);
+        // glViewport(0, 0, 1920, 1080);
+    }
     static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     {
         // make sure the viewport matches the new window dimensions; note that width and
         // height will be significantly larger than specified on retina displays.
-        TESettings::rescale_window(width, height);
-        glViewport(0, 0, width, height);
-    }
-    static void window_size_callback(GLFWwindow *window, int width, int height)
-    {
-        /** TODO: register main camera and set values below*/
-        // TESettings::rescale_window(width, height);
         // glViewport(0, 0, width, height);
     }
     static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)

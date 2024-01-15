@@ -1,7 +1,11 @@
 #pragma once
+#include "../timer.hpp"
 
 class Text
 {
+private:
+    std::unique_ptr<Timer> type_timer;
+
 public:
     std::string text;
     std::string printed;
@@ -12,30 +16,13 @@ public:
     bool completed;
     int print_length = 0;
 
-    Text(std::string t, bool c = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f))
-        : text(t), center(c), color(color)
+    Text(std::string text, bool center = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f), float type_speed = 0.0f)
+        : text(text), center(center), color(color), type_speed(type_speed)
     {
         if (type_speed > 0.0)
         {
-            // if (print_length < text.length() && timer.pollTime())
-            // {
-            //     print_length += 1;
-
-            //     // // play sound if set
-            //     // if (typingDescription != NULL)
-            //     // {
-            //     //     FMOD::Studio::EventInstance *eventInstance = NULL;
-            //     //     typingDescription->createInstance(&eventInstance);
-
-            //     //     eventInstance->start();
-            //     //     eventInstance->release();
-            //     // }
-            // }
-            // else if (!completed && printLength >= text.length())
-            // {
-            //     completed = true;
-            // }
-            // printed = text.substr(0, printLength);
+            type_timer = std::unique_ptr<Timer>(new Timer(type_speed));
+            printed = "";
         }
         else
         {
@@ -47,6 +34,29 @@ public:
     {
         // iterate through all characters
         std::string::const_iterator c;
+
+        if (type_timer != nullptr)
+        {
+            if (print_length < text.length() && type_timer->pollTime())
+            {
+                print_length += 1;
+
+                // // play sound if set
+                // if (typingDescription != NULL)
+                // {
+                //     FMOD::Studio::EventInstance *eventInstance = NULL;
+                //     typingDescription->createInstance(&eventInstance);
+
+                //     eventInstance->start();
+                //     eventInstance->release();
+                // }
+            }
+            else if (!completed && print_length >= text.length())
+            {
+                completed = true;
+            }
+            printed = text.substr(0, print_length);
+        }
 
         for (c = printed.begin(); c != printed.end(); c++)
         {

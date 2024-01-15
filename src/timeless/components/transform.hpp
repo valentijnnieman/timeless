@@ -80,7 +80,7 @@ public:
         return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z);
     }
 
-    void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y)
+    void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, glm::vec3 offset = glm::vec3(0.0f))
     {
         view = glm::mat4(1.0f);
         projection = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f, -100.0f, 100.0f);
@@ -97,11 +97,12 @@ public:
         transformMatrix = glm::translate(transformMatrix, get_position_from_camera());
         // transformMatrix = glm::translate(transformMatrix, position);
 
-        model = transformMatrix * model;
         model = glm::translate(model, glm::vec3(0.5f * width, 0.5f * height, 0.0f));
+        model = glm::translate(model, offset);
+        model = transformMatrix * model;
 
-        model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        // model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         // model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         if (flip)
         {

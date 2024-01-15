@@ -42,15 +42,18 @@ namespace MouseInputSystem
     void mouse_click_handler(MouseEvent *event)
     {
         bool found_entity = false;
+        double normalizedX = (double)event->mousePosition.x / TESettings::SCREEN_X;
+        double normalizedY = (double)event->mousePosition.y / TESettings::SCREEN_Y;
+
+        glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
+
         for (const auto &[entity, transform] : transforms)
         {
             if (transform != nullptr)
             {
-                float x_scaled = event->mousePosition.x * TESettings::VIEWPORT_SCALE;
-                float y_scaled = event->mousePosition.y * TESettings::VIEWPORT_SCALE;
                 glm::vec3 t_pos = transform->get_position_from_camera();
-                if (x_scaled > (t_pos.x - transform->width) && x_scaled < (t_pos.x + transform->width) &&
-                    y_scaled > (t_pos.y - transform->height) && y_scaled < (t_pos.y + transform->height))
+                if (m_pos.x > (t_pos.x - transform->width) && m_pos.x < (t_pos.x + transform->width) &&
+                    m_pos.y > (t_pos.y - transform->height) && m_pos.y < (t_pos.y + transform->height))
                 {
 
                     notify_listener(event, entity);
@@ -65,11 +68,9 @@ namespace MouseInputSystem
             {
                 if (transform != nullptr)
                 {
-                    float x_scaled = event->mousePosition.x * TESettings::VIEWPORT_SCALE;
-                    float y_scaled = event->mousePosition.y * TESettings::VIEWPORT_SCALE;
                     glm::vec3 t_pos = transform->get_position_from_camera();
-                    if (event->mousePosition.x > (t_pos.x - transform->width) && event->mousePosition.x < (t_pos.x + transform->width) &&
-                        event->mousePosition.y > (t_pos.y - transform->height) && event->mousePosition.y < (t_pos.y + transform->height))
+                    if (m_pos.x > (t_pos.x - transform->width) && m_pos.x < (t_pos.x + transform->width) &&
+                        m_pos.y > (t_pos.y - transform->height) && m_pos.y < (t_pos.y + transform->height))
                     {
                         notify_listener(event, entity);
                         found_entity = true;

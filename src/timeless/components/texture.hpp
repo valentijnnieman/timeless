@@ -26,7 +26,7 @@ public:
         int w = static_cast<int>(width);
         int h = static_cast<int>(height);
 
-        stbi_set_flip_vertically_on_load(true);
+        stbi_set_flip_vertically_on_load(false);
         unsigned char *data = stbi_load(filename, &w, &h, &nrChannels, 4);
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);

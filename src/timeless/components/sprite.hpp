@@ -18,7 +18,6 @@
 class Sprite
 {
 private:
-    float width, height;
     Timer animationSpeed = Timer(0.075f);
     bool isStatic = true;
     int frames;
@@ -33,8 +32,8 @@ public:
     glm::vec2 spriteSheetSize;
     glm::vec2 spriteSize;
 
-    Sprite(float index, glm::vec4 color, float width, float height, glm::vec2 spriteSheetSize, glm::vec2 spriteSize, bool isStatic = true, bool animating = false, int frames = 6)
-        : color(color), index(index), width(width), height(height), isStatic(isStatic), animating(animating), frames(frames), spriteSheetSize(spriteSheetSize), spriteSize(spriteSize)
+    Sprite(float index, glm::vec4 color, glm::vec2 spriteSheetSize, glm::vec2 spriteSize, bool isStatic = true, bool animating = false, int frames = 6)
+        : color(color), index(index), isStatic(isStatic), animating(animating), frames(frames), spriteSheetSize(spriteSheetSize), spriteSize(spriteSize)
     {
     }
     void setColor(glm::vec4 newColor)
