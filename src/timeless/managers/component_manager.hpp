@@ -131,6 +131,10 @@ public:
     {
         return shaders.at(entity);
     }
+    std::shared_ptr<Transform> get_transform(Entity entity)
+    {
+        return transforms.at(entity);
+    }
     std::shared_ptr<Sprite> get_sprite(Entity entity)
     {
         return sprites.at(entity);
@@ -150,6 +154,10 @@ public:
     std::shared_ptr<Text> get_text(Entity entity)
     {
         return texts.at(entity);
+    }
+    std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity)
+    {
+        return mouse_input_listeners.at(entity);
     }
 
     /** this method completely removes all components for an entity */

@@ -21,7 +21,8 @@
 
 namespace TE
 {
-    std::unique_ptr<ComponentManager> cm;
+    std::shared_ptr<ComponentManager> cm;
+    std::shared_ptr<MouseInputSystem> mis;
     std::unique_ptr<WindowManager> wm;
     std::unique_ptr<GeoRenderingSystem> g_rs;
     std::unique_ptr<RenderingSystem> rs;
@@ -36,8 +37,10 @@ namespace TE
 
     void init()
     {
-        cm = std::make_unique<ComponentManager>();
-        wm = std::make_unique<WindowManager>();
+        cm = std::make_shared<ComponentManager>();
+        mis = std::make_shared<MouseInputSystem>();
+        wm = std::make_unique<WindowManager>(cm, mis);
+
         g_rs = std::make_unique<GeoRenderingSystem>();
         rs = std::make_unique<RenderingSystem>();
         ui_rs = std::make_unique<RenderingSystem>();
@@ -118,7 +121,7 @@ namespace TE
     {
         cm->remove_entity(entity);
 
-        MouseInputSystem::remove_entity(entity);
+        mis->remove_entity(entity);
         mvs->remove_entity(entity);
         ai_s->remove_entity(entity);
         rs->remove_entity(entity);
@@ -142,18 +145,7 @@ namespace TE
     void add_component(Entity entity, MouseInputListener *mouse_input, bool add_transform = true, bool is_ui = false)
     {
         cm->add_component(entity, mouse_input);
-        MouseInputSystem::register_listener(entity, TE::get_mouse_input_listener(entity));
-        if (add_transform)
-        {
-            if (is_ui)
-            {
-                MouseInputSystem::register_ui_transform(entity, TE::get_transform(entity));
-            }
-            else
-            {
-                MouseInputSystem::register_transform(entity, TE::get_transform(entity));
-            }
-        }
+        mis->register_entity(entity);
     }
     void add_component(Entity entity, Node *node)
     {
@@ -229,7 +221,7 @@ namespace TE
      * and manager pointers go out of scope before the program finishes, probably
      * better to do something else here.
      */
-    std::unique_ptr<ComponentManager> &get_component_manager()
+    std::shared_ptr<ComponentManager> &get_component_manager()
     {
         return cm;
     }
@@ -253,14 +245,18 @@ namespace TE
     {
         return invs;
     }
+    std::shared_ptr<MouseInputSystem> &get_mouse_input_system()
+    {
+        return mis;
+    }
     std::unique_ptr<WindowManager> &get_window_manager()
     {
         return wm;
     }
 
-    void loop()
+    void loop(std::function<void()> callback = nullptr)
     {
-        wm->loop(*cm, *g_rs, *rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *ai_s);
+        wm->loop(*cm, *g_rs, *rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *ai_s, callback);
     }
     void generate_collider_levels(int start_x1, int start_x2, int start_y1, int start_y2, int n)
     {

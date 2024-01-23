@@ -12,6 +12,7 @@
 #include "../systems/mouse_input_system.hpp"
 #include "../systems/movement_system.hpp"
 #include "../systems/npc_ai_system.hpp"
+#include "../timeless.hpp"
 
 class WindowManager
 {
@@ -33,9 +34,13 @@ public:
     unsigned int ScreenVAO, ScreenVBO;
     std::shared_ptr<Shader> screen_shader;
 
+    std::shared_ptr<ComponentManager> cm;
+    std::shared_ptr<MouseInputSystem> mis;
+
     GLFWwindow *window;
 
-    WindowManager()
+    WindowManager(std::shared_ptr<ComponentManager> cm, std::shared_ptr<MouseInputSystem> mis)
+        : cm(cm), mis(mis)
     {
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -47,6 +52,12 @@ public:
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+        const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        int window_width = mode->width;
+        int window_height = mode->height;
+        TESettings::rescale_window(window_width, window_height);
+
+        // window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
         window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
         if (window == NULL)
         {
@@ -72,7 +83,8 @@ public:
         glfwSetWindowAspectRatio(window, 16, 9);
 
         glfwSetMouseButtonCallback(window, &mouse_button_callback);
-        glfwSetScrollCallback(window, MouseInputSystem::scroll_callback);
+        glfwSetCursorPosCallback(window, cursor_position_callback);
+        // glfwSetScrollCallback(window, wm->scroll_callback);
     }
     void enable_screen_shader(std::shared_ptr<Shader> shader)
     {
@@ -132,7 +144,7 @@ public:
         glUniform1f(glGetUniformLocation(screen_shader->ID, "time"), glfwGetTime());
     }
 
-    void loop(ComponentManager &cm, GeoRenderingSystem &g_rendering_sys, RenderingSystem &rendering_sys, RenderingSystem &ui_rendering_sys, TextRenderingSystem &t_rendering_sys, TextRenderingSystem &ui_t_rendering_sys, MovementSystem &movement_sys, NpcAiSystem &ai_sys)
+    void loop(ComponentManager &cm, GeoRenderingSystem &g_rendering_sys, RenderingSystem &rendering_sys, RenderingSystem &ui_rendering_sys, TextRenderingSystem &t_rendering_sys, TextRenderingSystem &ui_t_rendering_sys, MovementSystem &movement_sys, NpcAiSystem &ai_sys, std::function<void()> callback)
     {
         double t = 0.0;
         double dt = 1.0 / 60.0;
@@ -194,6 +206,10 @@ public:
             //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             // }
+            if (callback)
+            {
+                callback();
+            }
 
             glfwSwapBuffers(window);
             glfwPollEvents();
@@ -212,49 +228,68 @@ public:
         // height will be significantly larger than specified on retina displays.
         // glViewport(0, 0, width, height);
     }
+    void mouse_move_handler(MouseEvent *event)
+    {
+        mis->mouse_move_handler(*cm, event);
+    }
+    void mouse_click_handler(MouseEvent *event)
+    {
+        mis->mouse_click_handler(*cm, event);
+    }
+    void mouse_release_handler(MouseEvent *event)
+    {
+        mis->mouse_release_handler(*cm, event);
+    }
+
+    static void cursor_position_callback(GLFWwindow *window, double xpos, double ypos)
+    {
+        WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+        wm->mouse_move_handler(new MouseEvent("MouseMove", glm::vec2(xpos, ypos)));
+    }
     static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {
+        WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("LeftMousePress", glm::vec2(xpos, ypos)));
+            wm->mouse_click_handler(new MouseEvent("LeftMousePress", glm::vec2(xpos, ypos)));
         }
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("LeftMouseRelease", glm::vec2(xpos, ypos)));
+            wm->mouse_release_handler(new MouseEvent("LeftMouseRelease", glm::vec2(xpos, ypos)));
         }
         if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("RightMousePress", glm::vec2(xpos, ypos)));
+            wm->mouse_click_handler(new MouseEvent("RightMousePress", glm::vec2(xpos, ypos)));
         }
         if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos)));
+            wm->mouse_release_handler(new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos)));
         }
         if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos)));
+            wm->mouse_click_handler(new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos)));
         }
         if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
         {
             double xpos, ypos;
             // getting cursor position
             glfwGetCursorPos(window, &xpos, &ypos);
-            MouseInputSystem::mouse_click_handler(new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos)));
+            wm->mouse_release_handler(new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos)));
         }
     }
 };
