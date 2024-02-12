@@ -5,92 +5,119 @@
 class MouseInputSystem
 {
 public:
-    std::vector<Entity> registered_entities;
+	std::vector<Entity> registered_entities;
 
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
+	void register_entity(Entity entity)
+	{
+		registered_entities.push_back(entity);
+	}
 
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
-    }
+	void remove_entity(Entity entity)
+	{
+		if (!registered_entities.empty())
+		{
+			auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto& e)
+				{ return e == entity; });
+			if (found != registered_entities.end())
+			{
+				registered_entities.erase(found);
+			}
+		}
+	}
 
-    void notify_listener(ComponentManager &cm, MouseEvent *event, Entity entity)
-    {
-        auto listener = cm.get_mouse_input_listener(entity);
-        listener->on_click_handler(event, entity, 0);
-    }
+	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
+	{
+		auto listener = cm.get_mouse_input_listener(entity);
+		listener->on_click_handler(event, entity, 0);
+	}
 
-    void mouse_click_handler(ComponentManager &cm, MouseEvent *event)
-    {
-        bool found_entity = false;
-        double normalizedX = (double)event->mousePosition.x / TESettings::SCREEN_X;
-        double normalizedY = (double)event->mousePosition.y / TESettings::SCREEN_Y;
+	void mouse_click_handler(ComponentManager& cm, MouseEvent* event)
+	{
+		//double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
+		//double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
 
-        glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
+		float highest_z = -999.0f;
+		Entity found_entity;
+		bool entity_was_found = false;
 
-        // for (const auto &[entity, transform] : transforms)
-        for (const auto &entity : registered_entities)
-        {
-            auto transform = cm.get_transform(entity);
-            if (transform != nullptr)
-            {
-                glm::vec3 t_pos = transform->get_position_from_camera();
-                if (m_pos.x > (t_pos.x - transform->width) && m_pos.x < (t_pos.x + transform->width) &&
-                    m_pos.y > (t_pos.y - transform->height) && m_pos.y < (t_pos.y + transform->height))
-                {
+		//glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y) ;
+		glm::vec2 m_pos(event->screen_position.x, event->screen_position.y);
 
-                    notify_listener(cm, event, entity);
-                    found_entity = true;
-                    break;
-                }
-            }
-        }
+		// for (const auto &[entity, transform] : transforms)
+		for (const auto& entity : registered_entities)
+		{
+			auto transform = cm.get_transform(entity);
+			if (transform != nullptr)
+			{
+				glm::vec3 t_pos = transform->get_position_from_camera();
+				if (transform->isometric) 
+				{
+					t_pos.x += 128.0f;
+					t_pos.y -= 64.0f;
+				}
+				//double x_pos = (x - y) * t_width / 2;
+				//double y_pos = (y + x) * t_height / 2;
 
-        // if no entity was found in transforms, we treat it as a "global" click
-        if (!found_entity)
-        {
-            std::string et = event->eventType;
-            for (const auto &entity : registered_entities)
-            {
-                event->eventType = "Global" + et;
-                notify_listener(cm, event, entity);
-            }
-        }
-    }
-    void mouse_release_handler(ComponentManager &cm, MouseEvent *event)
-    {
-        for (const auto &entity : registered_entities)
-        {
-            notify_listener(cm, event, entity);
-        }
-    }
-    void mouse_move_handler(ComponentManager &cm, MouseEvent *event)
-    {
-        double normalizedX = (double)event->mousePosition.x / TESettings::SCREEN_X;
-        double normalizedY = (double)event->mousePosition.y / TESettings::SCREEN_Y;
-        glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
+				// small hack - if transform width/height (scale) is 1.0f, i.e. for Text, 
+				// create a quick new hitbox. TODO - use separate Collider here, don't use transform scale here!
+				float w = transform->width;
+				float h = transform->height;
+				if (w == 1.0f)
+				{
+					w = 16.0f;
+				}
+				if (h == 1.0f)
+				{
+					h = 16.0f;
+				}
+				if (m_pos.x > (t_pos.x - w) && m_pos.x < (t_pos.x + w) &&
+					m_pos.y >(t_pos.y - h) && m_pos.y < (t_pos.y + h))
+				{
 
-        event->mousePosition = m_pos;
+					if(t_pos.z > highest_z)
+					{
+						highest_z = t_pos.z;
+						found_entity = entity;
+						entity_was_found = true;
+					}
+				}
+			}
+		}
+		if (entity_was_found)
+		{
+			notify_listener(cm, event, found_entity);
+		}
 
-        for (const auto &entity : registered_entities)
-        {
-            notify_listener(cm, event, entity);
-        }
-    }
-    void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
-    {
-        // ViewportSettings::SCR_VIEWPORT_X += (ViewportSettings::SCR_VIEWPORT_X * yoffset) * 0.5f;
-        // ViewportSettings::SCR_VIEWPORT_Y += (ViewportSettings::SCR_VIEWPORT_Y * yoffset) * 0.5f;
-    }
+		std::string et = event->eventType;
+		event->eventType = "Global" + et;
+		for (const auto& entity : registered_entities)
+		{
+			notify_listener(cm, event, entity);
+		}
+	}
+	void mouse_release_handler(ComponentManager& cm, MouseEvent* event)
+	{
+		for (const auto& entity : registered_entities)
+		{
+			notify_listener(cm, event, entity);
+		}
+	}
+	void mouse_move_handler(ComponentManager& cm, MouseEvent* event)
+	{
+		double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
+		double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
+		glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
+
+		event->screen_position = m_pos;
+
+		for (const auto& entity : registered_entities)
+		{
+			notify_listener(cm, event, entity);
+		}
+	}
+	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+	{
+		// ViewportSettings::SCR_VIEWPORT_X += (ViewportSettings::SCR_VIEWPORT_X * yoffset) * 0.5f;
+		// ViewportSettings::SCR_VIEWPORT_Y += (ViewportSettings::SCR_VIEWPORT_Y * yoffset) * 0.5f;
+	}
 };

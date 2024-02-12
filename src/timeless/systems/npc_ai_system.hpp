@@ -4,17 +4,19 @@
 class NpcAiSystem
 {
 private:
-    Timer timer = Timer(0.5f);
+    Timer timer = Timer(0.8f);
     bool forward = true;
-    int start_hour = 9;
+    int start_hour = 8;
+    int max_time = 400;
 
     Entity index_text;
 
 public:
     std::vector<Entity> registered_entities;
     bool running = true;
+    bool viewing_ui= false; // separate for when viewing UI etc
 
-    int main_index = 0;
+    int main_index = -1;
 
     void attach_text_component(ComponentManager &cm, Entity text)
     {
@@ -43,11 +45,6 @@ public:
     {
         if (!forward)
         {
-            for (auto &entity : registered_entities)
-            {
-                auto behaviour = cm.get_behaviour(entity);
-                behaviour->advance_index();
-            }
             forward = true;
             running = true;
         }
@@ -56,11 +53,6 @@ public:
     {
         if (forward)
         {
-            for (auto &entity : registered_entities)
-            {
-                auto behaviour = cm.get_behaviour(entity);
-                behaviour->decrease_index();
-            }
             forward = false;
             running = true;
         }
@@ -72,7 +64,7 @@ public:
         for (auto &entity : registered_entities)
         {
             auto sprite = cm.get_sprite(entity);
-            sprite->animating = false;
+            //sprite->animating = false;
         }
     }
     void resume(ComponentManager &cm)
@@ -81,7 +73,7 @@ public:
         for (auto &entity : registered_entities)
         {
             auto sprite = cm.get_sprite(entity);
-            sprite->animating = true;
+            //sprite->animating = true;
         }
     }
 
@@ -105,8 +97,8 @@ public:
         if (text != nullptr)
         {
             auto time = index_to_time();
-            text->text = time;
-            text->printed = time;
+            text->text = time + " tick " + std::to_string(main_index);
+            text->printed = time + " tick " + std::to_string(main_index);
         }
     }
 
@@ -116,60 +108,30 @@ public:
         {
             if (running)
             {
-                bool did_update = false;
+                if(!forward)
+				{
+                    if(main_index > 0)
+						main_index--;
+				}
+				else if (forward)
+				{
+                    if(main_index < max_time)
+						main_index++;
+				}
                 for (auto &entity : registered_entities)
                 {
                     auto behaviour = cm.get_behaviour(entity);
                     auto sprite = cm.get_sprite(entity);
-                    sprite->animating = true;
-                    if (forward)
-                    {
-                        auto instr = behaviour->next();
-                        if (instr != nullptr)
-                        {
-                            instr->run(entity);
-                            behaviour->advance_index();
-                            did_update = true;
-                        }
-                    }
-                    else
-                    {
-                        auto instr = behaviour->prev();
-                        if (instr != nullptr)
-                        {
-                            instr->run(entity);
-                            behaviour->decrease_index();
-                            did_update = true;
-                        }
-                    }
+					auto instr = behaviour->next(main_index);
+                    //sprite->animating = false;
+					if (instr != nullptr)
+					{
+                        bool reverse = !forward;
+						instr->run(entity, reverse);
+						//sprite->animating = true;
+					}
                 }
-
-                if (did_update)
-                {
-                    // for (auto &entity : registered_entities)
-                    // {
-                    //     auto sprite = cm.get_sprite(entity);
-                    //     // sprite->animating = false;
-                    // }
-                    if (forward)
-                    {
-                        main_index++;
-                        update_text(cm);
-                    }
-                    else
-                    {
-                        main_index--;
-                        update_text(cm);
-                    }
-                }
-                else
-                {
-                    for (auto &entity : registered_entities)
-                    {
-                        auto sprite = cm.get_sprite(entity);
-                        sprite->animating = false;
-                    }
-                }
+				update_text(cm);
             }
         }
     }

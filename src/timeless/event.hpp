@@ -23,12 +23,22 @@ public:
 class MouseEvent : public Event
 {
 public:
-    glm::vec2 mousePosition;
-    MouseEvent(std::string et, glm::vec2 mp)
-        : Event(et), mousePosition(mp)
+    glm::vec2 screen_position;
+    MouseEvent(std::string et, glm::vec2 sp)
+        : Event(et), screen_position(sp)
     {
     }
 };
+
+class KeyboardEvent : public Event
+{
+public:
+    KeyboardEvent(std::string et)
+        : Event(et)
+    {
+    }
+};
+
 
 class PositionEvent : public Event
 {

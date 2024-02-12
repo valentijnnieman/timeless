@@ -35,7 +35,7 @@ public:
         auto font = cm.fonts.at(entity);
         auto text = cm.texts.at(entity);
 
-        float width;
+        float width = 0.0f;
         // Get width of string
         std::string::const_iterator c;
         for (c = text->text.begin(); c != text->text.end(); c++)
@@ -63,7 +63,7 @@ public:
         auto font = cm.fonts.at(entity);
         auto text = cm.texts.at(entity);
 
-        float height;
+        float height = 0.0f;
         // Get width of string
         std::string::const_iterator c;
         for (c = text->text.begin(); c != text->text.end(); c++)
@@ -107,7 +107,7 @@ public:
             }
             if (text->center)
             {
-                cm.transforms.at(entity)->update(x, y, glm::vec3(-getWidth(entity, cm) * 0.5f, 0.0f, 0.0f));
+                cm.transforms.at(entity)->update(x, y, 1.0f, glm::vec3(-getWidth(entity, cm) * 0.5f, -getHeight(entity, cm) * 0.5f, 0.0f));
             }
 
             set_shader_uniforms(entity, cm);

@@ -6,6 +6,7 @@
 #include "timeless/components/camera.hpp"
 #include "timeless/components/mouse_input_listener.hpp"
 #include "timeless/components/movement_controller.hpp"
+#include "timeless/components/keyboard_input_listener.hpp"
 #include "timeless/components/font.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/managers/window_manager.hpp"
@@ -14,8 +15,10 @@
 #include "timeless/systems/text_rendering_system.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
 #include "timeless/systems/movement_system.hpp"
+#include "timeless/systems/keyboard_input_system.hpp"
 #include "timeless/systems/npc_ai_system.hpp"
 #include "timeless/systems/inventory_system.hpp"
+#include "timeless/systems/animation_system.hpp"
 #include "timeless/algorithm/graph.hpp"
 // #include "timeless/algorithm/ud_graph.hpp"
 
@@ -30,10 +33,12 @@ namespace TE
     std::unique_ptr<TextRenderingSystem> t_rs;
     std::unique_ptr<TextRenderingSystem> ui_t_rs;
     std::unique_ptr<MovementSystem> mvs;
+    std::unique_ptr<KeyboardInputSystem> kis;
     std::unique_ptr<NpcAiSystem> ai_s;
     std::unique_ptr<Grid> grid;
     // std::unique_ptr<Graph> graph;
     std::unique_ptr<InventorySystem> invs;
+    std::unique_ptr<AnimationSystem> anim_s;
 
     void init()
     {
@@ -47,7 +52,9 @@ namespace TE
         t_rs = std::make_unique<TextRenderingSystem>();
         ui_t_rs = std::make_unique<TextRenderingSystem>();
         mvs = std::make_unique<MovementSystem>();
+        kis = std::make_unique<KeyboardInputSystem>();
         ai_s = std::make_unique<NpcAiSystem>();
+        anim_s = std::make_unique<AnimationSystem>();
         grid = std::make_unique<Grid>(Grid());
         // graph = std::make_unique<Graph>(new_graph);
         invs = std::make_unique<InventorySystem>(InventorySystem());
@@ -101,6 +108,10 @@ namespace TE
     std::shared_ptr<Behaviour> get_behaviour(Entity entity)
     {
         return cm->behaviours.at(entity);
+    }
+    std::shared_ptr<Animation> get_animation(Entity entity)
+    {
+        return cm->animations.at(entity);
     }
     /** Finalizes the Grid by calculating near neighbours for every Node.
      * This needs to be called seperately and after init(), so components
@@ -170,6 +181,11 @@ namespace TE
             mvs->register_entity(entity);
         }
     }
+    void add_component(Entity entity, KeyboardInputListener* keyboard_input)
+    {
+        cm->add_component(entity, keyboard_input);
+        kis->register_entity(entity);
+    }
 
     void add_component(Entity entity, Camera *camera, bool ui = false)
     {
@@ -215,6 +231,11 @@ namespace TE
         cm->add_component(entity, line);
         g_rs->register_entity(entity);
     }
+    void add_component(Entity entity, Animation *animation)
+    {
+        cm->add_component(entity, animation);
+        anim_s->register_entity(entity);
+    }
 
     /** TODO: return shared_ptr instead of ref to unique_ptr? refs to smart pointers
      * defeat the purpose of smart pointers - although it's not likely our system
@@ -256,7 +277,11 @@ namespace TE
 
     void loop(std::function<void()> callback = nullptr)
     {
-        wm->loop(*cm, *g_rs, *rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *ai_s, callback);
+        wm->loop(*cm, *g_rs, *rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
+    }
+    void quit()
+    {
+        wm->running = false;
     }
     void generate_collider_levels(int start_x1, int start_x2, int start_y1, int start_y2, int n)
     {

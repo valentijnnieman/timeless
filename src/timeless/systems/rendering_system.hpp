@@ -1,6 +1,7 @@
 #pragma once
 #include "../components/shader.hpp"
 #include "../components/transform.hpp"
+#include <string.h>
 
 class RenderingSystem
 {
@@ -45,21 +46,29 @@ public:
         glUniform2fv(glGetUniformLocation(shader->ID, "spriteSize"), 1, glm::value_ptr(sprite->spriteSize));
     }
 
-    void render(ComponentManager &cm, int x, int y)
+    void render(ComponentManager &cm, int x, int y, float zoom = 1.0)
     {
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         // get camera if set
         std::shared_ptr<Camera> cam = cm.get_camera(camera);
+
+		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) { 
+            auto trans_a = cm.transforms.at(a);
+            auto trans_b = cm.transforms.at(b);
+            return (trans_a->position.y - trans_a->position.z)  < (trans_b->position.y - trans_b->position.z);
+            });
+
         for (auto &entity : registered_entities)
         {
             cm.shaders.at(entity)->use();
-            cm.transforms.at(entity)->update(x, y);
+            cm.transforms.at(entity)->update(x, y, zoom);
             if (cam != nullptr)
             {
                 cm.transforms.at(entity)->update_camera(cam->position);
             }
             cm.quads.at(entity)->render();
             cm.textures.at(entity)->render();
+
             set_shader_transform_uniforms(cm.shaders.at(entity), cm.transforms.at(entity));
             set_shader_sprite_uniforms(cm.shaders.at(entity), cm.sprites.at(entity));
             auto sprite = cm.sprites.at(entity);

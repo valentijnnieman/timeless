@@ -57,7 +57,7 @@ private:
     typedef std::unordered_map<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>> map_type;
     typedef typename map_type::value_type map_value_type;
 
-    int x_bounds = 80, y_bounds = 80;
+    int x_bounds = 400, y_bounds = 400;
     std::array<glm::vec2, 4> directions = {
         /** N, E, S, W*/
         glm::vec2(0.0f, -1.0f),

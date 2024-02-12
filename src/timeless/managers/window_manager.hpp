@@ -11,7 +11,9 @@
 #include "../systems/text_rendering_system.hpp"
 #include "../systems/mouse_input_system.hpp"
 #include "../systems/movement_system.hpp"
+#include "../systems/keyboard_input_system.hpp"
 #include "../systems/npc_ai_system.hpp"
+#include "../systems/animation_system.hpp"
 #include "../timeless.hpp"
 
 class WindowManager
@@ -33,6 +35,7 @@ public:
     unsigned int rbo;
     unsigned int ScreenVAO, ScreenVBO;
     std::shared_ptr<Shader> screen_shader;
+    bool running = true;
 
     std::shared_ptr<ComponentManager> cm;
     std::shared_ptr<MouseInputSystem> mis;
@@ -57,8 +60,8 @@ public:
         int window_height = mode->height;
         TESettings::rescale_window(window_width, window_height);
 
-        // window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
-        window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
+        //window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
+         window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
         if (window == NULL)
         {
             std::cout << "Failed to create GLFW window" << std::endl;
@@ -79,12 +82,12 @@ public:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         std::cout << "OpenGL Initialized!" << std::endl;
-        glViewport(0, 0, TESettings::SCREEN_X, TESettings::SCREEN_Y);
+        glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
         glfwSetWindowAspectRatio(window, 16, 9);
 
         glfwSetMouseButtonCallback(window, &mouse_button_callback);
         glfwSetCursorPosCallback(window, cursor_position_callback);
-        // glfwSetScrollCallback(window, wm->scroll_callback);
+        glfwSetScrollCallback(window, &scroll_callback);
     }
     void enable_screen_shader(std::shared_ptr<Shader> shader)
     {
@@ -100,10 +103,11 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TESettings::SCREEN_X, TESettings::SCREEN_Y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        // glGenerateMipmap(GL_TEXTURE_2D);
+         //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+         //glGenerateMipmap(GL_TEXTURE_2D);
 
         glBindTexture(GL_TEXTURE_2D, 0);
+
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
         // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
@@ -144,13 +148,13 @@ public:
         glUniform1f(glGetUniformLocation(screen_shader->ID, "time"), glfwGetTime());
     }
 
-    void loop(ComponentManager &cm, GeoRenderingSystem &g_rendering_sys, RenderingSystem &rendering_sys, RenderingSystem &ui_rendering_sys, TextRenderingSystem &t_rendering_sys, TextRenderingSystem &ui_t_rendering_sys, MovementSystem &movement_sys, NpcAiSystem &ai_sys, std::function<void()> callback)
+    void loop(ComponentManager &cm, GeoRenderingSystem &g_rendering_sys, RenderingSystem &rendering_sys, RenderingSystem &ui_rendering_sys, TextRenderingSystem &t_rendering_sys, TextRenderingSystem &ui_t_rendering_sys, MovementSystem &movement_sys, KeyboardInputSystem &keyboard_sys, NpcAiSystem &ai_sys, AnimationSystem &anim_sys, std::function<void()> callback)
     {
         double t = 0.0;
         double dt = 1.0 / 60.0;
 
         double current_time = glfwGetTime();
-        while (!glfwWindowShouldClose(window))
+        while (!glfwWindowShouldClose(window) && running)
         {
             double new_time = glfwGetTime();
             double frame_time = new_time - current_time;
@@ -161,7 +165,9 @@ public:
                 float delta_time = std::min(frame_time, dt);
 
                 movement_sys.update(cm, window);
+                keyboard_sys.update(cm, window);
                 ai_sys.update(cm);
+                anim_sys.update(cm);
                 frame_time -= delta_time;
                 t += delta_time;
             }
@@ -181,7 +187,7 @@ public:
             // }
 
             g_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-            rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+            rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
             ui_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
             t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
             ui_t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
@@ -245,6 +251,11 @@ public:
     {
         WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
         wm->mouse_move_handler(new MouseEvent("MouseMove", glm::vec2(xpos, ypos)));
+    }
+    static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+    {
+        TESettings::ZOOM += yoffset * 0.1;
+        TESettings::ZOOM = std::clamp<double>(TESettings::ZOOM, 0.75, 1.5);
     }
     static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {
