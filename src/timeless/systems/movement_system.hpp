@@ -1,5 +1,6 @@
 #pragma once
 #include "glm/glm.hpp"
+#include <array>
 
 class MovementSystem
 {
@@ -10,13 +11,14 @@ private:
         a,
         s,
         d,
+        escape
     };
 
     glm::vec2 x_bounds;
     glm::vec2 y_bounds;
     float walk_speed;
     float camera_speed;
-    std::array<bool, 6> keysPressed = {false, false, false, false};
+    std::array<bool, 6> keysPressed = {false, false, false, false, false};
 
 public:
     std::vector<Entity> registered_entities;
@@ -199,6 +201,15 @@ public:
         {
             move_down(cm);
             keysPressed[s] = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            keysPressed[escape] = true;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE && keysPressed[escape])
+        {
+            keysPressed[escape] = false;
         }
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE && keysPressed[a])
         {

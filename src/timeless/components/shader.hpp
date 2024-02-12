@@ -11,7 +11,7 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
-std::string cwd() { return std::filesystem::current_path(); }
+std::filesystem::path cwd() { return std::filesystem::current_path(); }
 
 class Shader
 {

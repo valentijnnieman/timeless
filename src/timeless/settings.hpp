@@ -8,6 +8,7 @@ namespace TESettings
     static int VIEWPORT_SCALE = 1;
     static int VIEWPORT_X = 1920 * VIEWPORT_SCALE;
     static int VIEWPORT_Y = 1080 * VIEWPORT_SCALE;
+    static float ZOOM = 1;
 
     void rescale_window(int width, int height)
     {

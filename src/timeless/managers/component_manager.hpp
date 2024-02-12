@@ -6,6 +6,7 @@
 #include "../components/texture.hpp"
 #include "../components/mouse_input_listener.hpp"
 #include "../components/movement_controller.hpp"
+#include "../components/keyboard_input_listener.hpp"
 #include "../components/camera.hpp"
 #include "../components/collider.hpp"
 #include "../components/node.hpp"
@@ -13,6 +14,7 @@
 #include "../components/text.hpp"
 #include "../components/behaviour.hpp"
 #include "../components/line.hpp"
+#include "../components/animation.hpp"
 
 class ComponentManager
 {
@@ -23,6 +25,7 @@ public:
     std::unordered_map<Entity, std::shared_ptr<Sprite>> sprites;
     std::unordered_map<Entity, std::shared_ptr<Transform>> transforms;
     std::unordered_map<Entity, std::shared_ptr<MouseInputListener>> mouse_input_listeners;
+    std::unordered_map<Entity, std::shared_ptr<KeyboardInputListener>> keyboard_input_listeners;
     std::unordered_map<Entity, std::shared_ptr<Camera>> cameras;
     std::unordered_map<Entity, std::shared_ptr<Collider>> colliders;
     std::unordered_map<Entity, std::shared_ptr<MovementController>> movements;
@@ -31,6 +34,7 @@ public:
     std::unordered_map<Entity, std::shared_ptr<Text>> texts;
     std::unordered_map<Entity, std::shared_ptr<Behaviour>> behaviours;
     std::unordered_map<Entity, std::shared_ptr<Line>> geometry;
+    std::unordered_map<Entity, std::shared_ptr<Animation>> animations;
 
     /** These separately defined methods are perhaps not very DRY.
      * It could have been done with templates and a bitfield type signature
@@ -73,6 +77,10 @@ public:
     void add_component(Entity entity, MouseInputListener *mouse_input)
     {
         mouse_input_listeners.insert({entity, std::shared_ptr<MouseInputListener>(mouse_input)});
+    }
+    void add_component(Entity entity, KeyboardInputListener *keyboard_input)
+    {
+        keyboard_input_listeners.insert({entity, std::shared_ptr<KeyboardInputListener>(keyboard_input)});
     }
     void add_component(Entity entity, Camera *camera)
     {
@@ -118,6 +126,10 @@ public:
     {
         geometry.insert({entity, std::shared_ptr<Line>(line)});
     }
+    void add_component(Entity entity, Animation *animation)
+    {
+        animations.insert({entity, std::shared_ptr<Animation>(animation)});
+    }
 
     std::shared_ptr<Quad> get_quad(Entity entity)
     {
@@ -125,7 +137,7 @@ public:
     }
     std::shared_ptr<Texture> get_texture(Entity entity)
     {
-        return textures.at(entity);
+		return textures.at(entity);
     }
     std::shared_ptr<Shader> get_shader(Entity entity)
     {
@@ -158,6 +170,14 @@ public:
     std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity)
     {
         return mouse_input_listeners.at(entity);
+    }
+    std::shared_ptr<KeyboardInputListener> get_keyboard_input_listener(Entity entity)
+    {
+        return keyboard_input_listeners.at(entity);
+    }
+    std::shared_ptr<Animation> get_animation(Entity entity)
+    {
+        return animations.at(entity);
     }
 
     /** this method completely removes all components for an entity */

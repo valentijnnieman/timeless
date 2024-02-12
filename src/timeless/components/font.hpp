@@ -16,7 +16,7 @@ public:
     unsigned int VAO, VBO;
     std::map<char, Glyph> glyphs;
 
-    Font(int fontSize)
+    Font(int fontSize, std::string filepath = "Assets/fonts/8bit.ttf")
     {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
@@ -32,12 +32,10 @@ public:
         if (FT_Init_FreeType(&ft))
             std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
 
-        const char *font_name = std::filesystem::path("Assets/fonts/8bit.ttf").c_str();
-        if (!font_name)
-            std::cout << "ERROR::FREETYPE: Failed to load font_name: " << font_name << std::endl;
+        std::string font_name = std::filesystem::path(filepath).string();
 
         FT_Face face;
-        if (FT_New_Face(ft, font_name, 0, &face))
+        if (FT_New_Face(ft, font_name.c_str(), 0, &face))
         {
             std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
         }

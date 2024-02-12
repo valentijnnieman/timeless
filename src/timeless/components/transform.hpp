@@ -4,6 +4,7 @@
 #include "glm/gtx/string_cast.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <cmath>
 #include <queue>
 #include <iostream>
@@ -19,15 +20,18 @@ public:
     glm::mat4 model, view, projection;
     glm::vec3 position;
     glm::vec3 offset;
+    glm::quat rot;
     float rotation;
     float width, height;
     bool flip = false;
+    bool isometric = false;
 
-    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f))
+    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool iso = false)
         : position(p),
-          rotation(r), width(w), height(h), offset(o)
+          rotation(r), width(w), height(h), offset(o), isometric(iso)
     {
         // projection = glm::ortho(0.0f, static_cast<float>(SCR_VIEWPORT_X), static_cast<float>(SCR_VIEWPORT_Y), 0.0f, -1.0f, 1.0f);
+        rot = glm::quat(glm::vec3(0, 0, 0));
 
         model = glm::mat4(1.0f);
 
@@ -48,6 +52,11 @@ public:
     void rotate(float r)
     {
         rotation = r;
+    }
+
+    void rotate(glm::vec3 eulers)
+    {
+        rot = glm::quat(eulers);
     }
     void set(glm::vec3 p)
     {
@@ -80,10 +89,10 @@ public:
         return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z);
     }
 
-    void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, glm::vec3 offset = glm::vec3(0.0f))
+    void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
     {
         view = glm::mat4(1.0f);
-        projection = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f, -100.0f, 100.0f);
+        projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -100.0f, 100.0f);
 
         model = glm::mat4(1.0f);
         glm::mat4 transformMatrix = glm::mat4(1.0f);
@@ -99,14 +108,15 @@ public:
 
         model = glm::translate(model, glm::vec3(0.5f * width, 0.5f * height, 0.0f));
         model = glm::translate(model, offset);
-        model = transformMatrix * model;
+        glm::mat4 rotation_matrix = glm::toMat4(rot);
+        model = transformMatrix * rotation_matrix * model;
 
         // model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         // model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         // model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         if (flip)
         {
-            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            //model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         }
 
         model = glm::scale(model, glm::vec3(width, height, 1.0f));

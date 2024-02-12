@@ -1,5 +1,32 @@
 #pragma once
 
+enum LocationType 
+{
+	none,
+	home,
+	office,
+	food,
+    car_start,
+    bike_start,
+    crime,
+    meeting,	
+};
+std::string to_string (LocationType t)
+{
+    switch (t)
+    {
+		case none:    return "none";
+		case home:    return "home";
+		case office:  return "office";
+		case food:    return "food";
+		case car_start: return "car_start";
+		case bike_start: return "bike_start";
+		case crime: return "crime";
+		case meeting: return "meeting";
+		default:      return "unknown";
+    }
+}
+
 class Node
 {
 public:
@@ -8,6 +35,8 @@ public:
     int width, height;
     int index;
     bool inside;
+    int taken = 0;
+    LocationType location = none;
 
     Collider collider;
 
@@ -16,10 +45,9 @@ public:
     {
         archive(x, y, z, width, height, index, layer);
     }
-    Node() {}
 
-    Node(int x, int y, int z, int width, int height, int index, int layer, bool inside = false)
-        : x(x), y(y), z(z), layer(layer), width(width), height(height), index(index), inside(inside)
+    Node(int x, int y, int z, int width, int height, int index, int layer, bool inside = false, LocationType location = none)
+        : x(x), y(y), z(z), layer(layer), width(width), height(height), index(index), inside(inside), location(location)
     {
         float x1 = x - width;
         float x2 = x + width;

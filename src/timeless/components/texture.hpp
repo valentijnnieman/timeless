@@ -18,9 +18,10 @@ class Texture
 public:
     unsigned int texture;
     int width, height;
+    std::string filename;
 
     Texture(const char *filename, int width, int height)
-        : width(width), height(height)
+        : width(width), height(height), filename(std::string(filename))
     {
         int nrChannels;
         int w = static_cast<int>(width);
@@ -41,7 +42,7 @@ public:
 
         stbi_image_free(data);
     }
-
+    
     void render()
     {
         glActiveTexture(GL_TEXTURE0);
