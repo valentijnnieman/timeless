@@ -1,29 +1,11 @@
 #pragma once
 #include "../event.hpp"
 #include "../timeless.hpp"
+#include "system.hpp"
 
-class MouseInputSystem
+class MouseInputSystem : public System
 {
 public:
-	std::vector<Entity> registered_entities;
-
-	void register_entity(Entity entity)
-	{
-		registered_entities.push_back(entity);
-	}
-
-	void remove_entity(Entity entity)
-	{
-		if (!registered_entities.empty())
-		{
-			auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto& e)
-				{ return e == entity; });
-			if (found != registered_entities.end())
-			{
-				registered_entities.erase(found);
-			}
-		}
-	}
 
 	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
 	{

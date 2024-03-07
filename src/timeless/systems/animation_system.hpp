@@ -1,28 +1,10 @@
 #pragma once
+#include "system.hpp"
 
-class AnimationSystem
+class AnimationSystem : public System
 {
 public:
 	AnimationSystem() {};
-
-    std::vector<Entity> registered_entities;
-
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
-    }
 
     void update(ComponentManager &cm)
     {
@@ -33,9 +15,17 @@ public:
             {
                 auto transform = cm.transforms.at(entity);
 				glm::vec3 dir = animation->positions.front();
-                transform->set(dir);
+                transform->set_position(dir);
                 animation->positions.pop();
             }
+            if (!animation->scales.empty())
+            {
+                auto transform = cm.transforms.at(entity);
+				glm::vec3 scale = animation->scales.front();
+                transform->set_scale(scale);
+                animation->scales.pop();
+            }
+
             if (!animation->rotations.empty())
             {
                 auto transform = cm.transforms.at(entity);
@@ -47,6 +37,7 @@ public:
 					animation->rotations.push(euler_angles);
                 }
             }
+
         }
     }
 };

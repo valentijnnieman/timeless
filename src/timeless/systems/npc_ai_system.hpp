@@ -1,7 +1,8 @@
 #pragma once
 #include "../timer.hpp"
+#include "system.hpp"
 
-class NpcAiSystem
+class NpcAiSystem : public System
 {
 private:
     Timer timer = Timer(0.8f);
@@ -12,7 +13,6 @@ private:
     Entity index_text;
 
 public:
-    std::vector<Entity> registered_entities;
     bool running = true;
     bool viewing_ui= false; // separate for when viewing UI etc
 
@@ -22,23 +22,6 @@ public:
     {
         index_text = text;
         update_text(cm);
-    }
-
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
     }
 
     void play_forward(ComponentManager &cm)
@@ -64,17 +47,11 @@ public:
         for (auto &entity : registered_entities)
         {
             auto sprite = cm.get_sprite(entity);
-            //sprite->animating = false;
         }
     }
     void resume(ComponentManager &cm)
     {
         running = true;
-        for (auto &entity : registered_entities)
-        {
-            auto sprite = cm.get_sprite(entity);
-            //sprite->animating = true;
-        }
     }
 
     std::string index_to_time()
@@ -121,14 +98,11 @@ public:
                 for (auto &entity : registered_entities)
                 {
                     auto behaviour = cm.get_behaviour(entity);
-                    auto sprite = cm.get_sprite(entity);
 					auto instr = behaviour->next(main_index);
-                    //sprite->animating = false;
 					if (instr != nullptr)
 					{
                         bool reverse = !forward;
 						instr->run(entity, reverse);
-						//sprite->animating = true;
 					}
                 }
 				update_text(cm);

@@ -9,222 +9,275 @@
 
 namespace std
 {
-    template <>
-    struct hash<Node>
-    {
-        std::size_t operator()(const Node &id) const noexcept
-        {
-            return std::hash<int>()(id.x ^ (id.y << 16));
-        }
-    };
+	template <>
+	struct hash<Node>
+	{
+		std::size_t operator()(const Node& id) const noexcept
+		{
+			return std::hash<int>()(id.x ^ (id.y << 16));
+		}
+	};
 }
-bool operator==(const Node &lhs, const Node &rhs)
+bool operator==(const Node& lhs, const Node& rhs)
 {
-    return lhs.x == rhs.x && lhs.y == rhs.y;
+	return lhs.x == rhs.x && lhs.y == rhs.y;
 }
 class Compare
 {
 public:
-    bool operator()(std::shared_ptr<Node> below, std::shared_ptr<Node> above)
-    {
-        if (below->layer > above->layer)
-        {
-            return true;
-        }
+	bool operator()(std::shared_ptr<Node> below, std::shared_ptr<Node> above)
+	{
+		if (below->layer > above->layer)
+		{
+			return true;
+		}
 
-        return false;
-    }
+		return false;
+	}
 };
 
 class NodeCollider
 {
 public:
-    int x1, x2, y1, y2;
+	int x1, x2, y1, y2;
 
-    NodeCollider(int x1, int x2, int y1, int y2)
-        : x1(x1), x2(x2), y1(y1), y2(y2)
-    {
-    }
-    bool is_in_bounds(glm::vec3 p)
-    {
-        return x1 <= p.x && p.x <= x2 && y1 <= p.y && p.y <= y2;
-    }
+	NodeCollider(int x1, int x2, int y1, int y2)
+		: x1(x1), x2(x2), y1(y1), y2(y2)
+	{
+	}
+	bool is_in_bounds(glm::vec3 p)
+	{
+		return x1 <= p.x && p.x <= x2 && y1 <= p.y && p.y <= y2;
+	}
 };
 
 class Grid
 {
 private:
-    typedef std::unordered_map<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>> map_type;
-    typedef typename map_type::value_type map_value_type;
+	typedef std::unordered_map<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>> map_type;
+	typedef typename map_type::value_type map_value_type;
 
-    int x_bounds = 400, y_bounds = 400;
-    std::array<glm::vec2, 4> directions = {
-        /** N, E, S, W*/
-        glm::vec2(0.0f, -1.0f),
-        glm::vec2(1.0f, 0.0f),
-        glm::vec2(0.0f, 1.0f),
-        glm::vec2(-1.0f, 0.0f),
-    };
+	int x_bounds = 400, y_bounds = 400;
+	std::vector<glm::vec2> directions = {
+		/** N, E, S, W*/
+		glm::vec2(0.0f, 1.0f),
+		glm::vec2(1.0f, 0.0f),
+		glm::vec2(0.0f, -1.0f),
+		glm::vec2(-1.0f, 0.0f),
+	};
+	enum dirs
+	{
+		north,
+		east,
+		south,
+		west
+	};
+
+	std::map<int, std::vector<glm::vec2>> building_ins = {
+		{8, { directions[west] }},
+		{9, { directions[west] }},
+		{ 10, { directions[west] }},
+		{11, { directions[east] }},
+		{12, { directions[west], directions[east] }},
+		{13, { directions[south] }},
+		{14, { directions[south] }},
+	};
+
+	std::map<int, std::vector<glm::vec2>> building_outs = {
+		{8, { directions[east] }},
+		{9, { directions[east] }},
+		{ 10, { directions[east] }},
+		{11, { directions[west] }},
+		{12, { directions[east], directions[west] }},
+		{13, { directions[north] }},
+		{14, { directions[north] }},
+	};
+
 
 public:
-    map_type vertices;
-    std::vector<Entity> registered_entities;
-    std::vector<NodeCollider> colliders;
+	map_type vertices;
+	std::vector<Entity> registered_entities;
+	std::vector<NodeCollider> colliders;
 
-    Grid() {}
+	Grid() {}
 
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    bool isInBounds(glm::vec2 p) const
-    {
-        return 0 <= p.x && p.x < x_bounds && 0 <= p.y && p.y < y_bounds;
-    }
+	void register_entity(Entity entity)
+	{
+		registered_entities.push_back(entity);
+	}
+	bool isInBounds(glm::vec2 p) const
+	{
+		return 0 <= p.x && p.x < x_bounds && 0 <= p.y && p.y < y_bounds;
+	}
 
-    void calculate_nodes(ComponentManager &cm)
-    {
-        for (auto &entity : registered_entities)
-        {
-            add_node(cm.nodes.at(entity), cm);
-        }
-    }
+	void calculate_nodes(ComponentManager& cm)
+	{
+		for (auto& entity : registered_entities)
+		{
+			add_node(cm.nodes.at(entity), cm);
+		}
+	}
 
-    void is_inside(std::shared_ptr<Node> node)
-    {
-        for (auto &col : colliders)
-        {
-            if (col.is_in_bounds(glm::vec3(node->x, node->y, 0.0f)))
-            {
-                node->z = 3;
-            }
-        }
-    }
+	void is_inside(std::shared_ptr<Node> node)
+	{
+		for (auto& col : colliders)
+		{
+			if (col.is_in_bounds(glm::vec3(node->x, node->y, 0.0f)))
+			{
+				node->z = 3;
+			}
+		}
+	}
 
-    void add_node(std::shared_ptr<Node> node, ComponentManager &cm)
-    {
-        std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, cm);
+	void add_node(std::shared_ptr<Node> node, ComponentManager& cm)
+	{
+		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, cm);
 
-        is_inside(node);
+		is_inside(node);
 
-        vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
-    }
+		vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
+	}
 
-    std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, ComponentManager &cm)
-    {
-        std::vector<std::shared_ptr<Node>> results;
-        for (glm::vec2 dir : directions)
-        {
-            glm::vec2 next = {node->x + dir.x, node->y + dir.y};
-            if (isInBounds(next))
-            {
-                auto it = find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity &entity)
-                                  { 
-                                    std::shared_ptr<Node> node = cm.nodes.at(entity);
-                                    return node->x == next.x && node->y == next.y; });
+	std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, ComponentManager& cm)
+	{
+		std::vector<std::shared_ptr<Node>> results;
+		std::vector<glm::vec2> node_dirs = directions;
+		if (node->layer == 1) return results;
 
-                if (it != registered_entities.end())
-                {
-                    auto n = cm.nodes.at(*it);
-                    if (n->layer != 1)
-                    {
-                        results.push_back(n);
-                    }
-                }
-            }
-        }
+		if (node->index > 7 && node->index < 15)
+		{
+			auto it = building_outs.find(node->index);
+			node_dirs = it->second;
+		}
+		for (glm::vec2 dir : node_dirs)
+		{
+			glm::vec2 next = { node->x + dir.x, node->y + dir.y };
+			if (isInBounds(next))
+			{
+				auto it = find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity& entity)
+					{
+						std::shared_ptr<Node> node = cm.nodes.at(entity);
+						return node->x == next.x && node->y == next.y;
+					});
 
-        return results;
-    }
+				if (it != registered_entities.end())
+				{
+					auto n = cm.nodes.at(*it);
+					if (n->layer != 1)
+					{
+						std::vector<glm::vec2> n_dirs = directions;
+						if (n->index > 7 && n->index < 15)
+						{
+							auto n_it = building_ins.find(n->index);
+							n_dirs = n_it->second;
+						}
+						if (std::find(n_dirs.begin(), n_dirs.end(), glm::vec2(dir.x, dir.y)) != n_dirs.end())
+						{
+							results.push_back(n);
+						}
+					}
+				}
+			}
+		}
 
-    int detectGridLayer(Collider &at)
-    {
-        auto it = find_if(vertices.begin(), vertices.end(), [&at](const map_value_type &node)
-                          {
-            bool cX = (at.x1 >= node.first->collider.x1 ||
-                       at.x2 >= node.first->collider.x1) &&
-                      (at.x1 <= node.first->collider.x2 ||
-                       at.x2 <= node.first->collider.x2);
+		return results;
+	}
 
-            bool cY = (at.y1 >= node.first->collider.y1 ||
-                       at.y2 >= node.first->collider.y1) &&
-                      (at.y1 <= node.first->collider.y2 ||
-                       at.y2 <= node.first->collider.y2);
+	int detectGridLayer(Collider& at)
+	{
+		auto it = find_if(vertices.begin(), vertices.end(), [&at](const map_value_type& node)
+			{
+				bool cX = (at.x1 >= node.first->collider.x1 ||
+					at.x2 >= node.first->collider.x1) &&
+					(at.x1 <= node.first->collider.x2 ||
+						at.x2 <= node.first->collider.x2);
 
-            return cX && cY; });
+				bool cY = (at.y1 >= node.first->collider.y1 ||
+					at.y2 >= node.first->collider.y1) &&
+					(at.y1 <= node.first->collider.y2 ||
+						at.y2 <= node.first->collider.y2);
 
-        if (it != vertices.end())
-        {
-            return it->first->layer;
-        }
-        else
-            return 0;
-    }
+				return cX && cY; });
 
-    std::shared_ptr<Node> find_node(int x, int y)
-    {
-        auto it = find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
-                          { return node.first->x == x && node.first->y == y; });
-        return it->first;
-    }
+		if (it != vertices.end())
+		{
+			return it->first->layer;
+		}
+		else
+			return 0;
+	}
 
-    int cost(std::shared_ptr<Node> current, std::shared_ptr<Node> next)
-    {
-        return (next->layer - current->layer) + 1;
-    }
+	std::shared_ptr<Node> find_node(int x, int y)
+	{
+		auto it = find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
+			{ return node.first->x == x && node.first->y == y; });
+		return it->first;
+	}
 
-    std::vector<std::shared_ptr<Node>> get_path_to_node(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)
-    {
-        typedef std::pair<int, std::shared_ptr<Node>> WeightedNode;
-        std::priority_queue<WeightedNode, std::vector<WeightedNode>, std::greater<WeightedNode>> frontier;
-        frontier.emplace(0, start);
+	std::shared_ptr<Node> find_free_node_of_type(LocationType location)
+	{
+		auto it = find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
+			{ return node.first->location == location && node.first->taken < 3; });
+		return it->first;
+	}
 
-        std::unordered_map<std::shared_ptr<Node>, std::shared_ptr<Node>> came_from;
-        std::unordered_map<std::shared_ptr<Node>, int> cost_so_far;
+	int cost(std::shared_ptr<Node> current, std::shared_ptr<Node> next)
+	{
+		return (next->layer - current->layer) + 1;
+	}
 
-        came_from[start] = start;
-        cost_so_far[start] = 0;
+	std::vector<std::shared_ptr<Node>> get_path_to_node(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)
+	{
+		typedef std::pair<int, std::shared_ptr<Node>> WeightedNode;
+		std::priority_queue<WeightedNode, std::vector<WeightedNode>, std::greater<WeightedNode>> frontier;
+		frontier.emplace(0, start);
 
-        while (!frontier.empty())
-        {
-            auto current = frontier.top().second;
-            frontier.pop();
+		std::unordered_map<std::shared_ptr<Node>, std::shared_ptr<Node>> came_from;
+		std::unordered_map<std::shared_ptr<Node>, int> cost_so_far;
 
-            if (current == dest)
-            {
-                break;
-            }
-            for (auto next : vertices.at(current))
-            {
-                int new_cost = cost_so_far[current] + cost(current, next);
-                if (cost_so_far.find(next) == cost_so_far.end() || new_cost < cost_so_far[next])
-                {
-                    cost_so_far[next] = new_cost;
-                    came_from[next] = current;
-                    frontier.emplace(new_cost, next);
-                }
-            }
-        }
+		came_from[start] = start;
+		cost_so_far[start] = 0;
 
-        auto current = dest;
-        std::vector<std::shared_ptr<Node>> path;
-        if (came_from.find(dest) == came_from.end())
-        {
-            return path; // no path can be found
-        }
-        while (current != start)
-        {
-            path.push_back(current);
-            current = came_from.at(current);
-        }
-        path.push_back(start);
-        std::reverse(path.begin(), path.end());
+		while (!frontier.empty())
+		{
+			auto current = frontier.top().second;
+			frontier.pop();
 
-        return path;
-    }
+			if (current == dest)
+			{
+				break;
+			}
+			for (auto next : vertices.at(current))
+			{
+				int new_cost = cost_so_far[current] + cost(current, next);
+				if (cost_so_far.find(next) == cost_so_far.end() || new_cost < cost_so_far[next])
+				{
+					cost_so_far[next] = new_cost;
+					came_from[next] = current;
+					frontier.emplace(new_cost, next);
+				}
+			}
+		}
 
-    glm::vec3 calculate_directions(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)
-    {
-        return glm::vec3(dest->x - start->x, dest->y - start->y, 1.0f);
-    }
+		auto current = dest;
+		std::vector<std::shared_ptr<Node>> path;
+		if (came_from.find(dest) == came_from.end())
+		{
+			return path; // no path can be found
+		}
+		while (current != start)
+		{
+			path.push_back(current);
+			current = came_from.at(current);
+		}
+		path.push_back(start);
+		std::reverse(path.begin(), path.end());
+
+		return path;
+	}
+
+	glm::vec3 calculate_directions(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)
+	{
+		return glm::vec3(dest->x - start->x, dest->y - start->y, 1.0f);
+	}
 };

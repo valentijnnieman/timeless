@@ -1,8 +1,9 @@
 #pragma once
 #include "glm/glm.hpp"
 #include <array>
+#include "system.hpp"
 
-class MovementSystem
+class MovementSystem : public System
 {
 private:
     enum Keys
@@ -21,29 +22,11 @@ private:
     std::array<bool, 6> keysPressed = {false, false, false, false, false};
 
 public:
-    std::vector<Entity> registered_entities;
     Entity camera;
 
     MovementSystem()
         : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)), y_bounds(glm::vec2(-TESettings::SCREEN_Y, TESettings::SCREEN_Y)), walk_speed(1.0f), camera_speed(10.0f)
     {
-    }
-
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
     }
 
     void register_camera(Entity c)

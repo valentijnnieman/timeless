@@ -24,6 +24,7 @@ class MouseEvent : public Event
 {
 public:
     glm::vec2 screen_position;
+    bool picked_up = false;
     MouseEvent(std::string et, glm::vec2 sp)
         : Event(et), screen_position(sp)
     {

@@ -6,6 +6,8 @@ in vec2 TexCoords;
 
 uniform sampler2D screenTexture;
 uniform float time;
+uniform vec2 lightPosition;
+uniform vec2 mousePosition;
 
 void main()
 {

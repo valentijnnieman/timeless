@@ -1,29 +1,12 @@
 #pragma once
 #include "../components/font.hpp"
 #include "../components/text.hpp"
+#include "system.hpp"
 
-class TextRenderingSystem
+class TextRenderingSystem : public System
 {
 public:
-    std::vector<Entity> registered_entities;
     Entity camera;
-
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
-    }
 
     void register_camera(Entity c)
     {

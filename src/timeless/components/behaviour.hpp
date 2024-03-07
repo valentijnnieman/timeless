@@ -71,7 +71,7 @@ public:
 
     std::shared_ptr<Instruction> next(int index)
     {
-        if (index >= next_instructions.size() - 1)
+        if (index > next_instructions.size() - 1)
         {
             return nullptr;
         }

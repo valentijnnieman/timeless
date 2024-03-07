@@ -20,15 +20,18 @@ public:
     glm::mat4 model, view, projection;
     glm::vec3 position;
     glm::vec3 offset;
+    glm::vec3 scale;
     glm::quat rot;
     float rotation;
     float width, height;
+    float grid_x = 0;
+    float grid_y = 0;
     bool flip = false;
     bool isometric = false;
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool iso = false)
         : position(p),
-          rotation(r), width(w), height(h), offset(o), isometric(iso)
+          rotation(r), width(w), height(h), offset(o), isometric(iso), scale(glm::vec3(w, h, 1.0f))
     {
         // projection = glm::ortho(0.0f, static_cast<float>(SCR_VIEWPORT_X), static_cast<float>(SCR_VIEWPORT_Y), 0.0f, -1.0f, 1.0f);
         rot = glm::quat(glm::vec3(0, 0, 0));
@@ -58,9 +61,17 @@ public:
     {
         rot = glm::quat(eulers);
     }
-    void set(glm::vec3 p)
+    void set_position(glm::vec3 p)
     {
         position = p;
+    }
+    void set_offset(glm::vec3 o)
+    {
+        offset = o;
+    }
+    void set_scale(glm::vec3 s)
+    {
+        scale = s;
     }
     void set_movement_frames(glm::vec3 destination)
     {
@@ -89,24 +100,29 @@ public:
         return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z);
     }
 
+    glm::vec3 get_centered_position_from_camera()
+    {
+        return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
+    }
+
     void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
     {
         view = glm::mat4(1.0f);
-        projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -100.0f, 100.0f);
+        projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
 
         model = glm::mat4(1.0f);
         glm::mat4 transformMatrix = glm::mat4(1.0f);
-        if (!movement_frames.empty())
-        {
-            glm::vec3 dir = movement_frames.front();
-            set(dir);
-            movement_frames.pop();
-        }
+        //if (!movement_frames.empty())
+        //{
+        //    glm::vec3 dir = movement_frames.front();
+        //    set_position(dir);
+        //    movement_frames.pop();
+        //}
 
         transformMatrix = glm::translate(transformMatrix, get_position_from_camera());
         // transformMatrix = glm::translate(transformMatrix, position);
 
-        model = glm::translate(model, glm::vec3(0.5f * width, 0.5f * height, 0.0f));
+        model = glm::translate(model, glm::vec3(0.5 * width, 0.5 * height, 0.0));
         model = glm::translate(model, offset);
         glm::mat4 rotation_matrix = glm::toMat4(rot);
         model = transformMatrix * rotation_matrix * model;
@@ -116,9 +132,9 @@ public:
         // model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         if (flip)
         {
-            //model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         }
 
-        model = glm::scale(model, glm::vec3(width, height, 1.0f));
+        model = glm::scale(model, scale);
     }
 };

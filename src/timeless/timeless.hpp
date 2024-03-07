@@ -20,25 +20,16 @@
 #include "timeless/systems/inventory_system.hpp"
 #include "timeless/systems/animation_system.hpp"
 #include "timeless/algorithm/graph.hpp"
-// #include "timeless/algorithm/ud_graph.hpp"
+#include "timeless/systems/system.hpp"
 
 namespace TE
 {
+    std::map<std::string, std::shared_ptr<System>> systems;
+
     std::shared_ptr<ComponentManager> cm;
     std::shared_ptr<MouseInputSystem> mis;
     std::unique_ptr<WindowManager> wm;
-    std::unique_ptr<GeoRenderingSystem> g_rs;
-    std::unique_ptr<RenderingSystem> rs;
-    std::unique_ptr<RenderingSystem> ui_rs;
-    std::unique_ptr<TextRenderingSystem> t_rs;
-    std::unique_ptr<TextRenderingSystem> ui_t_rs;
-    std::unique_ptr<MovementSystem> mvs;
-    std::unique_ptr<KeyboardInputSystem> kis;
-    std::unique_ptr<NpcAiSystem> ai_s;
     std::unique_ptr<Grid> grid;
-    // std::unique_ptr<Graph> graph;
-    std::unique_ptr<InventorySystem> invs;
-    std::unique_ptr<AnimationSystem> anim_s;
 
     void init()
     {
@@ -46,24 +37,21 @@ namespace TE
         mis = std::make_shared<MouseInputSystem>();
         wm = std::make_unique<WindowManager>(cm, mis);
 
-        g_rs = std::make_unique<GeoRenderingSystem>();
-        rs = std::make_unique<RenderingSystem>();
-        ui_rs = std::make_unique<RenderingSystem>();
-        t_rs = std::make_unique<TextRenderingSystem>();
-        ui_t_rs = std::make_unique<TextRenderingSystem>();
-        mvs = std::make_unique<MovementSystem>();
-        kis = std::make_unique<KeyboardInputSystem>();
-        ai_s = std::make_unique<NpcAiSystem>();
-        anim_s = std::make_unique<AnimationSystem>();
         grid = std::make_unique<Grid>(Grid());
-        // graph = std::make_unique<Graph>(new_graph);
-        invs = std::make_unique<InventorySystem>(InventorySystem());
     }
 
-    // void set_graph(Graph g)
-    // {
-    //     graph = std::make_unique<Graph>(g);
-    // }
+    template <typename T>
+    void create_system(std::string key, T* system)
+    {
+        systems.insert({ key, std::shared_ptr<T>(system) });
+    }
+
+
+    template <typename T>
+    std::shared_ptr<T> get_system(std::string key)
+    {
+        return std::dynamic_pointer_cast<T>(systems[key]);
+    }
 
     std::shared_ptr<Quad> get_quad(Entity entity)
     {
@@ -133,12 +121,10 @@ namespace TE
         cm->remove_entity(entity);
 
         mis->remove_entity(entity);
-        mvs->remove_entity(entity);
-        ai_s->remove_entity(entity);
-        rs->remove_entity(entity);
-        ui_rs->remove_entity(entity);
-        t_rs->remove_entity(entity);
-        ui_t_rs->remove_entity(entity);
+        for (auto [key, system] : systems)
+        {
+            system->remove_entity(entity);
+        }
     }
 
     template <typename T>
@@ -148,10 +134,7 @@ namespace TE
     }
 
     /** These separately defined methods are so we can handle things like
-     * registering entities/components with different systems etc.
-     * It could have been done with templates and a bitfield type signature
-     * in the entity id's, but I opted to not spend the time on that and cut
-     * corners here - but this would probably be a worthwile improvement.
+     * registering entities/components with default systems like the mouse input system and the grid system.
      */
     void add_component(Entity entity, MouseInputListener *mouse_input, bool add_transform = true, bool is_ui = false)
     {
@@ -162,79 +145,6 @@ namespace TE
     {
         cm->add_component(entity, node);
         grid->register_entity(entity);
-        // graph->register_entity(entity);
-    }
-    void add_component(Entity entity, Behaviour *behaviour)
-    {
-        cm->add_component(entity, behaviour);
-        ai_s->register_entity(entity);
-    }
-    void add_component(Entity entity, MovementController *movement, bool is_camera = false)
-    {
-        cm->add_component(entity, movement);
-        if (is_camera)
-        {
-            mvs->register_camera(entity);
-        }
-        else
-        {
-            mvs->register_entity(entity);
-        }
-    }
-    void add_component(Entity entity, KeyboardInputListener* keyboard_input)
-    {
-        cm->add_component(entity, keyboard_input);
-        kis->register_entity(entity);
-    }
-
-    void add_component(Entity entity, Camera *camera, bool ui = false)
-    {
-        cm->add_component(entity, camera);
-        if (ui)
-        {
-            ui_rs->register_camera(entity);
-            ui_t_rs->register_camera(entity);
-        }
-        else
-        {
-            g_rs->register_camera(entity);
-            rs->register_camera(entity);
-            t_rs->register_camera(entity);
-        }
-    }
-    void add_component(Entity entity, Sprite *sprite, bool ui = false)
-    {
-        cm->add_component(entity, sprite);
-        if (ui)
-        {
-            ui_rs->register_entity(entity);
-        }
-        else
-        {
-            rs->register_entity(entity);
-        }
-    }
-    void add_component(Entity entity, Text *text, bool ui = false)
-    {
-        cm->add_component(entity, text);
-        if (ui)
-        {
-            ui_t_rs->register_entity(entity);
-        }
-        else
-        {
-            t_rs->register_entity(entity);
-        }
-    }
-    void add_component(Entity entity, Line *line)
-    {
-        cm->add_component(entity, line);
-        g_rs->register_entity(entity);
-    }
-    void add_component(Entity entity, Animation *animation)
-    {
-        cm->add_component(entity, animation);
-        anim_s->register_entity(entity);
     }
 
     /** TODO: return shared_ptr instead of ref to unique_ptr? refs to smart pointers
@@ -250,22 +160,6 @@ namespace TE
     {
         return grid;
     }
-    // std::unique_ptr<Graph> &get_graph()
-    // {
-    //     return graph;
-    // }
-    std::unique_ptr<NpcAiSystem> &get_npc_ai_system()
-    {
-        return ai_s;
-    }
-    std::unique_ptr<TextRenderingSystem> &get_ui_text_rendering_system()
-    {
-        return ui_t_rs;
-    }
-    std::unique_ptr<InventorySystem> &get_inventory_system()
-    {
-        return invs;
-    }
     std::shared_ptr<MouseInputSystem> &get_mouse_input_system()
     {
         return mis;
@@ -275,9 +169,15 @@ namespace TE
         return wm;
     }
 
-    void loop(std::function<void()> callback = nullptr)
+    //void loop(std::function<void()> callback = nullptr)
+    //{
+    //    wm->loop(*cm, *g_rs, *rs, *tile_rs, *icon_rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
+    //}
+
+    void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
     {
-        wm->loop(*cm, *g_rs, *rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
+        loop_func(wm->window, *cm, *wm);
+        //wm->loop(*cm, *g_rs, *rs, *tile_rs, *icon_rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
     }
     void quit()
     {

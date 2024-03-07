@@ -1,8 +1,9 @@
 #pragma once
 #include "glm/glm.hpp"
 #include <array>
+#include "system.hpp"
 
-class KeyboardInputSystem 
+class KeyboardInputSystem : public System
 {
 private:
     enum Keys
@@ -17,24 +18,7 @@ private:
     std::array<bool, 5> keysPressed = {false, false, false, false, false};
 
 public:
-    std::vector<Entity> registered_entities;
 
-    void register_entity(Entity entity)
-    {
-        registered_entities.push_back(entity);
-    }
-    void remove_entity(Entity entity)
-    {
-        if (!registered_entities.empty())
-        {
-            auto found = std::find_if(registered_entities.begin(), registered_entities.end(), [&](auto &e)
-                                      { return e == entity; });
-            if (found != registered_entities.end())
-            {
-                registered_entities.erase(found);
-            }
-        }
-    }    
     void notify_listener(ComponentManager &cm, KeyboardEvent *event, Entity entity)
     {
         auto listener = cm.get_keyboard_input_listener(entity);
