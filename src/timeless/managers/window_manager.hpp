@@ -74,6 +74,8 @@ public:
         glfwSetWindowSizeCallback(window, window_size_callback);
         glfwSetWindowUserPointer(window, this);
 
+        glfwSwapInterval(1);
+
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
             std::cout << "Failed to initialize GLAD" << std::endl;

@@ -13,10 +13,10 @@
 class Transform
 {
 private:
-    glm::vec3 camera_position = glm::vec3(0.0f);
     std::queue<glm::vec3> movement_frames;
 
 public:
+    glm::vec3 camera_position = glm::vec3(0.0f);
     glm::mat4 model, view, projection;
     glm::vec3 position;
     glm::vec3 offset;
@@ -27,11 +27,11 @@ public:
     float grid_x = 0;
     float grid_y = 0;
     bool flip = false;
-    bool isometric = false;
+    bool center = true;
 
-    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool iso = false)
+    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true)
         : position(p),
-          rotation(r), width(w), height(h), offset(o), isometric(iso), scale(glm::vec3(w, h, 1.0f))
+          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f))
     {
         // projection = glm::ortho(0.0f, static_cast<float>(SCR_VIEWPORT_X), static_cast<float>(SCR_VIEWPORT_Y), 0.0f, -1.0f, 1.0f);
         rot = glm::quat(glm::vec3(0, 0, 0));
@@ -112,17 +112,18 @@ public:
 
         model = glm::mat4(1.0f);
         glm::mat4 transformMatrix = glm::mat4(1.0f);
-        //if (!movement_frames.empty())
-        //{
-        //    glm::vec3 dir = movement_frames.front();
-        //    set_position(dir);
-        //    movement_frames.pop();
-        //}
 
         transformMatrix = glm::translate(transformMatrix, get_position_from_camera());
         // transformMatrix = glm::translate(transformMatrix, position);
 
-        model = glm::translate(model, glm::vec3(0.5 * width, 0.5 * height, 0.0));
+        if (center)
+        {
+            model = glm::translate(model, glm::vec3(0.5 * width, 0.5 * height, 0.0));
+        }
+        else
+        {
+            model = glm::translate(model, glm::vec3(0.5 * width, 0.0, 0.0));
+        }
         model = glm::translate(model, offset);
         glm::mat4 rotation_matrix = glm::toMat4(rot);
         model = transformMatrix * rotation_matrix * model;

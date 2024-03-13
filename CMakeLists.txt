@@ -24,6 +24,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
 
 # find_package(fmod)
@@ -38,6 +39,12 @@ set_property(
     APPEND PROPERTY
     SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
 )
+# add property for fmod folder to copy dll files 
+set_property(
+    TARGET ${PROJECT_NAME}
+    APPEND PROPERTY
+    FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod"
+)
 
 # set_target_properties(${PROJECT_NAME}
 # PROPERTIES SUFFIX ".html"
@@ -46,8 +53,32 @@ set_property(
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-target_link_libraries(${PROJECT_NAME} glad glfw glm freetype)
-link_libraries(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
+link_libraries(${PROJECT_NAME} fmod fmod_studio)
+
+if(WIN32)
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod.dll
+    ${CMAKE_CURRENT_BINARY_DIR}/fmod.dll)
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod_vc.lib
+    ${CMAKE_CURRENT_BINARY_DIR}/fmod_vc.lib)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio.dll
+    ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio.dll)
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio_vc.lib
+    ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio_vc.lib)
+endif()
 
 if(apple)
 install(TARGETS ${PROJECT_NAME}

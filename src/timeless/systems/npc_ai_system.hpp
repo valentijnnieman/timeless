@@ -5,14 +5,15 @@
 class NpcAiSystem : public System
 {
 private:
-    Timer timer = Timer(0.8f);
+    Timer timer = Timer(1.0f);
     bool forward = true;
     int start_hour = 8;
-    int max_time = 400;
+    int max_time = 200;
 
     Entity index_text;
 
 public:
+    float speed = 1.0f;
     bool running = true;
     bool viewing_ui= false; // separate for when viewing UI etc
 
@@ -22,6 +23,12 @@ public:
     {
         index_text = text;
         update_text(cm);
+    }
+
+    void change_timer(float new_time)
+    {
+        timer = Timer(new_time);
+        speed = new_time;
     }
 
     void play_forward(ComponentManager &cm)
@@ -44,10 +51,6 @@ public:
     void pause(ComponentManager &cm)
     {
         running = false;
-        for (auto &entity : registered_entities)
-        {
-            auto sprite = cm.get_sprite(entity);
-        }
     }
     void resume(ComponentManager &cm)
     {

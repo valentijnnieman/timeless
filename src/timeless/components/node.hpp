@@ -39,6 +39,22 @@ LocationType loc_from_string(std::string t)
 	if(t == "meeting") return meeting;
 }
 
+std::vector<glm::vec2> directions = {
+	/** N, E, S, W*/
+	glm::vec2(0.0f, -1.0f),
+	glm::vec2(1.0f, 0.0f),
+	glm::vec2(0.0f, 1.0f),
+	glm::vec2(-1.0f, 0.0f),
+};
+enum dirs
+{
+	north,
+	east,
+	south,
+	west
+};
+
+
 
 class Node
 {
@@ -49,6 +65,10 @@ public:
 	int index;
 	bool inside;
 	int taken = 0;
+
+	// which neighbouring nodes are allowed 
+	std::vector<glm::vec2> entrances;
+	std::vector<glm::vec2> exits;
 
 	std::vector<Entity> entities; // which entities are located on this node
 
@@ -62,8 +82,8 @@ public:
 		archive(x, y, z, width, height, index, layer);
 	}
 
-	Node(int x, int y, int z, int width, int height, int index, int layer, bool inside = false, LocationType location = none)
-		: x(x), y(y), z(z), layer(layer), width(width), height(height), index(index), inside(inside), location(location)
+	Node(int x, int y, int z, int width, int height, int index, int layer, bool inside = false, LocationType location = none, std::vector<glm::vec2> entrances = {directions[north], directions[east], directions[south], directions[west]}, std::vector<glm::vec2> exits = {directions[north], directions[east], directions[south], directions[west]})
+		: x(x), y(y), z(z), layer(layer), width(width), height(height), index(index), inside(inside), location(location), entrances(entrances), exits(exits)
 	{
 		float x1 = x - width;
 		float x2 = x + width;

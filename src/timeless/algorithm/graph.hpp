@@ -58,41 +58,6 @@ private:
 	typedef typename map_type::value_type map_value_type;
 
 	int x_bounds = 400, y_bounds = 400;
-	std::vector<glm::vec2> directions = {
-		/** N, E, S, W*/
-		glm::vec2(0.0f, 1.0f),
-		glm::vec2(1.0f, 0.0f),
-		glm::vec2(0.0f, -1.0f),
-		glm::vec2(-1.0f, 0.0f),
-	};
-	enum dirs
-	{
-		north,
-		east,
-		south,
-		west
-	};
-
-	std::map<int, std::vector<glm::vec2>> building_ins = {
-		{8, { directions[west] }},
-		{9, { directions[west] }},
-		{ 10, { directions[west] }},
-		{11, { directions[east] }},
-		{12, { directions[west], directions[east] }},
-		{13, { directions[south] }},
-		{14, { directions[south] }},
-	};
-
-	std::map<int, std::vector<glm::vec2>> building_outs = {
-		{8, { directions[east] }},
-		{9, { directions[east] }},
-		{ 10, { directions[east] }},
-		{11, { directions[west] }},
-		{12, { directions[east], directions[west] }},
-		{13, { directions[north] }},
-		{14, { directions[north] }},
-	};
-
 
 public:
 	map_type vertices;
@@ -144,10 +109,9 @@ public:
 		std::vector<glm::vec2> node_dirs = directions;
 		if (node->layer == 1) return results;
 
-		if (node->index > 7 && node->index < 15)
+		if (node->exits.size() > 0)
 		{
-			auto it = building_outs.find(node->index);
-			node_dirs = it->second;
+			node_dirs = node->exits;
 		}
 		for (glm::vec2 dir : node_dirs)
 		{
@@ -166,10 +130,10 @@ public:
 					if (n->layer != 1)
 					{
 						std::vector<glm::vec2> n_dirs = directions;
-						if (n->index > 7 && n->index < 15)
+						//if (n->index > 23 && n->index < 32)
+						if (n->entrances.size() > 0)
 						{
-							auto n_it = building_ins.find(n->index);
-							n_dirs = n_it->second;
+							n_dirs = n->entrances;
 						}
 						if (std::find(n_dirs.begin(), n_dirs.end(), glm::vec2(dir.x, dir.y)) != n_dirs.end())
 						{

@@ -25,6 +25,12 @@ public:
 		//glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y) ;
 		glm::vec2 m_pos(event->screen_position.x, event->screen_position.y);
 
+		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
+			auto trans_a = cm.transforms.at(a);
+			auto trans_b = cm.transforms.at(b);
+			return trans_a->position.z > trans_b->position.z;
+			});
+
 		// for (const auto &[entity, transform] : transforms)
 		for (const auto& entity : registered_entities)
 		{
@@ -32,11 +38,11 @@ public:
 			if (transform != nullptr)
 			{
 				glm::vec3 t_pos = transform->get_position_from_camera();
-				if (transform->isometric) 
-				{
-					t_pos.x += 128.0f;
-					t_pos.y -= 64.0f;
-				}
+				//if (transform->isometric) 
+				//{
+				//	t_pos.x += 128.0f;
+				//	t_pos.y -= 64.0f;
+				//}
 				//double x_pos = (x - y) * t_width / 2;
 				//double y_pos = (y + x) * t_height / 2;
 

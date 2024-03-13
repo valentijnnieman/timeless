@@ -19,6 +19,7 @@
 #include "timeless/systems/npc_ai_system.hpp"
 #include "timeless/systems/inventory_system.hpp"
 #include "timeless/systems/animation_system.hpp"
+#include "timeless/systems/sound_system.hpp"
 #include "timeless/algorithm/graph.hpp"
 #include "timeless/systems/system.hpp"
 
@@ -169,15 +170,9 @@ namespace TE
         return wm;
     }
 
-    //void loop(std::function<void()> callback = nullptr)
-    //{
-    //    wm->loop(*cm, *g_rs, *rs, *tile_rs, *icon_rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
-    //}
-
     void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
     {
         loop_func(wm->window, *cm, *wm);
-        //wm->loop(*cm, *g_rs, *rs, *tile_rs, *icon_rs, *ui_rs, *t_rs, *ui_t_rs, *mvs, *kis, *ai_s, *anim_s, callback);
     }
     void quit()
     {
