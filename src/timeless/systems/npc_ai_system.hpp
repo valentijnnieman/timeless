@@ -7,7 +7,7 @@ class NpcAiSystem : public System
 private:
     Timer timer = Timer(1.0f);
     bool forward = true;
-    int start_hour = 8;
+    int start_hour = 7;
     int max_time = 200;
 
     Entity index_text;

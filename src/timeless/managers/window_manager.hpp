@@ -287,7 +287,7 @@ public:
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     {
         TESettings::ZOOM += yoffset * 0.1;
-        TESettings::ZOOM = std::clamp<double>(TESettings::ZOOM, 0.75, 1.5);
+        TESettings::ZOOM = std::clamp<double>(TESettings::ZOOM, 0.5, 2.0);
     }
     static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {
