@@ -88,4 +88,12 @@ public:
 		stringsBank->unload();
 		fmodSystem->release();
 	}
+	double sixteenth_to_time(int p = 1)
+	{
+		// auto ai_sys = TE::get_system<NpcAiSystem>("NpcAiSystem");
+		// double sixteenth = sampling_rate * ai_sys->speed / 16.0;
+
+		// return p * sixteenth;
+		return sampling_rate;
+	}
 };
