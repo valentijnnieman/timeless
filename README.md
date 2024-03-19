@@ -11,7 +11,7 @@ The idea of this engine is that users can create a grid (defined in `algorithms/
 
 ## Example
 There's a small example program under `example` which shows how to set up an isometric grid with tiles from a spritesheet, animate it via the animation system, and add a timeline of behaviour ticks with the AI system.
-![Example gif](https://media.giphy.com/media/vFKqnCdLPNOKc/giphy.gif)
+![Example gif](https://github.com/valentijnnieman/timeless/blob/main/example.gif)
 
 
 ## Should I use this?
