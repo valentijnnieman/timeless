@@ -75,6 +75,8 @@ public:
 		TE::get_system<MovementSystem>("MovementSystem")->register_camera(main_camera);
 		TE::get_system<RenderingSystem>("TileRenderingSystem")->register_camera(main_camera);
 		TE::get_system<TextRenderingSystem>("TextRenderingSystem")->register_camera(main_camera);
+		// also register the main camera with the mouse input system, so mouse input can be read
+		TE::get_mouse_input_system()->register_camera(main_camera);
 
 		TE::get_system<RenderingSystem>("UIRenderingSystem")->register_camera(ui_camera);
 		TE::get_system<TextRenderingSystem>("UITextRenderingSystem")->register_camera(ui_camera);
@@ -107,6 +109,13 @@ public:
 				// sprites are indexed from bottom-to-top, as per stb_image library
 				TE::add_component(tile, new Sprite(66, glm::vec4(1.0f), glm::vec2(tiles_texture->width, tiles_texture->height), glm::vec2(tiles_texture->width / columns, tiles_texture->height / rows), true, false, columns));
 				TE::add_component(tile, new Animation());
+				// lastly, we add an mouse input listener component - although we leave the handler function 
+				// blank for now.
+				TE::add_component(tile, new MouseInputListener([&](MouseEvent* event, Entity entity, int data)
+					{
+						// handle mouse input events here
+					}
+				));
 
 				// create a set of Instructions - functions that are fired per tick. 
 				std::vector<std::shared_ptr<Instruction>> instructions;
