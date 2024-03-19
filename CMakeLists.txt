@@ -29,7 +29,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
 # find_package(fmod)
 include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/)
-add_library(${PROJECT_NAME} SHARED "src/test.cpp")
+add_library(${PROJECT_NAME} SHARED "example/main.cpp")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -100,6 +100,8 @@ if(apple)
         ${FMOD_DIR}/apple/studio/lib/libfmodstudioL.dylib
         ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudioL.dylib)
 endif()
+
+add_subdirectory(example example)
 
 # target_link_libraries(${PROJECT_NAME} glad glfw glm freetype "${FMOD_DIR}/studio/lib/upstream/w32/fmodstudio_wasm.a" "${FMOD_DIR}/core/lib/upstream/w32/fmod_wasm.a")
 # add_custom_command(

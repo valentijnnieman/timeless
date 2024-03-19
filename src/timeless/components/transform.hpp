@@ -114,7 +114,6 @@ public:
         glm::mat4 transformMatrix = glm::mat4(1.0f);
 
         transformMatrix = glm::translate(transformMatrix, get_position_from_camera());
-        // transformMatrix = glm::translate(transformMatrix, position);
 
         if (center)
         {
@@ -128,9 +127,6 @@ public:
         glm::mat4 rotation_matrix = glm::toMat4(rot);
         model = transformMatrix * rotation_matrix * model;
 
-        // model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        // model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        // model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         if (flip)
         {
             model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));

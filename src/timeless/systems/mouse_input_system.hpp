@@ -6,6 +6,12 @@
 class MouseInputSystem : public System
 {
 public:
+    Entity camera;
+
+    void register_camera(Entity c)
+    {
+        camera = c;
+    }
 
 	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
 	{
@@ -15,14 +21,12 @@ public:
 
 	void mouse_click_handler(ComponentManager& cm, MouseEvent* event)
 	{
-		//double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
-		//double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
+		auto cam = cm.get_camera(camera);
 
 		float highest_z = -999.0f;
 		Entity found_entity;
 		bool entity_was_found = false;
 
-		//glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y) ;
 		glm::vec2 m_pos(event->screen_position.x, event->screen_position.y);
 
 		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
