@@ -123,7 +123,7 @@ public:
 				glm::vec3 pos = TE::get_transform(tile)->position;
 				for (int i = 0; i < 200; i++)
 				{
-					std::shared_ptr<Instruction> new_instruction = std::shared_ptr<Instruction>(new Instruction([x, y, i, tile, pos](Entity entity, bool reverse)
+					std::shared_ptr<Instruction> new_instruction = std::shared_ptr<Instruction>(new Instruction([x, y, i, tile, pos](Entity entity, bool reverse, float speed)
 						{
 							auto animation = TE::get_animation(tile);
 

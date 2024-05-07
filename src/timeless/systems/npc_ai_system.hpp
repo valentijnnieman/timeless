@@ -105,7 +105,7 @@ public:
 					if (instr != nullptr)
 					{
                         bool reverse = !forward;
-						instr->run(entity, reverse);
+						instr->run(entity, reverse, speed);
 					}
                 }
 				update_text(cm);

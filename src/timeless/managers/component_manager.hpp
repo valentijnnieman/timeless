@@ -5,6 +5,7 @@
 #include "../components/sprite.hpp"
 #include "../components/texture.hpp"
 #include "../components/mouse_input_listener.hpp"
+#include "../components/event_listener.hpp"
 #include "../components/movement_controller.hpp"
 #include "../components/keyboard_input_listener.hpp"
 #include "../components/camera.hpp"
@@ -25,6 +26,8 @@ public:
     std::unordered_map<Entity, std::shared_ptr<Sprite>> sprites;
     std::unordered_map<Entity, std::shared_ptr<Transform>> transforms;
     std::unordered_map<Entity, std::shared_ptr<MouseInputListener>> mouse_input_listeners;
+    std::unordered_map<Entity, std::shared_ptr<EventListener<Event>>> event_listeners;
+    std::unordered_map<Entity, std::shared_ptr<EventListener<PositionEvent>>> position_event_listeners;
     std::unordered_map<Entity, std::shared_ptr<KeyboardInputListener>> keyboard_input_listeners;
     std::unordered_map<Entity, std::shared_ptr<Camera>> cameras;
     std::unordered_map<Entity, std::shared_ptr<Collider>> colliders;
@@ -77,6 +80,14 @@ public:
     void add_component(Entity entity, MouseInputListener *mouse_input)
     {
         mouse_input_listeners.insert({entity, std::shared_ptr<MouseInputListener>(mouse_input)});
+    }
+    void add_component(Entity entity, EventListener<Event> *event_listener)
+    {
+        event_listeners.insert({entity, std::shared_ptr<EventListener<Event>>(event_listener)});
+    }
+    void add_component(Entity entity, EventListener<PositionEvent> *event_listener)
+    {
+        position_event_listeners.insert({entity, std::shared_ptr<EventListener<PositionEvent>>(event_listener)});
     }
     void add_component(Entity entity, KeyboardInputListener *keyboard_input)
     {
@@ -171,6 +182,14 @@ public:
     {
         return mouse_input_listeners.at(entity);
     }
+    std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity)
+    {
+        return event_listeners.at(entity);
+    }
+    std::shared_ptr<EventListener<PositionEvent>> get_position_event_listener(Entity entity)
+    {
+        return position_event_listeners.at(entity);
+    }
     std::shared_ptr<KeyboardInputListener> get_keyboard_input_listener(Entity entity)
     {
         return keyboard_input_listeners.at(entity);
@@ -178,6 +197,39 @@ public:
     std::shared_ptr<Animation> get_animation(Entity entity)
     {
         return animations.at(entity);
+    }
+
+    void remove_component(Entity entity, Texture *texture)
+    {
+        textures.erase(entity);
+    }
+    void remove_component(Entity entity, std::shared_ptr<Texture> texture)
+    {
+        textures.erase(entity);
+    }
+    void remove_component(Entity entity, Quad *quad)
+    {
+        quads.erase(entity);
+    }
+    void remove_component(Entity entity, std::shared_ptr<Quad> quad)
+    {
+        quads.erase(entity);
+    }
+    void remove_component(Entity entity, Shader *shader)
+    {
+        shaders.erase(entity);
+    }
+    void remove_component(Entity entity, std::shared_ptr<Shader> shader)
+    {
+        shaders.erase(entity);
+    }
+    void remove_component(Entity entity, Transform *transform)
+    {
+        transforms.erase(entity);
+    }
+    void remove_component(Entity entity, std::shared_ptr<Transform> transform)
+    {
+        transforms.erase(entity);
     }
 
     /** this method completely removes all components for an entity */

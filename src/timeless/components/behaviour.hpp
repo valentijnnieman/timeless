@@ -4,22 +4,22 @@
 class Instruction
 {
 private:
-    std::function<void(Entity entity, bool reverse)> instruct_func;
+    std::function<void(Entity entity, bool reverse, float speed)> instruct_func;
 
 public:
-    Instruction(std::function<void(Entity entity, bool reverse)> instruct_func)
+    Instruction(std::function<void(Entity entity, bool reverse, float speed)> instruct_func)
         : instruct_func(instruct_func)
     {
     }
 
-    void run(Entity entity, bool reverse = false)
+    void run(Entity entity, bool reverse = false, float speed = 1.0)
     {
         // run this instruction
-        instruct_func(entity, reverse);
+        instruct_func(entity, reverse, speed);
     }
 };
 
-const Instruction idle = Instruction([](Entity entity, bool reverse) {});
+const Instruction idle = Instruction([](Entity entity, bool reverse, float speed) {});
 
 /** The behaviour component holds a list of commands
  * that an NPC will carry out. Ticks/time-units are defined,

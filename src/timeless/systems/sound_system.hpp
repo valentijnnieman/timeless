@@ -88,12 +88,28 @@ public:
 		stringsBank->unload();
 		fmodSystem->release();
 	}
-	double sixteenth_to_time(int p = 1)
+	double half_to_time(int p, float speed)
 	{
-		// auto ai_sys = TE::get_system<NpcAiSystem>("NpcAiSystem");
-		// double sixteenth = sampling_rate * ai_sys->speed / 16.0;
+		 double half = ((sampling_rate * speed) * 2.0) / 2.0;
 
-		// return p * sixteenth;
-		return sampling_rate;
+		 return p * half;
+	}
+	double quarter_to_time(int p, float speed)
+	{
+		 double quarter = ((sampling_rate * speed) * 2.0) / 4.0;
+
+		 return p * quarter;
+	}
+	double eight_to_time(int p, float speed)
+	{
+		 double eight = ((sampling_rate * speed) * 2.0) / 8.0;
+
+		 return p * eight;
+	}
+	double sixteenth_to_time(int p, float speed)
+	{
+		 double sixteenth = ((sampling_rate * speed) * 2.0) / 16.0;
+
+		 return p * sixteenth;
 	}
 };

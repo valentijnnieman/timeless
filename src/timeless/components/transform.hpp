@@ -19,6 +19,7 @@ public:
     glm::vec3 camera_position = glm::vec3(0.0f);
     glm::mat4 model, view, projection;
     glm::vec3 position;
+    glm::vec3 start_position;
     glm::vec3 offset;
     glm::vec3 scale;
     glm::quat rot;
@@ -30,7 +31,7 @@ public:
     bool center = true;
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true)
-        : position(p),
+        : position(p), start_position(p),
           rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f))
     {
         // projection = glm::ortho(0.0f, static_cast<float>(SCR_VIEWPORT_X), static_cast<float>(SCR_VIEWPORT_Y), 0.0f, -1.0f, 1.0f);
@@ -72,20 +73,22 @@ public:
     void set_scale(glm::vec3 s)
     {
         scale = s;
+        width = s.x;
+        height = s.y;
     }
     void set_movement_frames(glm::vec3 destination)
     {
-        while (!movement_frames.empty())
-            movement_frames.pop();
+        //while (!movement_frames.empty())
+        //    movement_frames.pop();
 
-        glm::vec3 start = position;
+        //glm::vec3 start = position;
 
-        for (double i = 0.0; i <= 1.0; i += 1.0 / 60.0)
-        {
-            double x_l = std::lerp(start.x, destination.x, i);
-            double y_l = std::lerp(start.y, destination.y, i);
-            movement_frames.push(glm::vec3(x_l, y_l, destination.z));
-        }
+        //for (double i = 0.0; i <= 1.0; i += 1.0 / 60.0)
+        //{
+        //    double x_l = std::lerp(start.x, destination.x, i);
+        //    double y_l = std::lerp(start.y, destination.y, i);
+        //    movement_frames.push(glm::vec3(x_l, y_l, destination.z));
+        //}
     }
 
     void update_camera(glm::vec3 p)

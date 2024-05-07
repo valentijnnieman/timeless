@@ -5,6 +5,7 @@
 #include "timeless/components/shader.hpp"
 #include "timeless/components/camera.hpp"
 #include "timeless/components/mouse_input_listener.hpp"
+#include "timeless/components/event_listener.hpp"
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/components/keyboard_input_listener.hpp"
 #include "timeless/components/font.hpp"
@@ -18,6 +19,7 @@
 #include "timeless/systems/keyboard_input_system.hpp"
 #include "timeless/systems/npc_ai_system.hpp"
 #include "timeless/systems/inventory_system.hpp"
+#include "timeless/systems/event_system.hpp"
 #include "timeless/systems/animation_system.hpp"
 #include "timeless/systems/sound_system.hpp"
 #include "timeless/algorithm/graph.hpp"
@@ -94,6 +96,10 @@ namespace TE
     {
         return cm->mouse_input_listeners.at(entity);
     }
+    std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity)
+    {
+        return cm->event_listeners.at(entity);
+    }
     std::shared_ptr<Behaviour> get_behaviour(Entity entity)
     {
         return cm->behaviours.at(entity);
@@ -117,6 +123,24 @@ namespace TE
         cm->add_component(entity, comp);
     }
 
+    template <typename T>
+    void add_component(Entity entity, std::shared_ptr<T> comp)
+    {
+        cm->add_component(entity, comp);
+    }
+
+    template <typename T>
+    void remove_component(Entity entity, T *comp)
+    {
+        cm->remove_component(entity, comp);
+    }
+
+    template <typename T>
+    void remove_component(Entity entity, std::shared_ptr<T> comp)
+    {
+        cm->remove_component(entity, comp);
+    }
+
     void remove_entity(Entity entity)
     {
         cm->remove_entity(entity);
@@ -128,11 +152,6 @@ namespace TE
         }
     }
 
-    template <typename T>
-    void add_component(Entity entity, std::shared_ptr<T> comp)
-    {
-        cm->add_component(entity, comp);
-    }
 
     /** These separately defined methods are so we can handle things like
      * registering entities/components with default systems like the mouse input system and the grid system.

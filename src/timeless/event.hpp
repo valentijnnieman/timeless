@@ -6,6 +6,7 @@ class Event
 {
 public:
     std::string eventType;
+    bool picked_up = false;
     virtual void getData()
     {
         return;
@@ -24,9 +25,10 @@ class MouseEvent : public Event
 {
 public:
     glm::vec2 screen_position;
-    bool picked_up = false;
-    MouseEvent(std::string et, glm::vec2 sp)
-        : Event(et), screen_position(sp)
+    float x_scroll;
+    float y_scroll;
+    MouseEvent(std::string et, glm::vec2 sp, float x_scroll = 0.0f, float y_scroll = 0.0f)
+        : Event(et), screen_position(sp), x_scroll(x_scroll), y_scroll(y_scroll)
     {
     }
 };

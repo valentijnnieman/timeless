@@ -42,6 +42,8 @@ public:
     std::shared_ptr<ComponentManager> cm;
     std::shared_ptr<MouseInputSystem> mis;
 
+    glm::vec2 mouse_position;
+
     GLFWwindow *window;
 
     WindowManager(std::shared_ptr<ComponentManager> cm, std::shared_ptr<MouseInputSystem> mis)
@@ -51,9 +53,9 @@ public:
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
 #ifdef __APPLE__
+        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
@@ -80,9 +82,7 @@ public:
         {
             std::cout << "Failed to initialize GLAD" << std::endl;
         }
-        // glEnable(GL_CULL_FACE);
         glEnable(GL_BLEND);
-        // glEnable(GL_DEPTH_TEST);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         std::cout << "OpenGL Initialized!" << std::endl;
@@ -167,91 +167,6 @@ public:
         tile_shader->use();
 		glUniform2fv(glGetUniformLocation(tile_shader->ID, "mousePosition"), 1, glm::value_ptr(glm::vec2(mouse_position.x / TESettings::SCREEN_X, mouse_position.y / TESettings::SCREEN_Y)));
     }
-
-    //void loop(ComponentManager &cm, GeoRenderingSystem &g_rendering_sys, RenderingSystem &rendering_sys, RenderingSystem &tile_rendering_sys, RenderingSystem &icon_rendering_sys, RenderingSystem &ui_rendering_sys, TextRenderingSystem &t_rendering_sys, TextRenderingSystem &ui_t_rendering_sys, MovementSystem &movement_sys, KeyboardInputSystem &keyboard_sys, NpcAiSystem &ai_sys, AnimationSystem &anim_sys, std::function<void()> callback)
-    //{
-    //    double t = 0.0;
-    //    double dt = 1.0 / 60.0;
-
-    //    double current_time = glfwGetTime();
-    //    while (!glfwWindowShouldClose(window) && running)
-    //    {
-    //        double new_time = glfwGetTime();
-    //        double frame_time = new_time - current_time;
-    //        current_time = new_time;
-
-    //        while (frame_time > 0.0)
-    //        {
-    //            float delta_time = std::min(frame_time, dt);
-
-    //            movement_sys.update(cm, window);
-    //            keyboard_sys.update(cm, window);
-    //            ai_sys.update(cm);
-    //            anim_sys.update(cm);
-    //            frame_time -= delta_time;
-    //            t += delta_time;
-    //        }
-    //        /** render scene into framebuffer */
-    //        if (screen_shader != nullptr)
-    //        {
-    //            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    //            glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g, TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-    //            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //        }
-
-    //        rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai_sys.main_index);
-    //        t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-
-    //        if (screen_shader != nullptr)
-    //        {
-    //            /** render framebuffer as quad */
-    //            glBindFramebuffer(GL_FRAMEBUFFER, 0); // default buffer
-    //            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    //            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //            screen_shader->use();
-    //            set_shader_time();
-    //            glBindVertexArray(ScreenVAO);
-    //            glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    //            glDrawArrays(GL_TRIANGLES, 0, 6);
-    //        }
-
-    //        if (tile_shader != nullptr)
-    //        {
-    //            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    //            //glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g, TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-    //            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //        }
-    //        tile_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai_sys.main_index);
-    //        if (tile_shader!= nullptr)
-    //        {
-    //            /** render framebuffer as quad */
-    //            glBindFramebuffer(GL_FRAMEBUFFER, 0); // default buffer
-    //            //glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    //            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //            tile_shader->use();
-    //            set_shader_time();
-    //            glBindVertexArray(ScreenVAO);
-    //            glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    //            glDrawArrays(GL_TRIANGLES, 0, 6);
-    //        }
-
-    //        // render ui and other parts not affected by screen shader
-    //        icon_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai_sys.main_index);
-    //        g_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
-    //        ui_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-    //        ui_t_rendering_sys.render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-
-    //        if (callback)
-    //        {
-    //            callback();
-    //        }
-
-    //        glfwSwapBuffers(window);
-    //        glfwPollEvents();
-    //    }
-    //}
     static void window_size_callback(GLFWwindow *window, int width, int height)
     {
         TESettings::rescale_window(width, height);
@@ -267,6 +182,7 @@ public:
     }
     void mouse_move_handler(MouseEvent *event)
     {
+        mouse_position = event->screen_position;
         mis->mouse_move_handler(*cm, event);
         set_shader_mouse_position(event->screen_position);
     }
@@ -278,6 +194,10 @@ public:
     {
         mis->mouse_release_handler(*cm, event);
     }
+    void mouse_scroll_handler(MouseEvent *event)
+    {
+        mis->mouse_scroll_handler(*cm, event);
+    }
 
     static void cursor_position_callback(GLFWwindow *window, double xpos, double ypos)
     {
@@ -286,8 +206,8 @@ public:
     }
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     {
-        TESettings::ZOOM += yoffset * 0.1;
-        TESettings::ZOOM = std::clamp<double>(TESettings::ZOOM, 0.5, 2.0);
+        WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+        wm->mouse_scroll_handler(new MouseEvent("MouseScroll", wm->mouse_position, xoffset, yoffset));
     }
     static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {

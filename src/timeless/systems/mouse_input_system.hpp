@@ -6,12 +6,12 @@
 class MouseInputSystem : public System
 {
 public:
-    Entity camera;
+	Entity camera;
 
-    void register_camera(Entity c)
-    {
-        camera = c;
-    }
+	void register_camera(Entity c)
+	{
+		camera = c;
+	}
 
 	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
 	{
@@ -66,7 +66,7 @@ public:
 					m_pos.y >(t_pos.y - h) && m_pos.y < (t_pos.y + h))
 				{
 
-					if(t_pos.z > highest_z)
+					if (t_pos.z > highest_z)
 					{
 						highest_z = t_pos.z;
 						found_entity = entity;
@@ -102,6 +102,18 @@ public:
 
 		event->screen_position = m_pos;
 
+		for (const auto& entity : registered_entities)
+		{
+			notify_listener(cm, event, entity);
+		}
+	}
+	void mouse_scroll_handler(ComponentManager& cm, MouseEvent* event)
+	{
+		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
+			auto trans_a = cm.transforms.at(a);
+			auto trans_b = cm.transforms.at(b);
+			return trans_a->position.z > trans_b->position.z;
+		});
 		for (const auto& entity : registered_entities)
 		{
 			notify_listener(cm, event, entity);
