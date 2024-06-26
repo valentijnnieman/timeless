@@ -69,7 +69,7 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(transform->model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(transform->view));
 
-        glUniform3f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b);
+        glUniform4f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b, text->color.a);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(font->VAO);
     }

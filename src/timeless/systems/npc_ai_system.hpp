@@ -14,8 +14,8 @@ private:
 
 public:
     float speed = 1.0f;
-    bool running = true;
-    bool viewing_ui= false; // separate for when viewing UI etc
+    bool running = false;
+    bool viewing_ui = false; // separate for when viewing UI etc
 
     int main_index = -1;
 

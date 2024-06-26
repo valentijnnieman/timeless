@@ -9,7 +9,7 @@ private:
 public:
     std::string text;
     std::string printed;
-    glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec4 color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     bool center;
 
     float type_speed = 0.0f;
@@ -17,7 +17,7 @@ public:
     int print_length = 0;
 
     Text(std::string text, bool center = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f), float type_speed = 0.0f)
-        : text(text), center(center), color(color), type_speed(type_speed)
+        : text(text), center(center), color(glm::vec4(color.x, color.y, color.z, 1.0f)), type_speed(type_speed)
     {
         if (type_speed > 0.0)
         {

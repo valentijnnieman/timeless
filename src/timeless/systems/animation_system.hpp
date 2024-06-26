@@ -38,6 +38,29 @@ public:
                 }
             }
 
+            if (!animation->opacities.empty())
+            {
+                try {
+                    auto sprite = cm.sprites.at(entity);
+                    float o = animation->opacities.front();
+                    sprite->color.a = o;
+                    animation->opacities.pop();
+                }
+                catch(std::exception e)
+                { 
+                }
+
+                try {
+                    auto text = cm.texts.at(entity);
+                    float o = animation->opacities.front();
+                    text->color.a = o;
+                    animation->opacities.pop();
+                }
+                catch(std::exception e)
+                { 
+                }
+            }
+
         }
     }
 };

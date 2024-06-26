@@ -12,10 +12,11 @@ private:
         a,
         s,
         d,
-        escape
+        escape,
+        space
     };
 
-    std::array<bool, 5> keysPressed = {false, false, false, false, false};
+    std::array<bool, 6> keysPressed = {false, false, false, false, false, false};
 
 public:
 
@@ -53,6 +54,26 @@ public:
             for (auto& entity : registered_entities)
             {
                 notify_listener(cm, new KeyboardEvent("ReleaseEscape"), entity);
+            }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        {
+            keysPressed[space] = true;
+
+            for (auto& entity : registered_entities)
+            {
+                notify_listener(cm, new KeyboardEvent("PressSpace"), entity);
+            }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && keysPressed[space])
+        {
+            keysPressed[space] = false;
+
+            for (auto& entity : registered_entities)
+            {
+                notify_listener(cm, new KeyboardEvent("ReleaseSpace"), entity);
             }
         }
     }

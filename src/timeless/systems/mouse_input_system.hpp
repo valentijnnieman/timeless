@@ -36,7 +36,7 @@ public:
 			});
 
 		// for (const auto &[entity, transform] : transforms)
-		for (const auto& entity : registered_entities)
+		for (auto entity : registered_entities)
 		{
 			auto transform = cm.get_transform(entity);
 			if (transform != nullptr)
