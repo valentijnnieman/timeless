@@ -118,12 +118,12 @@ public:
 				));
 
 				// create a set of Instructions - functions that are fired per tick. 
-				std::vector<std::shared_ptr<Instruction>> instructions;
+				std::vector<Instruction> instructions;
 
 				glm::vec3 pos = TE::get_transform(tile)->position;
 				for (int i = 0; i < 200; i++)
 				{
-					std::shared_ptr<Instruction> new_instruction = std::shared_ptr<Instruction>(new Instruction([x, y, i, tile, pos](Entity entity, bool reverse, float speed)
+					Instruction new_instruction = Instruction([x, y, i, tile, pos](Entity entity, bool reverse, float speed)
 						{
 							auto animation = TE::get_animation(tile);
 
@@ -137,7 +137,7 @@ public:
 								TE::get_animation(tile)->set_position_frames(glm::vec3(pos.x, pos.y + 8.0f, 0.0f), pos, 5.0);
 							}
 						}
-					));
+					);
 					instructions.push_back(new_instruction);
 				}
 
@@ -205,13 +205,13 @@ public:
 					auto ai = TE::get_system<NpcAiSystem>("NpcAiSystem");
 
 					/** render scene into framebuffer */
-					wm.render_into_framebuffer(wm.screen_shader, true);
+					wm.select_framebuffer(wm.screen_shader, true);
 
 					TE::get_system<TextRenderingSystem>("TextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
 					wm.render_framebuffer_as_quad(wm.screen_shader, true);
 
-					wm.render_into_framebuffer(wm.tile_shader, false);
+					wm.select_framebuffer(wm.tile_shader, false);
 					TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index);
 					wm.render_framebuffer_as_quad(wm.tile_shader, false);
 
@@ -233,5 +233,6 @@ int main()
 	game.loop();
 
 	glfwTerminate();
+
 	return 0;
 }

@@ -86,6 +86,7 @@ public:
 		{
 			notify_listener(cm, event, entity);
 		}
+		delete event;
 	}
 	void mouse_release_handler(ComponentManager& cm, MouseEvent* event)
 	{
@@ -93,6 +94,7 @@ public:
 		{
 			notify_listener(cm, event, entity);
 		}
+		delete event;
 	}
 	void mouse_move_handler(ComponentManager& cm, MouseEvent* event)
 	{
@@ -106,6 +108,7 @@ public:
 		{
 			notify_listener(cm, event, entity);
 		}
+		delete event;
 	}
 	void mouse_scroll_handler(ComponentManager& cm, MouseEvent* event)
 	{
@@ -118,6 +121,7 @@ public:
 		{
 			notify_listener(cm, event, entity);
 		}
+		delete event;
 	}
 	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	{

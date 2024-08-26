@@ -27,11 +27,36 @@ public:
 		glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1, glm::value_ptr(sprite->color));
 		glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1, glm::value_ptr(sprite->spriteSheetSize));
 		glUniform2fv(glGetUniformLocation(shader->ID, "spriteSize"), 1, glm::value_ptr(sprite->spriteSize));
-		glUniform2fv(glGetUniformLocation(shader->ID, "position"), 1, glm::value_ptr(glm::vec2(transform->position.x, transform->position.y)));
-		glUniform2fv(glGetUniformLocation(shader->ID, "lightPosition"), 1, glm::value_ptr(glm::vec2(0.0, 0.0)));
-		glUniform3fv(glGetUniformLocation(shader->ID, "cameraPosition"), 1, glm::value_ptr(transform->position));
         glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
         glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
+	}
+
+	void rotate_all_z(ComponentManager& cm, float z)
+	{
+
+		for (auto& entity : registered_entities)
+		{
+			auto transform = cm.transforms.at(entity);
+			//transform->position.x += 42.0f;
+			//transform->position.x += transform->width * 0.75f;
+			//transform->position.y -= 8.0f;
+			//transform->position.y += transform->height * 0.5f;
+			transform->rotate(glm::vec3(0.0f, 0.0f, glm::radians(z)));
+		}
+	}
+
+	void reset_shadow(ComponentManager& cm, float z)
+	{
+
+		for (auto& entity : registered_entities)
+		{
+			auto transform = cm.transforms.at(entity);
+			transform->rotate(glm::vec3(0.0f, 0.0f, glm::radians(z)));
+			//transform->position.x -= 42.0f;
+			//transform->position.x -= transform->width * 0.75f;
+			//transform->position.y += 8.0f;
+			//transform->position.y -= transform->height * 0.5f;
+		}
 	}
 
 	void render(ComponentManager& cm, int x, int y, float zoom = 1.0, int tick = 0)
@@ -76,11 +101,11 @@ public:
 			{
 				cm.transforms.at(entity)->update_camera(cam->position);
 			}
+			set_shader_transform_uniforms(cm.shaders.at(entity), cm.transforms.at(entity));
+			set_shader_sprite_uniforms(cm.shaders.at(entity), cm.sprites.at(entity), cm.transforms.at(entity), tick, cam->position);
 			cm.quads.at(entity)->render();
 			cm.textures.at(entity)->render();
 
-			set_shader_transform_uniforms(cm.shaders.at(entity), cm.transforms.at(entity));
-			set_shader_sprite_uniforms(cm.shaders.at(entity), cm.sprites.at(entity), cm.transforms.at(entity), tick, cam->position);
 			auto sprite = cm.sprites.at(entity);
 			if (!sprite->hidden)
 			{

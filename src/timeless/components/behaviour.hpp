@@ -12,6 +12,10 @@ public:
     {
     }
 
+    Instruction()
+    {
+    }
+
     void run(Entity entity, bool reverse = false, float speed = 1.0)
     {
         // run this instruction
@@ -32,9 +36,9 @@ private:
     int max = 12 * 12;
 
 public:
-    std::vector<std::shared_ptr<Instruction>> next_instructions;
+    std::vector<Instruction> next_instructions;
 
-    Behaviour(std::vector<std::shared_ptr<Instruction>> f_instructions)
+    Behaviour(std::vector<Instruction> f_instructions)
         : next_instructions(f_instructions)
     {
     }
@@ -46,12 +50,12 @@ public:
         {
             for (int i = 0; i < max - next_instructions.size(); i++)
             {
-                next_instructions.push_back(std::make_shared<Instruction>(idle));
+                next_instructions.push_back(idle);
             }
         }
     }
 
-    void add_instructions(std::vector<std::shared_ptr<Instruction>> f_instructions)
+    void add_instructions(std::vector<Instruction> f_instructions)
     {
         next_instructions.insert(next_instructions.end(), f_instructions.begin(), f_instructions.end());
     }
@@ -75,7 +79,7 @@ public:
         {
             return nullptr;
         }
-        std::shared_ptr<Instruction> instr = next_instructions.at(index);
+        std::shared_ptr<Instruction> instr = std::make_shared<Instruction>(next_instructions.at(index));
         return instr;
     }
 };

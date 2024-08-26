@@ -8,6 +8,7 @@ uniform sampler2D screenTexture;
 uniform float time;
 uniform vec2 lightPosition;
 uniform vec2 mousePosition;
+uniform vec4 SCREEN_COLOR;
 
 float circle(in vec2 _st, in float _radius){
     vec2 dist = _st-vec2(0.0);
@@ -26,5 +27,7 @@ void main()
     vec3 color = vec3(circle(f,0.01));
     vec3 borderColor = vec3(1.0 - circle(f,0.011));
 
-    FragColor = vec4(borderColor * vec3(texture(screenTexture, TexCoords)), 1.0 - color.z);
+    vec4 tex = texture(screenTexture, TexCoords);
+
+    FragColor = vec4(borderColor * vec3(tex), 1.0 - color.z);
 }  

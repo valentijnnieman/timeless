@@ -79,7 +79,6 @@ public:
 		}
 
 		event_instance->start();
-		std::cout << "[TIMELESS] event triggered!" << std::endl;
 		event_instance->release();
 	}
 	void unload()

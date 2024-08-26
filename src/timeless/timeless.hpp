@@ -44,14 +44,14 @@ namespace TE
     }
 
     template <typename T>
-    void create_system(std::string key, T* system)
+    void create_system(const std::string& key, T* system)
     {
         systems.insert({ key, std::shared_ptr<T>(system) });
     }
 
 
     template <typename T>
-    std::shared_ptr<T> get_system(std::string key)
+    std::shared_ptr<T> get_system(const std::string& key)
     {
         return std::dynamic_pointer_cast<T>(systems[key]);
     }

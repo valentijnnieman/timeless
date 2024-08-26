@@ -33,19 +33,19 @@ public:
 
     void play_forward(ComponentManager &cm)
     {
-        if (!forward)
-        {
+        //if (!forward)
+        //{
             forward = true;
             running = true;
-        }
+        //}
     }
     void play_backward(ComponentManager &cm)
     {
-        if (forward)
-        {
+        //if (forward)
+        //{
             forward = false;
             running = true;
-        }
+        //}
     }
 
     void pause(ComponentManager &cm)

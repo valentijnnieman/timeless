@@ -59,6 +59,13 @@ private:
 
 	int x_bounds = 400, y_bounds = 400;
 
+	const std::vector<glm::vec2> directions = {
+		/** N, E, S, W*/
+		glm::vec2(0.0f, -1.0f),
+		glm::vec2(1.0f, 0.0f),
+		glm::vec2(0.0f, 1.0f),
+		glm::vec2(-1.0f, 0.0f),
+	};
 public:
 	map_type vertices;
 	std::vector<Entity> registered_entities;

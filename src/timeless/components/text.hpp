@@ -9,8 +9,11 @@ private:
 public:
     std::string text;
     std::string printed;
+    std::vector<glm::vec4> color_vector;
+
     glm::vec4 color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     bool center;
+    bool hidden = false;
 
     float type_speed = 0.0f;
     bool completed;
@@ -19,6 +22,7 @@ public:
     Text(std::string text, bool center = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f), float type_speed = 0.0f)
         : text(text), center(center), color(glm::vec4(color.x, color.y, color.z, 1.0f)), type_speed(type_speed)
     {
+        set_default_color_vector();
         if (type_speed > 0.0)
         {
             type_timer = std::unique_ptr<Timer>(new Timer(type_speed));
@@ -30,7 +34,15 @@ public:
         }
     }
 
-    void render(Font &font, int x, int y, float height)
+    void set_default_color_vector()
+    {
+        for (int i = 0; i < text.size(); i++)
+	    {
+            color_vector.push_back(color);
+        }
+    }
+
+    void render(Font &font, int x, int y, float height, std::shared_ptr<Shader> shader)
     {
         // iterate through all characters
         std::string::const_iterator c;
@@ -58,8 +70,17 @@ public:
             printed = text.substr(0, print_length);
         }
 
+        int i = 0;
         for (c = printed.begin(); c != printed.end(); c++)
         {
+            if (printed.size() <= color_vector.size())
+            {
+                glUniform4f(glGetUniformLocation(shader->ID, "textColor"), this->color_vector[i].r, this->color_vector[i].g, this->color_vector[i].b, this->color_vector[i].a);
+            }
+            else
+            {
+                set_default_color_vector();
+            }
             Glyph glyph = font.glyphs.at(*c);
 
             float w = glyph.size.x;
@@ -87,6 +108,7 @@ public:
             glDrawArrays(GL_TRIANGLES, 0, 6);
             // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
             x += (glyph.advance >> 6); // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
+            i++;
         }
     }
 };

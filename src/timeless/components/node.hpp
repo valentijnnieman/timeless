@@ -10,6 +10,7 @@ enum LocationType
 	hangout,
 	crime,
 	meeting,
+	rendezvous
 };
 std::string to_string(LocationType t)
 {
@@ -23,6 +24,7 @@ std::string to_string(LocationType t)
 	case hangout: return "hangout";
 	case crime: return "crime";
 	case meeting: return "meeting";
+	case rendezvous: return "rendezvous";
 	default:      return "unknown";
 	}
 }
@@ -36,7 +38,9 @@ LocationType loc_from_string(std::string t)
 	if(t == "walking_spot") return walking_spot;
 	if(t == "hangout") return hangout;
 	if(t == "crime") return crime;
-	if(t == "meeting") return meeting;
+	if (t == "meeting") return meeting;
+	if (t == "rendezvous") return rendezvous;
+	else return none;
 }
 
 std::vector<glm::vec2> directions = {

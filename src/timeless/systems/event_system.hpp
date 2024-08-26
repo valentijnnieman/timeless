@@ -33,7 +33,7 @@ public:
 	EventSystem() {};
 
 	template <typename T>
-	bool create_event(ComponentManager& cm, std::string event_type, T* data)
+	bool create_event(ComponentManager& cm, const std::string& event_type, T* data)
 	{
 		Event* event = new Event(event_type);
 		for (const auto& entity : registered_entities)
@@ -45,11 +45,12 @@ public:
 			delete event;
 			return true;
 		}
+		delete event;
 		return false;
 	}
 
 	template <typename T>
-	bool create_position_event(ComponentManager& cm, std::string event_type, glm::vec2 position, T* data)
+	bool create_position_event(ComponentManager& cm, const std::string& event_type, glm::vec2 position, T* data)
 	{
 		PositionEvent* event = new PositionEvent(event_type, position);
 		for (const auto& entity : registered_entities)
@@ -61,6 +62,7 @@ public:
 			delete event;
 			return true;
 		}
+		delete event;
 		return false;
 	}
 };

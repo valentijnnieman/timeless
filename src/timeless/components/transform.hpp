@@ -18,6 +18,11 @@ private:
 public:
     glm::vec3 camera_position = glm::vec3(0.0f);
     glm::mat4 model, view, projection;
+
+    glm::mat4 light_view;
+    glm::mat4 light_projection;
+    glm::mat4 light_space;
+
     glm::vec3 position;
     glm::vec3 start_position;
     glm::vec3 offset;
@@ -112,6 +117,7 @@ public:
     {
         view = glm::mat4(1.0f);
         projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
+
 
         model = glm::mat4(1.0f);
         glm::mat4 transformMatrix = glm::mat4(1.0f);

@@ -24,6 +24,7 @@ public:
     {
         auto listener = cm.get_keyboard_input_listener(entity);
         listener->on_input_handler(event, entity, 0);
+        delete event;
     }
 
 

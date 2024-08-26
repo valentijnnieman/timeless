@@ -69,7 +69,7 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(transform->model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(transform->view));
 
-        glUniform4f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b, text->color.a);
+        //glUniform4f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b, text->color.a);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(font->VAO);
     }
@@ -81,6 +81,8 @@ public:
         {
             auto text = cm.texts.at(entity);
             auto font = cm.fonts.at(entity);
+			auto shader = cm.shaders.at(entity);
+
             cm.shaders.at(entity)->use();
             cm.transforms.at(entity)->update(x, y);
 
@@ -94,7 +96,10 @@ public:
             }
 
             set_shader_uniforms(entity, cm);
-            text->render(*font, 0.0f, 0.0f, getHeight(entity, cm));
+            if (!text->hidden)
+            {
+                text->render(*font, 0.0f, 0.0f, getHeight(entity, cm), shader);
+            }
         }
     }
 };

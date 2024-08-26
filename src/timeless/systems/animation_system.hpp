@@ -53,7 +53,11 @@ public:
                 try {
                     auto text = cm.texts.at(entity);
                     float o = animation->opacities.front();
-                    text->color.a = o;
+                    //text->color.a = o;
+                    for (auto &c : text->color_vector)
+                    {
+						c.a = o;
+                    }
                     animation->opacities.pop();
                 }
                 catch(std::exception e)
