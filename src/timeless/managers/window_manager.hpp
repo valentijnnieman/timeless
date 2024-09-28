@@ -6,11 +6,6 @@
 #include "../event.hpp"
 
 #include "../systems/mouse_input_system.hpp"
-#include "../systems/movement_system.hpp"
-#include "../systems/keyboard_input_system.hpp"
-#include "../systems/npc_ai_system.hpp"
-#include "../systems/animation_system.hpp"
-#include "../timeless.hpp"
 
 class WindowManager
 {
@@ -299,14 +294,14 @@ public:
 
             if (clear)
             {
-                glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g, TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+              glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g, TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
+              glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             }
 
             shader->use();
-			glUniform1f(glGetUniformLocation(shader->ID, "size"), TESettings::VIEWPORT_X * TESettings::ZOOM);
-			glUniform1f(glGetUniformLocation(shader->ID, "shadowValue"), std::clamp<float>((tick + 2) * 0.1f, 0.0f, 1.0f));
-			glUniform4fv(glGetUniformLocation(shader->ID, "SCREEN_COLOR"), 1, glm::value_ptr(TESettings::SCREEN_COLOR));
+            glUniform1f(glGetUniformLocation(shader->ID, "size"), TESettings::VIEWPORT_X * TESettings::ZOOM);
+            glUniform1f(glGetUniformLocation(shader->ID, "shadowValue"), std::clamp<float>((tick + 2) * 0.1f, 0.0f, 1.0f));
+            glUniform4fv(glGetUniformLocation(shader->ID, "SCREEN_COLOR"), 1, glm::value_ptr(TESettings::SCREEN_COLOR));
             set_shader_time(shader);
             glBindVertexArray(ScreenVAO);
             glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
