@@ -3,12 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
-#include <vector>
 #include "../event.hpp"
 
-#include "../systems/geo_rendering_system.hpp"
-#include "../systems/rendering_system.hpp"
-#include "../systems/text_rendering_system.hpp"
 #include "../systems/mouse_input_system.hpp"
 #include "../systems/movement_system.hpp"
 #include "../systems/keyboard_input_system.hpp"

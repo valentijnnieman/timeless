@@ -14,9 +14,12 @@ public:
             if (!animation->positions.empty())
             {
                 auto transform = cm.transforms.at(entity);
-				glm::vec3 dir = animation->positions.front();
-                transform->set_position(dir);
-                animation->positions.pop();
+                if (transform != nullptr)
+                {
+					glm::vec3 dir = animation->positions.front();
+					transform->set_position(dir);
+					animation->positions.pop();
+                }
             }
             if (!animation->scales.empty())
             {

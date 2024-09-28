@@ -88,7 +88,7 @@ public:
 
             if (cam != nullptr)
             {
-                cm.transforms.at(entity)->update_camera(cam->position);
+                cm.transforms.at(entity)->update_camera(cam->get_position());
             }
             if (text->center)
             {

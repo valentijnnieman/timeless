@@ -39,6 +39,8 @@ public:
     std::unordered_map<Entity, std::shared_ptr<Line>> geometry;
     std::unordered_map<Entity, std::shared_ptr<Animation>> animations;
 
+    ComponentManager(){};
+
     /** These separately defined methods are perhaps not very DRY.
      * It could have been done with templates and a bitfield type signature
      * in the entity id's, but I opted for clarity - sometimes it's better

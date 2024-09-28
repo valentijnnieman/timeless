@@ -31,16 +31,16 @@ namespace TE
 
     std::shared_ptr<ComponentManager> cm;
     std::shared_ptr<MouseInputSystem> mis;
-    std::unique_ptr<WindowManager> wm;
-    std::unique_ptr<Grid> grid;
+    std::shared_ptr<WindowManager> wm;
+    std::shared_ptr<Grid> grid;
 
     void init()
     {
         cm = std::make_shared<ComponentManager>();
         mis = std::make_shared<MouseInputSystem>();
-        wm = std::make_unique<WindowManager>(cm, mis);
+        wm = std::make_shared<WindowManager>(cm, mis);
 
-        grid = std::make_unique<Grid>(Grid());
+        grid = std::make_shared<Grid>(Grid());
     }
 
     template <typename T>
@@ -62,51 +62,75 @@ namespace TE
     }
     std::shared_ptr<Transform> get_transform(Entity entity)
     {
-        return cm->transforms.at(entity);
+        if(cm->transforms.contains(entity))
+			return cm->transforms.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Texture> get_texture(Entity entity)
     {
-        return cm->textures.at(entity);
+        if(cm->textures.contains(entity))
+			return cm->textures.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Shader> get_shader(Entity entity)
     {
-        return cm->shaders.at(entity);
+        if(cm->shaders.contains(entity))
+			return cm->shaders.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Camera> get_camera(Entity entity)
     {
-        return cm->cameras.at(entity);
+        if(cm->cameras.contains(entity))
+			return cm->cameras.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Sprite> get_sprite(Entity entity)
     {
-        return cm->sprites.at(entity);
+        if(cm->sprites.contains(entity))
+			return cm->sprites.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Node> get_node(Entity entity)
     {
-        return cm->nodes.at(entity);
+        if(cm->nodes.contains(entity))
+			return cm->nodes.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Font> get_font(Entity entity)
     {
-        return cm->fonts.at(entity);
+        if(cm->fonts.contains(entity))
+			return cm->fonts.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Text> get_text(Entity entity)
     {
-        return cm->texts.at(entity);
+        if(cm->texts.contains(entity))
+			return cm->texts.at(entity);
+        return nullptr;
     }
     std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity)
     {
-        return cm->mouse_input_listeners.at(entity);
+        if(cm->mouse_input_listeners.contains(entity))
+			return cm->mouse_input_listeners.at(entity);
+        return nullptr;
     }
     std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity)
     {
-        return cm->event_listeners.at(entity);
+        if(cm->event_listeners.contains(entity))
+			return cm->event_listeners.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Behaviour> get_behaviour(Entity entity)
     {
-        return cm->behaviours.at(entity);
+        if(cm->behaviours.contains(entity))
+			return cm->behaviours.at(entity);
+        return nullptr;
     }
     std::shared_ptr<Animation> get_animation(Entity entity)
     {
-        return cm->animations.at(entity);
+        if(cm->animations.contains(entity))
+			return cm->animations.at(entity);
+        return nullptr;
     }
     /** Finalizes the Grid by calculating near neighbours for every Node.
      * This needs to be called seperately and after init(), so components
@@ -172,19 +196,19 @@ namespace TE
      * and manager pointers go out of scope before the program finishes, probably
      * better to do something else here.
      */
-    std::shared_ptr<ComponentManager> &get_component_manager()
+    std::shared_ptr<ComponentManager> get_component_manager()
     {
         return cm;
     }
-    std::unique_ptr<Grid> &get_grid()
+    std::shared_ptr<Grid> get_grid()
     {
         return grid;
     }
-    std::shared_ptr<MouseInputSystem> &get_mouse_input_system()
+    std::shared_ptr<MouseInputSystem> get_mouse_input_system()
     {
         return mis;
     }
-    std::unique_ptr<WindowManager> &get_window_manager()
+    std::shared_ptr<WindowManager> get_window_manager()
     {
         return wm;
     }

@@ -69,7 +69,8 @@ public:
 
         if (cm.cameras.count(camera) != 0)
         {
-            cm.get_camera(camera)->position.x += camera_speed;
+            auto main_camera = cm.get_camera(camera);
+            main_camera->set_position(glm::vec3(main_camera->get_position().x + camera_speed, main_camera->get_position().y, main_camera->get_position().z));
         }
     }
 
@@ -100,7 +101,9 @@ public:
 
         if (cm.cameras.count(camera) != 0)
         {
-            cm.get_camera(camera)->position.x -= camera_speed;
+            //cm.get_camera(camera)->position.x -= camera_speed;
+            auto main_camera = cm.get_camera(camera);
+            main_camera->set_position(glm::vec3(main_camera->get_position().x - camera_speed, main_camera->get_position().y, main_camera->get_position().z));
         }
     }
     void move_down(ComponentManager &cm)
@@ -129,7 +132,9 @@ public:
 
         if (cm.cameras.count(camera) != 0)
         {
-            cm.get_camera(camera)->position.y += camera_speed;
+            //cm.get_camera(camera)->position.y += camera_speed;
+            auto main_camera = cm.get_camera(camera);
+            main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y + camera_speed, main_camera->get_position().z));
         }
     }
 
@@ -159,7 +164,9 @@ public:
 
         if (cm.cameras.count(camera) != 0)
         {
-            cm.get_camera(camera)->position.y -= camera_speed;
+            //cm.get_camera(camera)->position.y -= camera_speed;
+            auto main_camera = cm.get_camera(camera);
+            main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y - camera_speed, main_camera->get_position().z));
         }
     }
 

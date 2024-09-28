@@ -7,6 +7,7 @@ class NpcAiSystem : public System
 private:
     Timer timer = Timer(1.0f);
     bool forward = true;
+    bool playing_solution = false;
     int start_hour = 7;
     int max_time = 200;
 
@@ -18,6 +19,7 @@ public:
     bool viewing_ui = false; // separate for when viewing UI etc
 
     int main_index = -1;
+    int solution_index = 0;
 
     void attach_text_component(ComponentManager &cm, Entity text)
     {
@@ -31,21 +33,16 @@ public:
         speed = new_time;
     }
 
+
     void play_forward(ComponentManager &cm)
     {
-        //if (!forward)
-        //{
-            forward = true;
-            running = true;
-        //}
+		forward = true;
+		running = true;
     }
     void play_backward(ComponentManager &cm)
     {
-        //if (forward)
-        //{
-            forward = false;
-            running = true;
-        //}
+		forward = false;
+		running = true;
     }
 
     void pause(ComponentManager &cm)
@@ -88,28 +85,28 @@ public:
         {
             if (running)
             {
-                if(!forward)
+				if (!forward)
 				{
-                    if(main_index > 0)
+					if (main_index > 0)
 						main_index--;
 				}
 				else if (forward)
 				{
-                    if(main_index < max_time)
+					if (main_index < max_time)
 						main_index++;
 				}
-                for (auto &entity : registered_entities)
-                {
-                    auto behaviour = cm.get_behaviour(entity);
+				for (auto& entity : registered_entities)
+				{
+					auto behaviour = cm.get_behaviour(entity);
 					auto instr = behaviour->next(main_index);
 					if (instr != nullptr)
 					{
-                        bool reverse = !forward;
+						bool reverse = !forward;
 						instr->run(entity, reverse, speed);
 					}
-                }
+				}
 				update_text(cm);
-            }
+			}
         }
     }
 };

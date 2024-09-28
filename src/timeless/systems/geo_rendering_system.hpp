@@ -36,7 +36,7 @@ public:
             cm.transforms.at(entity)->update(x, y, zoom);
             if (cam != nullptr)
             {
-                cm.transforms.at(entity)->update_camera(cam->position);
+                cm.transforms.at(entity)->update_camera(cam->get_position());
             }
             cm.geometry.at(entity)->render();
             auto line = cm.geometry.at(entity);

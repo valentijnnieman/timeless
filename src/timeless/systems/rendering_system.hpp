@@ -99,10 +99,10 @@ public:
 			cm.transforms.at(entity)->update(x, y, zoom);
 			if (cam != nullptr)
 			{
-				cm.transforms.at(entity)->update_camera(cam->position);
+				cm.transforms.at(entity)->update_camera(cam->get_position());
 			}
 			set_shader_transform_uniforms(cm.shaders.at(entity), cm.transforms.at(entity));
-			set_shader_sprite_uniforms(cm.shaders.at(entity), cm.sprites.at(entity), cm.transforms.at(entity), tick, cam->position);
+			set_shader_sprite_uniforms(cm.shaders.at(entity), cm.sprites.at(entity), cm.transforms.at(entity), tick, cam->get_position());
 			cm.quads.at(entity)->render();
 			cm.textures.at(entity)->render();
 
