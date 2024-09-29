@@ -19,6 +19,11 @@ if(apple)
     # SET(CMAKE_INSTALL_RPATH @loader_path/../Framework)
 endif()
 
+if(LINUX)
+  set(GLFW_BUILD_WAYLAND OFF)
+  set(GLFW_BUILD_X11 ON)
+endif()
+
 # set(GLFW_LIBRARY_TYPE SHARED)
 
 # add_executable(${PROJECT_NAME} MACOSX_BUNDLE src/main.cpp)

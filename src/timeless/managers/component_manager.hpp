@@ -180,9 +180,11 @@ public:
     {
         return texts.at(entity);
     }
-    std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity)
-    {
+    std::shared_ptr<MouseInputListener>
+    get_mouse_input_listener(Entity entity) {
+      if (mouse_input_listeners.contains(entity))
         return mouse_input_listeners.at(entity);
+      return nullptr;
     }
     std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity)
     {

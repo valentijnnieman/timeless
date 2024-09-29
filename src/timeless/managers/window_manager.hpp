@@ -39,6 +39,11 @@ public:
 
     GLFWwindow* window;
 
+    static void error_callback(int error, const char* description)
+    {
+        fprintf(stderr, "Error: %s\n", description);
+    }
+
     WindowManager(std::shared_ptr<ComponentManager> cm, std::shared_ptr<MouseInputSystem> mis)
         : cm(cm), mis(mis)
     {
@@ -56,6 +61,8 @@ public:
         int window_width = mode->width;
         int window_height = mode->height;
         TESettings::rescale_window(window_width, window_height);
+
+        glfwSetErrorCallback(error_callback);
 
         //window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
         window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);

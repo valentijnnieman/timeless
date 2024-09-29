@@ -68,29 +68,29 @@ public:
 		float t_width = 256.0f;
 		float t_height = 128.0f;
 
-		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-			auto trans_a = cm.transforms.at(a);
-			auto trans_b = cm.transforms.at(b);
-			
-			double a_h = trans_a->height / t_height;
-			double b_h = trans_b->height / t_height;
-
-			double a_w = trans_a->width / t_width;
-			double b_w = trans_b->width / t_width;
-
-			float a_x_pos = trans_a->grid_x;
-			float a_y_pos = trans_a->grid_y;
-			float b_x_pos = trans_b->grid_x;
-			float b_y_pos = trans_b->grid_y;
-
-			return (a_y_pos + a_x_pos) < (b_y_pos + b_x_pos);
-			});
-
-		std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-			auto trans_a = cm.transforms.at(a);
-			auto trans_b = cm.transforms.at(b);
-			return trans_a->position.z < trans_b->position.z;
-			});
+		// std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
+		// 	auto trans_a = cm.transforms.at(a);
+		// 	auto trans_b = cm.transforms.at(b);
+		//
+		// 	double a_h = trans_a->height / t_height;
+		// 	double b_h = trans_b->height / t_height;
+		//
+		// 	double a_w = trans_a->width / t_width;
+		// 	double b_w = trans_b->width / t_width;
+		//
+		// 	float a_x_pos = trans_a->grid_x;
+		// 	float a_y_pos = trans_a->grid_y;
+		// 	float b_x_pos = trans_b->grid_x;
+		// 	float b_y_pos = trans_b->grid_y;
+		//
+		// 	return (a_y_pos + a_x_pos) < (b_y_pos + b_x_pos);
+		// 	});
+		//
+		// std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
+		// 	auto trans_a = cm.transforms.at(a);
+		// 	auto trans_b = cm.transforms.at(b);
+		// 	return trans_a->position.z < trans_b->position.z;
+		// 	});
 
 
 		for (auto& entity : registered_entities)
