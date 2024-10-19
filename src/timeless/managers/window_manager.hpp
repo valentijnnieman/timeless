@@ -62,8 +62,6 @@ public:
         int window_height = mode->height;
         TESettings::rescale_window(window_width, window_height);
 
-        glfwSetErrorCallback(error_callback);
-
         //window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
         window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
         if (window == NULL)
@@ -92,6 +90,8 @@ public:
         glfwSetMouseButtonCallback(window, &mouse_button_callback);
         glfwSetCursorPosCallback(window, cursor_position_callback);
         glfwSetScrollCallback(window, &scroll_callback);
+
+        glfwSetErrorCallback(error_callback);
     }
     void enable_shadows()
     {

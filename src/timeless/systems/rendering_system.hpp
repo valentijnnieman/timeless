@@ -2,6 +2,7 @@
 #include "../components/shader.hpp"
 #include "../components/transform.hpp"
 #include "system.hpp"
+#include "timeless/managers/component_manager.hpp"
 #include <string.h>
 
 class RenderingSystem : public System
@@ -59,7 +60,19 @@ public:
 		}
 	}
 
-	void render(ComponentManager& cm, int x, int y, float zoom = 1.0, int tick = 0)
+  void sort(ComponentManager& cm) 
+  {
+
+    std::stable_sort(registered_entities.begin(),
+                      registered_entities.end(),
+                      [&, cm = cm](auto a, auto b) {
+                        auto trans_a = cm.transforms.at(a);
+                        auto trans_b = cm.transforms.at(b);
+                        return trans_a->position.z < trans_b->position.z;
+                      });
+  }
+
+  void render(ComponentManager& cm, int x, int y, float zoom = 1.0, int tick = 0)
 	{ 
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		// get camera if set
@@ -86,12 +99,6 @@ public:
 		// 	return (a_y_pos + a_x_pos) < (b_y_pos + b_x_pos);
 		// 	});
 		//
-		// std::stable_sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-		// 	auto trans_a = cm.transforms.at(a);
-		// 	auto trans_b = cm.transforms.at(b);
-		// 	return trans_a->position.z < trans_b->position.z;
-		// 	});
-
 
 		for (auto& entity : registered_entities)
 		{

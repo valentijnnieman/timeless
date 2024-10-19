@@ -239,6 +239,7 @@ public:
     /** this method completely removes all components for an entity */
     void remove_entity(Entity entity)
     {
+        animations.erase(entity);
         quads.erase(entity);
         textures.erase(entity);
         shaders.erase(entity);
