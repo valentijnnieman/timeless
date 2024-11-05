@@ -3,13 +3,14 @@
 #include "../entity.hpp"
 #include "../event.hpp"
 
-template <typename T = Event>
+template <typename T = Event, typename CDT = void*>
 class EventListener
 {
 private:
-	std::function<void(T* event, Entity entity, void* data)> callback;
+	std::function<void(T* event, Entity entity, CDT data)> callback;
+
 public:
-	EventListener(std::function<void(T* event, Entity entity, void* data)> callback)
+	EventListener(std::function<void(T* event, Entity entity, CDT data)> callback)
 		: callback(callback)
 	{
 	}

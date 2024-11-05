@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <vector>
 
 enum LocationType
 {
@@ -12,6 +14,8 @@ enum LocationType
 	meeting,
 	rendezvous
 };
+const int LOCATIONS_AMOUNT = 9;
+
 std::string to_string(LocationType t)
 {
 	switch (t)

@@ -62,7 +62,6 @@ public:
         auto shader = cm.shaders.at(entity);
         auto transform = cm.transforms.at(entity);
         auto font = cm.fonts.at(entity);
-        auto text = cm.texts.at(entity);
         // glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f);
 
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(transform->projection));
@@ -81,7 +80,7 @@ public:
         {
             auto text = cm.texts.at(entity);
             auto font = cm.fonts.at(entity);
-			auto shader = cm.shaders.at(entity);
+            auto shader = cm.shaders.at(entity);
 
             cm.shaders.at(entity)->use();
             cm.transforms.at(entity)->update(x, y);

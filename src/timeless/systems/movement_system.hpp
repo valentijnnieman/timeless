@@ -25,7 +25,7 @@ public:
     Entity camera;
 
     MovementSystem()
-        : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)), y_bounds(glm::vec2(-TESettings::SCREEN_Y, TESettings::SCREEN_Y)), walk_speed(1.0f), camera_speed(10.0f)
+        : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)), y_bounds(glm::vec2(-TESettings::SCREEN_Y, TESettings::SCREEN_Y)), walk_speed(1.0f), camera_speed(25.0f)
     {
     }
 
