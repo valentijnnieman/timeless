@@ -1,5 +1,6 @@
 #pragma once
 #include "../entity.hpp"
+#include "../managers/component_manager.hpp"
 
 
 class System

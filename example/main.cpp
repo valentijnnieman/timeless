@@ -111,7 +111,7 @@ public:
 				TE::add_component(tile, new Animation());
 				// lastly, we add an mouse input listener component - although we leave the handler function 
 				// blank for now.
-				TE::add_component(tile, new MouseInputListener([&](MouseEvent* event, Entity entity, int data)
+				TE::add_component(tile, new MouseInputListener<MouseEvent>([&](MouseEvent* event, Entity entity, int data)
 					{
 						// handle mouse input events here
 					}

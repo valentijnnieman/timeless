@@ -63,6 +63,7 @@ public:
         TESettings::rescale_window(window_width, window_height);
 
         //window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
+        glfwSetErrorCallback(error_callback);
         window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
         if (window == NULL)
         {
@@ -91,7 +92,6 @@ public:
         glfwSetCursorPosCallback(window, cursor_position_callback);
         glfwSetScrollCallback(window, &scroll_callback);
 
-        glfwSetErrorCallback(error_callback);
     }
     void enable_shadows()
     {
@@ -203,7 +203,7 @@ public:
         // height will be significantly larger than specified on retina displays.
         glViewport(0, 0, width, height);
     }
-    void mouse_move_handler(MouseEvent* event)
+    void mouse_move_handler(MouseMoveEvent* event)
     {
         mouse_position = event->screen_position;
         set_shader_mouse_position(event->screen_position);
@@ -225,7 +225,7 @@ public:
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
     {
         WindowManager* wm = static_cast<WindowManager*>(glfwGetWindowUserPointer(window));
-        wm->mouse_move_handler(new MouseEvent("MouseMove", glm::vec2(xpos, ypos)));
+        wm->mouse_move_handler(new MouseMoveEvent("MouseMove", glm::vec2(xpos, ypos)));
     }
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     {

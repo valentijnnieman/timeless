@@ -3,17 +3,18 @@
 #include "../entity.hpp"
 #include "../event.hpp"
 
+template <typename T = MouseEvent>
 class MouseInputListener
 {
 private:
-    std::function<void(MouseEvent *event, Entity entity, int data)> on_click;
+    std::function<void(T *event, Entity entity, int data)> on_click;
 
 public:
-    MouseInputListener(std::function<void(MouseEvent *event, Entity entity, int data)> onClick)
+    MouseInputListener(std::function<void(T *event, Entity entity, int data)> onClick)
         : on_click(onClick)
     {
     }
-    void on_click_handler(MouseEvent *event, Entity entity, int data)
+    void on_click_handler(T *event, Entity entity, int data)
     {
         on_click(event, entity, data);
     }

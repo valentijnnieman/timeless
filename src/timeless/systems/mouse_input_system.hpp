@@ -11,10 +11,35 @@ public:
 	{
 		camera = c;
 	}
+	std::vector<Entity> registered_move_entities;
+
+	virtual void register_move_entity(Entity entity)
+	{
+		registered_move_entities.push_back(entity);
+	}
+	virtual void remove_move_entity(Entity entity)
+	{
+		if (!registered_move_entities.empty())
+		{
+			auto found = std::find_if(registered_move_entities.begin(), registered_move_entities.end(), [&](auto& e)
+				{ return e == entity; });
+			if (found != registered_move_entities.end())
+			{
+				registered_move_entities.erase(found);
+			}
+		}
+	}
 
 	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
 	{
 		auto listener = cm.get_mouse_input_listener(entity);
+    if(listener != nullptr)
+      listener->on_click_handler(event, entity, 0);
+	}
+
+	void notify_listener(ComponentManager& cm, MouseMoveEvent* event, Entity entity)
+	{
+		auto listener = cm.get_mouse_move_listener(entity);
     if(listener != nullptr)
       listener->on_click_handler(event, entity, 0);
 	}
@@ -96,17 +121,20 @@ public:
 		}
 		delete event;
 	}
-	void mouse_move_handler(ComponentManager& cm, MouseEvent* event)
+	void mouse_move_handler(ComponentManager& cm, MouseMoveEvent* event)
 	{
-		double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
-		double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
-		glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
-
-		event->screen_position = m_pos;
-
-		for (const auto& entity : registered_entities)
+		// double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
+		// double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
+		// glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
+		//
+		// event->screen_position = m_pos;
+		//
+		for (const auto& entity : registered_move_entities)
 		{
 			notify_listener(cm, event, entity);
+      if(event->picked_up) {
+        break;
+      }
 		}
 		delete event;
 	}

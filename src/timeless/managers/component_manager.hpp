@@ -16,6 +16,8 @@
 #include "../components/texture.hpp"
 #include "../components/transform.hpp"
 #include "../entity.hpp"
+#include "timeless/components/quad.hpp"
+#include "timeless/event.hpp"
 
 
 class ComponentManager {
@@ -25,8 +27,10 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Shader>> shaders;
   std::unordered_map<Entity, std::shared_ptr<Sprite>> sprites;
   std::unordered_map<Entity, std::shared_ptr<Transform>> transforms;
-  std::unordered_map<Entity, std::shared_ptr<MouseInputListener>>
+  std::unordered_map<Entity, std::shared_ptr<MouseInputListener<MouseEvent>>>
       mouse_input_listeners;
+  std::unordered_map<Entity, std::shared_ptr<MouseInputListener<MouseMoveEvent>>>
+      mouse_move_listeners;
   std::unordered_map<Entity, std::shared_ptr<EventListener<Event>>>
       event_listeners;
   std::unordered_map<Entity, std::shared_ptr<EventListener<PositionEvent>>>
@@ -75,9 +79,13 @@ public:
   void add_component(Entity entity, Transform *transform) {
     transforms.insert({entity, std::shared_ptr<Transform>(transform)});
   }
-  void add_component(Entity entity, MouseInputListener *mouse_input) {
+  void add_component(Entity entity, MouseInputListener<MouseEvent> *mouse_input) {
     mouse_input_listeners.insert(
-        {entity, std::shared_ptr<MouseInputListener>(mouse_input)});
+        {entity, std::shared_ptr<MouseInputListener<MouseEvent>>(mouse_input)});
+  }
+  void add_component(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input) {
+    mouse_move_listeners.insert(
+        {entity, std::shared_ptr<MouseInputListener<MouseMoveEvent>>(mouse_input)});
   }
   void add_component(Entity entity, EventListener<Event> *event_listener) {
     event_listeners.insert(
@@ -171,9 +179,14 @@ public:
     return nullptr;
   }
   std::shared_ptr<Text> get_text(Entity entity) { return texts.at(entity); }
-  std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity) {
+  std::shared_ptr<MouseInputListener<MouseEvent>> get_mouse_input_listener(Entity entity) {
     if (mouse_input_listeners.contains(entity))
       return mouse_input_listeners.at(entity);
+    return nullptr;
+  }
+  std::shared_ptr<MouseInputListener<MouseMoveEvent>> get_mouse_move_listener(Entity entity) {
+    if (mouse_move_listeners.contains(entity))
+      return mouse_move_listeners.at(entity);
     return nullptr;
   }
   std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity) {

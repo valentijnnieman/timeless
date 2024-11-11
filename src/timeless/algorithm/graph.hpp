@@ -6,6 +6,8 @@
 #include <algorithm>
 #include "../components/collider.hpp"
 #include "../components/node.hpp"
+#include "timeless/entity.hpp"
+#include "timeless/managers/component_manager.hpp"
 
 namespace std
 {

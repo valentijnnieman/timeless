@@ -33,6 +33,16 @@ public:
     }
 };
 
+class MouseMoveEvent : public Event
+{
+public:
+    glm::vec2 screen_position;
+    MouseMoveEvent(std::string et, glm::vec2 sp)
+        : Event(et), screen_position(sp) 
+    {
+    }
+};
+
 class KeyboardEvent : public Event
 {
 public:

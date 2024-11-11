@@ -98,7 +98,7 @@ namespace TE
         return cm->texts.at(entity);
       return nullptr;
     }
-    std::shared_ptr<MouseInputListener> get_mouse_input_listener(Entity entity)
+    std::shared_ptr<MouseInputListener<MouseEvent>> get_mouse_input_listener(Entity entity)
     {
       if(cm->mouse_input_listeners.contains(entity))
         return cm->mouse_input_listeners.at(entity);
@@ -170,10 +170,15 @@ namespace TE
     /** These separately defined methods are so we can handle things like
      * registering entities/components with default systems like the mouse input system and the grid system.
      */
-    void add_component(Entity entity, MouseInputListener *mouse_input, bool add_transform = true, bool is_ui = false)
+    void add_component(Entity entity, MouseInputListener<MouseEvent> *mouse_input, bool add_transform = true, bool is_ui = false)
     {
         cm->add_component(entity, mouse_input);
         mis->register_entity(entity);
+    }
+    void add_component(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input, bool add_transform = true, bool is_ui = false)
+    {
+        cm->add_component(entity, mouse_input);
+        mis->register_move_entity(entity);
     }
     void add_component(Entity entity, Node *node)
     {

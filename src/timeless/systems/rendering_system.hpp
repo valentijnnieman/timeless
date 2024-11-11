@@ -2,10 +2,23 @@
 #include "../components/shader.hpp"
 #include "../components/transform.hpp"
 #include "system.hpp"
+#include "timeless/components/quad.hpp"
 #include "timeless/managers/component_manager.hpp"
+#include "timeless/timeless.hpp"
 #include <string.h>
 
 class RenderingSystem : public System {
+private:
+  unsigned int instanceVBO;
+  unsigned int instanceVBO2;
+  unsigned int instanceVBO3;
+
+  std::vector<glm::mat4> models;
+  std::vector<glm::mat4> views;
+  std::vector<glm::mat4> projections;
+  std::vector<float> sprite_indices;
+  std::vector<glm::vec2> sprite_sizes;
+
 public:
   Entity camera;
 
@@ -150,10 +163,10 @@ public:
         shader->use();
       auto transform = cm.get_transform(entity);
       if (transform != nullptr) {
-        transform->update(x, y, zoom);
         if (cam != nullptr) {
           transform->update_camera(cam->get_position());
         }
+        transform->update(x, y, zoom);
       }
 
       if (cm.texts.contains(entity)) {
@@ -195,5 +208,91 @@ public:
         }
       }
     }
+  }
+
+  void prepare_instanced(ComponentManager &cm, std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader, float x, float y, int zoom)
+  {
+    shader->use();
+    std::shared_ptr<Camera> cam = cm.get_camera(camera);
+
+    for (auto &entity : registered_entities) {
+      auto transform = cm.get_transform(entity);
+      transform->update_camera(cam->get_position());
+      transform->update(x, y, zoom);
+      models.push_back(transform->model);
+      
+      auto sprite = cm.get_sprite(entity);
+      sprite_indices.push_back(sprite->index);
+      sprite_sizes.push_back(sprite->spriteSize);
+    }
+
+    glGenBuffers(1, &instanceVBO);
+    glGenBuffers(1, &instanceVBO2);
+    glGenBuffers(1, &instanceVBO3);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * registered_entities.size(), &sprite_indices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * registered_entities.size(), &sprite_sizes[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * registered_entities.size(), &models[0], GL_STATIC_DRAW);
+
+    quad->render();
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+    glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
+    glVertexAttribDivisor(4, 1); // tell OpenGL this is an instanced vertex attribute.
+    glVertexAttribDivisor(5, 1); // tell OpenGL this is an instanced vertex attribute.
+    glVertexAttribDivisor(6, 1); // tell OpenGL this is an instanced vertex attribute.
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
+    glEnableVertexAttribArray(7);
+    glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+    glVertexAttribDivisor(7, 1); // tell OpenGL this is an instanced vertex attribute.
+    //
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
+    glEnableVertexAttribArray(8);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+    glVertexAttribDivisor(8, 1); // tell OpenGL this is an instanced vertex attribute.
+  }
+  void instanced_render(ComponentManager &cm, int x, int y, std::shared_ptr<Quad> quad, std::shared_ptr<Texture> texture, std::shared_ptr<Shader> shader, float zoom = 1.0,
+              int tick = 0) {
+    // get camera if set
+    std::shared_ptr<Camera> cam = cm.get_camera(camera);
+
+    float t_width = 256.0f;
+    float t_height = 128.0f;
+
+    // prepare_instanced(cm, quad, shader,  x, y, zoom);
+    //
+
+    shader->use();
+    quad->render();
+    texture->render();
+
+    glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+    glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1,
+                  glm::value_ptr(glm::vec4(1.0f)));
+    glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
+                  glm::value_ptr(glm::vec2(texture->width, texture->height)));
+
+    // glm::mat4 transformMatrix = glm::mat4(1.0f);
+    // transformMatrix = glm::translate(transformMatrix, cam->get_position());
+
+    glm::mat4 view = glm::lookAt(cam->get_position(), cam->get_position() + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
+                        GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
+                        glm::value_ptr(view));
+
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, registered_entities.size());
   }
 };

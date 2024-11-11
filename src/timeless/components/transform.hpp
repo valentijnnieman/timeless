@@ -39,19 +39,8 @@ public:
         : position(p), start_position(p),
           rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f))
     {
-        // projection = glm::ortho(0.0f, static_cast<float>(SCR_VIEWPORT_X), static_cast<float>(SCR_VIEWPORT_Y), 0.0f, -1.0f, 1.0f);
         rot = glm::quat(glm::vec3(0, 0, 0));
-
         model = glm::mat4(1.0f);
-
-        glm::mat4 transformMatrix = glm::mat4(1.0f);
-        transformMatrix = glm::translate(transformMatrix, position);
-        model = transformMatrix * model;
-
-        // model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-        // model = glm::translate(model, glm::vec3(0.5f * width, 0.5f * height, 0.0f));
-        model = glm::scale(model, glm::vec3(width, height, 1.0f));
-
         view = glm::mat4(1.0f);
     }
     void translate(glm::vec3 p)
@@ -101,6 +90,11 @@ public:
         camera_position = p;
     }
 
+    glm::vec3 get_position_minus_offset()
+    {
+        return glm::vec3((position.x - offset.x), (position.y - offset.y), position.z);
+    }
+
     /* returns position minus camera - i.e. position as if looking from
     camera's perspective */
     glm::vec3 get_position_from_camera()
@@ -115,14 +109,18 @@ public:
 
     void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
     {
-        view = glm::mat4(1.0f);
         projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
 
+        // view = glm::mat4(1.0f);
+        // glm::mat4 viewTransform = glm::mat4(1.0f);
+        // viewTransform = glm::translate(viewTransform, camera_position);
+        //
+        // view = viewTransform * view;
+        view = glm::lookAt(camera_position, camera_position + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
         model = glm::mat4(1.0f);
-        glm::mat4 transformMatrix = glm::mat4(1.0f);
-
-        transformMatrix = glm::translate(transformMatrix, get_position_from_camera());
+        glm::mat4 modelTransform = glm::mat4(1.0f);
+        modelTransform = glm::translate(modelTransform, get_position_minus_offset());
 
         if (center)
         {
@@ -134,7 +132,7 @@ public:
         }
         model = glm::translate(model, offset);
         glm::mat4 rotation_matrix = glm::toMat4(rot);
-        model = transformMatrix * rotation_matrix * model;
+        model = modelTransform * rotation_matrix * model;
 
         if (flip)
         {
