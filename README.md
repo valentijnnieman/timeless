@@ -3,7 +3,7 @@
 This is my 2d game engine in C++ that I use to build games. It uses an ECS architecture (entity component system) and is very much a work in progress!
 
 ## Header-only
-To ease with development, and since the classes are relatively compact, the source code is in header files only at this point. I found that this resembles how source code is organized in more modern languages - which is where I'm coming from - which is why I chose this for now. As the project grows, more platforms are supported, and when it is getting ready for an actual 1.0 release, this will probably change!
+To ease with development, and since the classes are relatively compact, the source code is in header files only at this point. This makes it easier/more flexible to use in these early stages, as things are likely to change a lot. As the project grows, more platforms are supported, and when it is getting ready for an actual 1.0 release, this will probably change! The [C++ Dos and Don'ts doc from Chromium, here, ](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/c++/c++-dos-and-donts.md) is a good resource to follow in the future (note to self!).
 
 ## Time sequencing
 This engine is currently being used to develop a game based on a 2d (isometric!) grid, where objects act on a fixed time scale. Think of it like a music sequencer, where along fixed time intervals notes are fired, creating music. 
