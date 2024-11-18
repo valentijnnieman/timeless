@@ -270,9 +270,6 @@ public:
     float t_width = 256.0f;
     float t_height = 128.0f;
 
-    // prepare_instanced(cm, quad, shader,  x, y, zoom);
-    //
-
     shader->use();
     quad->render();
     texture->render();

@@ -1,5 +1,9 @@
 #pragma once
+#include "timeless/entity.hpp"
 #include <deque>
+#include <functional>
+#include <memory>
+#include <vector>
 
 class Instruction
 {
@@ -37,6 +41,7 @@ private:
 
 public:
     std::vector<Instruction> next_instructions;
+    std::shared_ptr<Instruction> callback;
 
     Behaviour(std::vector<Instruction> f_instructions)
         : next_instructions(f_instructions)

@@ -138,6 +138,11 @@ public:
     animations.insert({entity, std::shared_ptr<Animation>(animation)});
   }
 
+  std::shared_ptr<Node> get_node(Entity entity) { 
+    if(nodes.contains(entity))
+      return nodes.at(entity); 
+    return nullptr;
+  }
   std::shared_ptr<Quad> get_quad(Entity entity) { 
     if(quads.contains(entity))
       return quads.at(entity); 
