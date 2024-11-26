@@ -1,8 +1,9 @@
 #pragma once
 #include "glm/glm.hpp"
+#include "component.hpp"
 #include <queue>
 
-class Camera {
+class Camera : public Component {
 private:
   std::queue<glm::vec3> positions;
   glm::vec3 position;

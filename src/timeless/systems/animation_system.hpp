@@ -7,10 +7,10 @@ public:
 
   void update(ComponentManager &cm) {
     for (auto entity : registered_entities) {
-      if (cm.animations.contains(entity)) {
-        auto animation = cm.animations.at(entity);
+      auto animation = cm.get_component<Animation>(entity);
+      if (animation != nullptr) {
         if (!animation->positions.empty()) {
-          auto transform = cm.transforms.at(entity);
+          auto transform = cm.get_component<Transform>(entity);
           if (transform != nullptr) {
             glm::vec3 dir = animation->positions.front();
             transform->set_position(dir);
@@ -18,7 +18,7 @@ public:
           }
         }
         if (!animation->scales.empty()) {
-          auto transform = cm.transforms.at(entity);
+          auto transform = cm.get_component<Transform>(entity);
           if (transform != nullptr) {
             glm::vec3 scale = animation->scales.front();
             transform->set_scale(scale);
@@ -27,7 +27,7 @@ public:
         }
 
         if (!animation->rotations.empty()) {
-          auto transform = cm.transforms.at(entity);
+          auto transform = cm.get_component<Transform>(entity);
           if (transform != nullptr) {
             glm::vec3 euler_angles = animation->rotations.front();
             transform->rotate(euler_angles);
@@ -39,24 +39,22 @@ public:
         }
 
         if (!animation->opacities.empty()) {
-          try {
-            auto sprite = cm.sprites.at(entity);
+          auto sprite = cm.get_component<Sprite>(entity);
+          if(sprite != nullptr) {
             float o = animation->opacities.front();
             sprite->color.a = o;
             animation->opacities.pop();
-          } catch (std::exception e) {
           }
 
-          try {
-            auto text = cm.texts.at(entity);
-            float o = animation->opacities.front();
-            // text->color.a = o;
-            for (auto &c : text->color_vector) {
-              c.a = o;
+            auto text = cm.get_component<Text>(entity);
+            if(text != nullptr) {
+              float o = animation->opacities.front();
+              // text->color.a = o;
+              for (auto &c : text->color_vector) {
+                c.a = o;
+              }
+              animation->opacities.pop();
             }
-            animation->opacities.pop();
-          } catch (std::exception e) {
-          }
         }
       }
     }

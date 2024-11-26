@@ -1,6 +1,7 @@
 #pragma once
 #include "../event.hpp"
 #include "system.hpp"
+#include "timeless/components/mouse_input_listener.hpp"
 
 class MouseInputSystem : public System
 {
@@ -32,21 +33,21 @@ public:
 
 	void notify_listener(ComponentManager& cm, MouseEvent* event, Entity entity)
 	{
-		auto listener = cm.get_mouse_input_listener(entity);
+		auto listener = cm.get_component<MouseInputListener<MouseEvent>>(entity);
     if(listener != nullptr)
       listener->on_click_handler(event, entity, 0);
 	}
 
 	void notify_listener(ComponentManager& cm, MouseMoveEvent* event, Entity entity)
 	{
-		auto listener = cm.get_mouse_move_listener(entity);
+		auto listener = cm.get_component<MouseInputListener<MouseMoveEvent>>(entity);
     if(listener != nullptr)
       listener->on_click_handler(event, entity, 0);
 	}
 
 	void mouse_click_handler(ComponentManager& cm, MouseEvent* event)
 	{
-		auto cam = cm.get_camera(camera);
+		auto cam = cm.get_component<Camera>(camera);
 
 		float highest_z = -999.0f;
 		Entity found_entity;
@@ -55,15 +56,15 @@ public:
 		glm::vec2 m_pos(event->screen_position.x, event->screen_position.y);
 
 		// std::sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-		// 	auto trans_a = cm.transforms.at(a);
-		// 	auto trans_b = cm.transforms.at(b);
+		// 	auto trans_a = cm.get_component<Transform>(a);
+		// 	auto trans_b = cm.get_component<Transform>(b);
 		// 	return trans_a->position.z > trans_b->position.z;
 		// 	});
 
 		// for (const auto &[entity, transform] : transforms)
 		// for (auto entity : registered_entities)
 		// {
-		// 	auto transform = cm.get_transform(entity);
+		// 	auto transform = cm.get_component<Transform>(entity);
 		// 	if (transform != nullptr)
 		// 	{
 		// 		glm::vec3 t_pos = transform->get_position_from_camera();
@@ -141,8 +142,8 @@ public:
 	void mouse_scroll_handler(ComponentManager& cm, MouseEvent* event)
 	{
 		// std::sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-		// 	auto trans_a = cm.transforms.at(a);
-		// 	auto trans_b = cm.transforms.at(b);
+		// 	auto trans_a = cm.get_component<Transform>(a);
+		// 	auto trans_b = cm.get_component<Transform>(b);
 		// 	return trans_a->position.z > trans_b->position.z;
 		// });
 		for (const auto& entity : registered_entities)

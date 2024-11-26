@@ -22,7 +22,7 @@ public:
 
     void notify_listener(ComponentManager &cm, KeyboardEvent *event, Entity entity)
     {
-        auto listener = cm.get_keyboard_input_listener(entity);
+        auto listener = cm.get_component<KeyboardInputListener>(entity);
         listener->on_input_handler(event, entity, 0);
         delete event;
     }

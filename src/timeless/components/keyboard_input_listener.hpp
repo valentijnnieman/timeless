@@ -2,8 +2,9 @@
 #include <functional>
 #include "../entity.hpp"
 #include "../event.hpp"
+#include "component.hpp"
 
-class KeyboardInputListener
+class KeyboardInputListener : public Component
 {
 private:
     std::function<void(KeyboardEvent *event, Entity entity, int data)> on_input;

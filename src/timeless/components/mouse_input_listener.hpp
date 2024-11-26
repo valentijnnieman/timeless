@@ -2,9 +2,10 @@
 #include <functional>
 #include "../entity.hpp"
 #include "../event.hpp"
+#include "component.hpp"
 
 template <typename T = MouseEvent>
-class MouseInputListener
+class MouseInputListener : public Component
 {
 private:
     std::function<void(T *event, Entity entity, int data)> on_click;

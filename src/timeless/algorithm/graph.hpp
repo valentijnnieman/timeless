@@ -88,7 +88,7 @@ public:
 	{
 		for (auto& entity : registered_entities)
 		{
-			add_node(cm.nodes.at(entity), cm);
+			add_node(cm.get_component<Node>(entity), cm);
 		}
 	}
 
@@ -129,13 +129,13 @@ public:
 			{
 				auto it = find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity& entity)
 					{
-						std::shared_ptr<Node> node = cm.nodes.at(entity);
+            const auto& node = cm.get_component<Node>(entity);
 						return node->x == next.x && node->y == next.y;
 					});
 
 				if (it != registered_entities.end())
 				{
-					auto n = cm.nodes.at(*it);
+					const auto n = cm.get_component<Node>(*it);
 					if (n->layer != 1)
 					{
 						std::vector<glm::vec2> n_dirs = directions;

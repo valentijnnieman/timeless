@@ -29,18 +29,18 @@ public:
     void render(ComponentManager &cm, int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, float zoom = 1.0)
     {
         // get camera if set
-        std::shared_ptr<Camera> cam = cm.get_camera(camera);
+        std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
         for (auto &entity : registered_entities)
         {
-            cm.shaders.at(entity)->use();
-            cm.transforms.at(entity)->update(x, y, zoom);
+            cm.get_component<Shader>(entity)->use();
+            cm.get_component<Transform>(entity)->update(x, y, zoom);
             if (cam != nullptr)
             {
-                cm.transforms.at(entity)->update_camera(cam->get_position());
+                cm.get_component<Transform>(entity)->update_camera(cam->get_position());
             }
-            cm.geometry.at(entity)->render();
-            auto line = cm.geometry.at(entity);
-            set_shader_transform_uniforms(cm.shaders.at(entity), cm.transforms.at(entity));
+            cm.get_component<Line>(entity)->render();
+            auto line = cm.get_component<Line>(entity);
+            set_shader_transform_uniforms(cm.get_component<Shader>(entity), cm.get_component<Transform>(entity));
         }
     }
 };

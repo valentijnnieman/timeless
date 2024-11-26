@@ -1,7 +1,8 @@
 #pragma once
 #include "glad/glad.h"
+#include "component.hpp"
 
-class Line
+class Line : public Component
 {
 private:
     unsigned int VAO, VBO;

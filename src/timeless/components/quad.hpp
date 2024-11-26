@@ -1,7 +1,8 @@
 #pragma once
 #include "glad/glad.h"
+#include "component.hpp"
 
-class Quad
+class Quad : public Component
 {
 private:
     unsigned int VAO, EBO, VBO;

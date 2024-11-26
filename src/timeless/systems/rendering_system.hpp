@@ -53,7 +53,7 @@ public:
   }
 
   void bind_text_values(Entity entity, ComponentManager &cm) {
-    auto font = cm.get_font(entity);
+    auto font = cm.get_component<Font>(entity);
     if (font != nullptr) {
       glActiveTexture(GL_TEXTURE0);
       glBindVertexArray(font->VAO);
@@ -61,8 +61,8 @@ public:
   }
 
   float get_text_width(Entity entity, ComponentManager &cm) {
-    auto font = cm.get_font(entity);
-    auto text = cm.get_text(entity);
+    auto font = cm.get_component<Font>(entity);
+    auto text = cm.get_component<Text>(entity);
 
     float width = 0.0f;
     // Get width of string
@@ -75,8 +75,8 @@ public:
   }
 
   float get_text_height(Entity entity, ComponentManager &cm) {
-    auto font = cm.get_font(entity);
-    auto text = cm.get_text(entity);
+    auto font = cm.get_component<Font>(entity);
+    auto text = cm.get_component<Text>(entity);
 
     float height = 0.0f;
     // Get width of string
@@ -91,7 +91,7 @@ public:
   void rotate_all_z(ComponentManager &cm, float z) {
 
     for (auto &entity : registered_entities) {
-      auto transform = cm.get_transform(entity);
+      auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         // transform->position.x += 42.0f;
         // transform->position.x += transform->width * 0.75f;
@@ -105,7 +105,7 @@ public:
   void reset_shadow(ComponentManager &cm, float z) {
 
     for (auto &entity : registered_entities) {
-      auto transform = cm.get_transform(entity);
+      auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         transform->rotate(glm::vec3(0.0f, 0.0f, glm::radians(z)));
         // transform->position.x -= 42.0f;
@@ -120,8 +120,8 @@ public:
 
     std::stable_sort(registered_entities.begin(), registered_entities.end(),
                      [&](const Entity &a, const Entity &b) {
-                       auto trans_a = cm.get_transform(a);
-                       auto trans_b = cm.get_transform(b);
+                       auto trans_a = cm.get_component<Transform>(a);
+                       auto trans_b = cm.get_component<Transform>(b);
                        if (trans_a == nullptr || trans_b == nullptr)
                          return false;
                        return trans_a->position.z < trans_b->position.z;
@@ -132,7 +132,7 @@ public:
               int tick = 0) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // get camera if set
-    std::shared_ptr<Camera> cam = cm.get_camera(camera);
+    std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     float t_width = 256.0f;
     float t_height = 128.0f;
@@ -140,7 +140,7 @@ public:
     // std::stable_sort(registered_entities.begin(),
     // registered_entities.end(),
     // [&, cm = cm](auto a, auto b) { 	auto trans_a =
-    // cm.transforms.at(a); auto trans_b = cm.transforms.at(b);
+    // cm.get_component<Transform>(a); auto trans_b = cm.get_component<Transform>(b);
     //
     // 	double a_h = trans_a->height / t_height;
     // 	double b_h = trans_b->height / t_height;
@@ -158,10 +158,10 @@ public:
     //
 
     for (auto &entity : registered_entities) {
-      auto shader = cm.get_shader(entity);
+      auto shader = cm.get_component<Shader>(entity);
       if (shader != nullptr)
         shader->use();
-      auto transform = cm.get_transform(entity);
+      auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         if (cam != nullptr) {
           transform->update_camera(cam->get_position());
@@ -169,10 +169,10 @@ public:
         transform->update(x, y, zoom);
       }
 
-      if (cm.texts.contains(entity)) {
-        auto text = cm.get_text(entity);
+      auto text = cm.get_component<Text>(entity);
+      if (text != nullptr) {
         if (text->center) {
-          cm.get_transform(entity)->update(
+          cm.get_component<Transform>(entity)->update(
               x, y, 1.0f,
               glm::vec3(-get_text_width(entity, cm) * 0.5f,
                         -get_text_height(entity, cm) * 0.5f, 0.0f));
@@ -181,28 +181,30 @@ public:
       }
 
       if (shader != nullptr && transform != nullptr)
-        set_shader_transform_uniforms(cm.get_shader(entity),
-                                      cm.get_transform(entity));
-      if (cm.sprites.contains(entity))
-        set_shader_sprite_uniforms(cm.get_shader(entity), cm.get_sprite(entity),
+        set_shader_transform_uniforms(cm.get_component<Shader>(entity),
+                                      cm.get_component<Transform>(entity));
+      auto sprite = cm.get_component<Sprite>(entity);
+      if (sprite != nullptr)
+        set_shader_sprite_uniforms(cm.get_component<Shader>(entity), sprite,
                                    tick, cam->get_position());
-      if (cm.quads.contains(entity))
-        cm.get_quad(entity)->render();
-      if (cm.textures.contains(entity))
-        cm.get_texture(entity)->render();
 
-      if (cm.sprites.contains(entity)) {
-        auto sprite = cm.get_sprite(entity);
+      auto quad = cm.get_component<Quad>(entity);
+      if (quad != nullptr)
+        quad->render();
+      auto texture = cm.get_component<Texture>(entity);
+      if (texture != nullptr)
+        texture->render();
+
+      if (sprite != nullptr) {
         if (!sprite->hidden) {
           sprite->update();
           sprite->render();
         }
       }
 
-      if (cm.texts.contains(entity)) {
-        auto shader = cm.get_shader(entity);
-        auto font = cm.get_font(entity);
-        auto text = cm.get_text(entity);
+      if (text != nullptr) {
+        auto shader = cm.get_component<Shader>(entity);
+        auto font = cm.get_component<Font>(entity);
         if (!text->hidden) {
           text->render(*font, 0.0f, 0.0f, get_text_height(entity, cm), shader);
         }
@@ -212,16 +214,19 @@ public:
 
   void prepare_instanced(ComponentManager &cm, std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader, float x, float y, int zoom)
   {
+    models.clear();
+    sprite_indices.clear();
+    sprite_sizes.clear();
     shader->use();
-    std::shared_ptr<Camera> cam = cm.get_camera(camera);
+    std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     for (auto &entity : registered_entities) {
-      auto transform = cm.get_transform(entity);
+      auto transform = cm.get_component<Transform>(entity);
       transform->update_camera(cam->get_position());
       transform->update(x, y, zoom);
       models.push_back(transform->model);
       
-      auto sprite = cm.get_sprite(entity);
+      auto sprite = cm.get_component<Sprite>(entity);
       sprite_indices.push_back(sprite->index);
       sprite_sizes.push_back(sprite->spriteSize);
     }
@@ -265,7 +270,7 @@ public:
   void instanced_render(ComponentManager &cm, int x, int y, std::shared_ptr<Quad> quad, std::shared_ptr<Texture> texture, std::shared_ptr<Shader> shader, float zoom = 1.0,
               int tick = 0) {
     // get camera if set
-    std::shared_ptr<Camera> cam = cm.get_camera(camera);
+    std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     float t_width = 256.0f;
     float t_height = 128.0f;

@@ -120,21 +120,21 @@ public:
 				// create a set of Instructions - functions that are fired per tick. 
 				std::vector<Instruction> instructions;
 
-				glm::vec3 pos = TE::get_transform(tile)->position;
+				glm::vec3 pos = TE::get_component<Transform>(tile)->position;
 				for (int i = 0; i < 200; i++)
 				{
 					Instruction new_instruction = Instruction([x, y, i, tile, pos](Entity entity, bool reverse, float speed)
 						{
-							auto animation = TE::get_animation(tile);
+							auto animation = TE::get_component<Animation>(tile);
 
 							// animate tiles up and down based on even/odd positioning
 							if ((x + y + i) % 2 == 0)
 							{
-								TE::get_animation(tile)->set_position_frames(pos, glm::vec3(pos.x, pos.y + 8.0f, 0.0f), 5.0);
+								TE::get_component<Animation>(tile)->set_position_frames(pos, glm::vec3(pos.x, pos.y + 8.0f, 0.0f), 5.0);
 							}
 							else
 							{
-								TE::get_animation(tile)->set_position_frames(glm::vec3(pos.x, pos.y + 8.0f, 0.0f), pos, 5.0);
+								TE::get_component<Animation>(tile)->set_position_frames(glm::vec3(pos.x, pos.y + 8.0f, 0.0f), pos, 5.0);
 							}
 						}
 					);

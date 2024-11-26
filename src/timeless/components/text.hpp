@@ -1,7 +1,8 @@
 #pragma once
 #include "../timer.hpp"
+#include "component.hpp"
 
-class Text
+class Text : public Component
 {
 private:
     std::unique_ptr<Timer> type_timer;

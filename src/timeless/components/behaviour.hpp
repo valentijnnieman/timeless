@@ -1,4 +1,5 @@
 #pragma once
+#include "component.hpp"
 #include "timeless/entity.hpp"
 #include <deque>
 #include <functional>
@@ -34,7 +35,7 @@ const Instruction idle = Instruction([](Entity entity, bool reverse, float speed
  * and when a new event is needed, it will be fetched from the
  * list in here.
  */
-class Behaviour
+class Behaviour : public Component
 {
 private:
     int max = 12 * 12;

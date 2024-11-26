@@ -3,6 +3,7 @@
 #include "glm/glm.hpp"
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include "component.hpp"
 #include <map>
 #include <iostream>
 #include <filesystem>
@@ -15,7 +16,7 @@ struct Glyph
     unsigned int advance;
 };
 
-class Font
+class Font : public Component
 {
 public:
     unsigned int VAO, VBO;

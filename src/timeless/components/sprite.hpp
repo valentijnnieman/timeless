@@ -12,10 +12,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../timer.hpp"
+#include "component.hpp"
 
 #include "stb_image.h"
 
-class Sprite
+class Sprite : public Component
 {
 private:
     Timer animationSpeed = Timer(0.075f);

@@ -46,9 +46,9 @@ public:
     {
         for (auto &entity : registered_entities)
         {
-            auto sprite = cm.sprites.at(entity);
-            auto transform = cm.transforms.at(entity);
-            auto collider = cm.colliders.at(entity);
+            auto sprite = cm.get_component<Sprite>(entity);
+            auto transform = cm.get_component<Transform>(entity);
+            auto collider = cm.get_component<Collider>(entity);
 
             if (transform->position.x + walk_speed < x_bounds[1])
             {
@@ -67,20 +67,18 @@ public:
             }
         }
 
-        if (cm.cameras.count(camera) != 0)
-        {
-            auto main_camera = cm.get_camera(camera);
-            main_camera->set_position(glm::vec3(main_camera->get_position().x + camera_speed, main_camera->get_position().y, main_camera->get_position().z));
-        }
+        auto main_camera = cm.get_component<Camera>(camera);
+        if(main_camera != nullptr)
+          main_camera->set_position(glm::vec3(main_camera->get_position().x + camera_speed, main_camera->get_position().y, main_camera->get_position().z));
     }
 
     void move_left(ComponentManager &cm)
     {
         for (auto &entity : registered_entities)
         {
-            auto sprite = cm.sprites.at(entity);
-            auto transform = cm.transforms.at(entity);
-            auto collider = cm.colliders.at(entity);
+            auto sprite = cm.get_component<Sprite>(entity);
+            auto transform = cm.get_component<Transform>(entity);
+            auto collider = cm.get_component<Collider>(entity);
 
             if (transform->position.x - walk_speed > x_bounds[0])
             {
@@ -99,20 +97,17 @@ public:
             }
         }
 
-        if (cm.cameras.count(camera) != 0)
-        {
-            //cm.get_camera(camera)->position.x -= camera_speed;
-            auto main_camera = cm.get_camera(camera);
-            main_camera->set_position(glm::vec3(main_camera->get_position().x - camera_speed, main_camera->get_position().y, main_camera->get_position().z));
-        }
+        auto main_camera = cm.get_component<Camera>(camera);
+        if(main_camera != nullptr)
+          main_camera->set_position(glm::vec3(main_camera->get_position().x - camera_speed, main_camera->get_position().y, main_camera->get_position().z));
     }
     void move_down(ComponentManager &cm)
     {
         for (auto &entity : registered_entities)
         {
-            auto sprite = cm.sprites.at(entity);
-            auto transform = cm.transforms.at(entity);
-            auto collider = cm.colliders.at(entity);
+            auto sprite = cm.get_component<Sprite>(entity);
+            auto transform = cm.get_component<Transform>(entity);
+            auto collider = cm.get_component<Collider>(entity);
 
             if (transform->position.y + walk_speed < y_bounds[1])
             {
@@ -130,21 +125,18 @@ public:
             }
         }
 
-        if (cm.cameras.count(camera) != 0)
-        {
-            //cm.get_camera(camera)->position.y += camera_speed;
-            auto main_camera = cm.get_camera(camera);
-            main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y + camera_speed, main_camera->get_position().z));
-        }
+        auto main_camera = cm.get_component<Camera>(camera);
+        if(main_camera != nullptr)
+          main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y + camera_speed, main_camera->get_position().z));
     }
 
     void move_up(ComponentManager &cm)
     {
         for (auto &entity : registered_entities)
         {
-            auto sprite = cm.sprites.at(entity);
-            auto transform = cm.transforms.at(entity);
-            auto collider = cm.colliders.at(entity);
+            auto sprite = cm.get_component<Sprite>(entity);
+            auto transform = cm.get_component<Transform>(entity);
+            auto collider = cm.get_component<Collider>(entity);
 
             if (transform->position.y - walk_speed > y_bounds[0])
             {
@@ -162,12 +154,9 @@ public:
             }
         }
 
-        if (cm.cameras.count(camera) != 0)
-        {
-            //cm.get_camera(camera)->position.y -= camera_speed;
-            auto main_camera = cm.get_camera(camera);
-            main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y - camera_speed, main_camera->get_position().z));
-        }
+        auto main_camera = cm.get_component<Camera>(camera);
+        if(main_camera != nullptr)
+          main_camera->set_position(glm::vec3(main_camera->get_position().x, main_camera->get_position().y - camera_speed, main_camera->get_position().z));
     }
 
     void update(ComponentManager &cm, GLFWwindow *window)

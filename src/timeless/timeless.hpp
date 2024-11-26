@@ -9,6 +9,7 @@
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/components/keyboard_input_listener.hpp"
 #include "timeless/components/font.hpp"
+#include "timeless/event.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/managers/window_manager.hpp"
 #include "timeless/systems/rendering_system.hpp"
@@ -54,74 +55,11 @@ namespace TE
       return std::dynamic_pointer_cast<T>(systems[key]);
     }
 
-    std::shared_ptr<Quad> get_quad(Entity entity) {
-      return cm->quads.at(entity);
+    template <typename T>
+    std::shared_ptr<T> get_component(Entity entity) {
+      return cm->get_component<T>(entity);
     }
-    std::shared_ptr<Transform> get_transform(Entity entity) {
-      if (cm->transforms.contains(entity))
-        return cm->transforms.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Texture> get_texture(Entity entity) {
-      if (cm->textures.contains(entity))
-        return cm->textures.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Shader> get_shader(Entity entity) {
-      if (cm->shaders.contains(entity))
-        return cm->shaders.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Camera> get_camera(Entity entity) {
-      if (cm->cameras.contains(entity))
-        return cm->cameras.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Sprite> get_sprite(Entity entity) {
-      if (cm->sprites.contains(entity))
-        return cm->sprites.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Node> get_node(Entity entity) {
-      if (cm->nodes.contains(entity))
-        return cm->nodes.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Font> get_font(Entity entity) {
-      if (cm->fonts.contains(entity))
-        return cm->fonts.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Text> get_text(Entity entity)
-    {
-      if(cm->texts.contains(entity))
-        return cm->texts.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<MouseInputListener<MouseEvent>> get_mouse_input_listener(Entity entity)
-    {
-      if(cm->mouse_input_listeners.contains(entity))
-        return cm->mouse_input_listeners.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<EventListener<Event>> get_event_listener(Entity entity)
-    {
-      if(cm->event_listeners.contains(entity))
-        return cm->event_listeners.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Behaviour> get_behaviour(Entity entity)
-    {
-      if(cm->behaviours.contains(entity))
-        return cm->behaviours.at(entity);
-      return nullptr;
-    }
-    std::shared_ptr<Animation> get_animation(Entity entity)
-    {
-      if(cm->animations.contains(entity))
-        return cm->animations.at(entity);
-      return nullptr;
-    }
+
     /** Finalizes the Grid by calculating near neighbours for every Node.
      * This needs to be called seperately and after init(), so components
      * can be created for the grid first (see main.cpp in example game)
@@ -143,18 +81,6 @@ namespace TE
         cm->add_component(entity, comp);
     }
 
-    template <typename T>
-    void remove_component(Entity entity, T *comp)
-    {
-        cm->remove_component(entity, comp);
-    }
-
-    template <typename T>
-    void remove_component(Entity entity, std::shared_ptr<T> comp)
-    {
-        cm->remove_component(entity, comp);
-    }
-
     void remove_entity(Entity entity)
     {
         cm->remove_entity(entity);
@@ -170,17 +96,17 @@ namespace TE
     /** These separately defined methods are so we can handle things like
      * registering entities/components with default systems like the mouse input system and the grid system.
      */
-    void add_component(Entity entity, MouseInputListener<MouseEvent> *mouse_input, bool add_transform = true, bool is_ui = false)
+    template<> void add_component<MouseInputListener<MouseEvent>>(Entity entity, MouseInputListener<MouseEvent> *mouse_input)
     {
         cm->add_component(entity, mouse_input);
         mis->register_entity(entity);
     }
-    void add_component(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input, bool add_transform = true, bool is_ui = false)
+    template<> void add_component<MouseInputListener<MouseMoveEvent>>(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input)
     {
         cm->add_component(entity, mouse_input);
         mis->register_move_entity(entity);
     }
-    void add_component(Entity entity, Node *node)
+    template<> void add_component<Node>(Entity entity, Node *node)
     {
         cm->add_component(entity, node);
         grid->register_entity(entity);
@@ -229,7 +155,7 @@ namespace TE
     // transform position of an entity. Can be used to determine if an entity was clicked on, for example.
     bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
-        auto transform = TE::get_transform(entity);
+        auto transform = TE::get_component<Transform>(entity);
         glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
         return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)

@@ -1,6 +1,7 @@
 #pragma once
+#include "component.hpp"
 
-class Collider
+class Collider : public Component
 {
 public:
     int layer;

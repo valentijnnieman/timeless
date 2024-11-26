@@ -1,6 +1,8 @@
 #pragma once
+#include <set>
 #include <string>
 #include <vector>
+#include "component.hpp"
 
 enum LocationType
 {
@@ -64,7 +66,7 @@ enum dirs
 
 
 
-class Node
+class Node : public Component
 {
 public:
 	int x, y, z;
@@ -78,7 +80,7 @@ public:
 	std::vector<glm::vec2> entrances;
 	std::vector<glm::vec2> exits;
 
-	std::vector<Entity> entities; // which entities are located on this node
+	std::set<Entity> entities; // which entities are located on this node
 
 	LocationType location = none;
 
@@ -103,7 +105,7 @@ public:
 
 	void add_entity(Entity entity)
 	{
-		entities.push_back(entity);
+		entities.insert(entity);
 	}
 	void remove_entity(Entity entity)
 	{
@@ -125,7 +127,8 @@ public:
 				{ return e == entity; });
 			if (found != entities.end())
 			{
-				return found - entities.begin();
+        return std::distance(entities.begin(), found);
+				// return found - entities.begin();
 			}
 		}
 		return -1;

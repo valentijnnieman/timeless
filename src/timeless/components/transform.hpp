@@ -9,8 +9,9 @@
 #include <queue>
 #include <iostream>
 #include "timeless/settings.hpp"
+#include "component.hpp"
 
-class Transform
+class Transform : public Component
 {
 private:
     std::queue<glm::vec3> movement_frames;

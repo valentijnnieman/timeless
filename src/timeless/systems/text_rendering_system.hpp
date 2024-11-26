@@ -15,8 +15,8 @@ public:
 
     float getWidth(Entity entity, ComponentManager &cm)
     {
-        auto font = cm.fonts.at(entity);
-        auto text = cm.texts.at(entity);
+        auto font = cm.get_component<Font>(entity);
+        auto text = cm.get_component<Text>(entity);
 
         float width = 0.0f;
         // Get width of string
@@ -43,8 +43,8 @@ public:
 
     float getHeight(Entity entity, ComponentManager &cm)
     {
-        auto font = cm.fonts.at(entity);
-        auto text = cm.texts.at(entity);
+        auto font = cm.get_component<Font>(entity);
+        auto text = cm.get_component<Text>(entity);
 
         float height = 0.0f;
         // Get width of string
@@ -59,9 +59,9 @@ public:
 
     void set_shader_uniforms(Entity entity, ComponentManager &cm)
     {
-        auto shader = cm.shaders.at(entity);
-        auto transform = cm.transforms.at(entity);
-        auto font = cm.fonts.at(entity);
+        auto shader = cm.get_component<Shader>(entity);
+        auto transform = cm.get_component<Transform>(entity);
+        auto font = cm.get_component<Font>(entity);
         // glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f);
 
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(transform->projection));
@@ -75,23 +75,23 @@ public:
 
     void render(ComponentManager &cm, int x, int y)
     {
-        std::shared_ptr<Camera> cam = cm.get_camera(camera);
+        std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
         for (auto &entity : registered_entities)
         {
-            auto text = cm.texts.at(entity);
-            auto font = cm.fonts.at(entity);
-            auto shader = cm.shaders.at(entity);
+            auto text = cm.get_component<Text>(entity);
+            auto font = cm.get_component<Font>(entity);
+            auto shader = cm.get_component<Shader>(entity);
 
-            cm.shaders.at(entity)->use();
-            cm.transforms.at(entity)->update(x, y);
+            cm.get_component<Shader>(entity)->use();
+            cm.get_component<Transform>(entity)->update(x, y);
 
             if (cam != nullptr)
             {
-                cm.transforms.at(entity)->update_camera(cam->get_position());
+                cm.get_component<Transform>(entity)->update_camera(cam->get_position());
             }
             if (text->center)
             {
-                cm.transforms.at(entity)->update(x, y, 1.0f, glm::vec3(-getWidth(entity, cm) * 0.5f, -getHeight(entity, cm) * 0.5f, 0.0f));
+                cm.get_component<Transform>(entity)->update(x, y, 1.0f, glm::vec3(-getWidth(entity, cm) * 0.5f, -getHeight(entity, cm) * 0.5f, 0.0f));
             }
 
             set_shader_uniforms(entity, cm);

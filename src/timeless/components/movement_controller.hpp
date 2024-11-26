@@ -1,6 +1,7 @@
 #pragma once
+#include "component.hpp"
 
-class MovementController
+class MovementController : public Component
 {
 private:
     bool can_control = true;

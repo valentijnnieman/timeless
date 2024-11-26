@@ -24,7 +24,7 @@ void main()
 
     if(col.r == SCREEN_COLOR.r && col.g == SCREEN_COLOR.g && col.b == SCREEN_COLOR.b)
     {
-        for(int i = 0; i < 6; i++)
+        for(int i = 0; i < 4; i++)
         {
             float dist = float(i) * p;
 

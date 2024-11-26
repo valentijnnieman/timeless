@@ -7,7 +7,7 @@ private:
   template <typename T>
   void notify_listener(ComponentManager &cm, Event *event, Entity entity,
                        T *data) {
-    auto listener = cm.get_event_listener(entity);
+    auto listener = cm.get_component<EventListener<Event>>(entity);
     if (listener != nullptr) {
       listener->callback_handler<T>(event, entity, data);
     }
@@ -16,7 +16,7 @@ private:
   template <typename T>
   void notify_listener(ComponentManager &cm, PositionEvent *event,
                        Entity entity, T *data) {
-    auto listener = cm.get_position_event_listener(entity);
+    auto listener = cm.get_component<EventListener<PositionEvent>>(entity);
     if (listener != nullptr) {
       listener->callback_handler<T>(event, entity, data);
     }

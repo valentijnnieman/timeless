@@ -11,9 +11,10 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
+#include "component.hpp"
 std::filesystem::path cwd() { return std::filesystem::current_path(); }
 
-class Shader
+class Shader : public Component
 {
 public:
     unsigned int ID;

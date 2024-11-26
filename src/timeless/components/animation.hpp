@@ -1,12 +1,16 @@
 #pragma once
+#include "component.hpp"
+#include "glm/glm.hpp"
+#include "timeless/entity.hpp"
 #include <cmath>
+#include <queue>
 
 class AnimationFrame
 {
 public:
 };
 
-class Animation
+class Animation : public Component
 {
 private:
     Entity entity;
