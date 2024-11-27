@@ -1,6 +1,7 @@
 #include <functional>
 #include <memory>
 
+#include "timeless/components/movement_controller.hpp"
 #include "timeless/timeless.hpp"
 #include "timeless/entity.hpp"
 #include "timeless/algorithm/graph.hpp"
@@ -62,12 +63,12 @@ public:
 		// the ui objects. This way we can move the main camera and keep the ui elements static, i.e. always visible on the screen.
 		Entity main_camera = create_entity(),
 			ui_camera = create_entity();
-		TE::add_component(main_camera, new Camera(glm::vec3(-100.0f, 0.0f, 40.0f)));
+		TE::add_component<Camera>(main_camera, new Camera(glm::vec3(-100.0f, 0.0f, 40.0f)));
 		// also add a movement controller component to the main camera, so we can control
 		// it using the keyboard (W,A,S,D).
-		TE::add_component(main_camera, new MovementController());
+		TE::add_component<MovementController>(main_camera, new MovementController());
 
-		TE::add_component(ui_camera, new Camera(glm::vec3(0.0f, 0.0f, 10.0f)));
+		TE::add_component<Camera>(ui_camera, new Camera(glm::vec3(0.0f, 0.0f, 10.0f)));
 
 		// register the cameras with the multiple systems we created. we need to register them
 		// so that those systems can respond to when a camera moves etc, and knows what to render based on
@@ -101,17 +102,17 @@ public:
 
 				// new nodes created here are automatically added to the default grid
 				// that's created upon starting the engine.
-				TE::add_component(tile, new Node(x, y, 1, t_width, t_height, x, 0));
+				TE::add_component<Node>(tile, new Node(x, y, 1, t_width, t_height, x, 0));
 				TE::add_component<Quad>(tile, default_quad);
-				TE::add_component(tile, tiles_texture);
+				TE::add_component<Texture>(tile, tiles_texture);
 				TE::add_component<Shader>(tile, sprite_shader);
 				TE::add_component<Transform>(tile, new Transform(glm::vec3(x_pos, y_pos, 1.0f), 0.0f, 32.0f, 32.0f));
 				// sprites are indexed from bottom-to-top, as per stb_image library
-				TE::add_component(tile, new Sprite(66, glm::vec4(1.0f), glm::vec2(tiles_texture->width, tiles_texture->height), glm::vec2(tiles_texture->width / columns, tiles_texture->height / rows), true, false, columns));
-				TE::add_component(tile, new Animation());
+				TE::add_component<Sprite>(tile, new Sprite(66, glm::vec4(1.0f), glm::vec2(tiles_texture->width, tiles_texture->height), glm::vec2(tiles_texture->width / columns, tiles_texture->height / rows), true, false, columns));
+				TE::add_component<Animation>(tile, new Animation());
 				// lastly, we add an mouse input listener component - although we leave the handler function 
 				// blank for now.
-				TE::add_component(tile, new MouseInputListener<MouseEvent>([&](MouseEvent* event, Entity entity, int data)
+				TE::add_component<MouseInputListener<MouseEvent>>(tile, new MouseInputListener<MouseEvent>([&](MouseEvent* event, Entity entity, int data)
 					{
 						// handle mouse input events here
 					}
@@ -141,7 +142,7 @@ public:
 					instructions.push_back(new_instruction);
 				}
 
-				TE::add_component(tile, new Behaviour(instructions));
+				TE::add_component<Behaviour>(tile, new Behaviour(instructions));
 
 				// register the new tile with the rendering system and animation system
 				TE::get_system<RenderingSystem>("TileRenderingSystem")->register_entity(tile);
@@ -159,10 +160,10 @@ public:
 
 		// create entity for displaying the current "tick" of the ai system
 		Entity index_text = create_entity();
-		TE::add_component(index_text, text_shader);
-		TE::add_component(index_text, new Transform(glm::vec3(1900.0f, 200.0f, 0.0f), 0.0f, 1.0f, 1.0f));
-		TE::add_component(index_text, font_16);
-		TE::add_component(index_text, new Text(std::to_string(0)));
+		TE::add_component<Shader>(index_text, text_shader);
+		TE::add_component<Transform>(index_text, new Transform(glm::vec3(1900.0f, 200.0f, 0.0f), 0.0f, 1.0f, 1.0f));
+		TE::add_component<Font>(index_text, font_16);
+		TE::add_component<Text>(index_text, new Text(std::to_string(0)));
 
 		// register the above entity with the ai system, which updates the text component with the current
 		// tick information.
