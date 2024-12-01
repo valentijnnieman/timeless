@@ -138,7 +138,7 @@ public:
     animations.insert({entity, std::shared_ptr<Animation>(animation)});
   }
 
-  template <class T> std::shared_ptr<T> get_component(Entity entity) {
+  template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
     return nullptr;
   }
   /** this method completely removes all components for an entity */
@@ -169,77 +169,77 @@ public:
 };
 
 template <>
-std::shared_ptr<Node> ComponentManager::get_component<Node>(Entity entity) {
+const inline std::shared_ptr<Node> ComponentManager::get_component<Node>(Entity entity) {
   if (nodes.contains(entity))
     return nodes.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Quad> ComponentManager::get_component<Quad>(Entity entity) {
+const inline std::shared_ptr<Quad> ComponentManager::get_component<Quad>(Entity entity) {
   if (quads.contains(entity))
     return quads.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Texture>
+const inline std::shared_ptr<Texture>
 ComponentManager::get_component<Texture>(Entity entity) {
   if (textures.contains(entity))
     return textures.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Shader> ComponentManager::get_component<Shader>(Entity entity) {
+const inline std::shared_ptr<Shader> ComponentManager::get_component<Shader>(Entity entity) {
   if (shaders.contains(entity))
     return shaders.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Transform>
+const inline std::shared_ptr<Transform>
 ComponentManager::get_component<Transform>(Entity entity) {
   if (transforms.contains(entity))
     return transforms.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Sprite> ComponentManager::get_component<Sprite>(Entity entity) {
+const inline std::shared_ptr<Sprite> ComponentManager::get_component<Sprite>(Entity entity) {
   if (sprites.contains(entity))
     return sprites.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Camera> ComponentManager::get_component<Camera>(Entity entity) {
+const inline std::shared_ptr<Camera> ComponentManager::get_component<Camera>(Entity entity) {
   if (cameras.contains(entity))
     return cameras.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Font> ComponentManager::get_component<Font>(Entity entity) {
+const inline std::shared_ptr<Font> ComponentManager::get_component<Font>(Entity entity) {
   if (fonts.contains(entity))
     return fonts.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Behaviour>
+const inline std::shared_ptr<Behaviour>
 ComponentManager::get_component<Behaviour>(Entity entity) {
   if (behaviours.contains(entity))
     return behaviours.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Text> ComponentManager::get_component<Text>(Entity entity) {
+const inline std::shared_ptr<Text> ComponentManager::get_component<Text>(Entity entity) {
   if (texts.contains(entity))
     return texts.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<MouseInputListener<MouseEvent>>
+const inline std::shared_ptr<MouseInputListener<MouseEvent>>
 ComponentManager::get_component<MouseInputListener<MouseEvent>>(Entity entity) {
   if (mouse_input_listeners.contains(entity))
     return mouse_input_listeners.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<MouseInputListener<MouseMoveEvent>>
+const inline std::shared_ptr<MouseInputListener<MouseMoveEvent>>
 ComponentManager::get_component<MouseInputListener<MouseMoveEvent>>(
     Entity entity) {
   if (mouse_move_listeners.contains(entity))
@@ -247,28 +247,28 @@ ComponentManager::get_component<MouseInputListener<MouseMoveEvent>>(
   return nullptr;
 }
 template <>
-std::shared_ptr<EventListener<Event>>
+const inline std::shared_ptr<EventListener<Event>>
 ComponentManager::get_component<EventListener<Event>>(Entity entity) {
   if (event_listeners.contains(entity))
     return event_listeners.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<EventListener<PositionEvent>>
+const inline std::shared_ptr<EventListener<PositionEvent>>
 ComponentManager::get_component<EventListener<PositionEvent>>(Entity entity) {
   if (position_event_listeners.contains(entity))
     return position_event_listeners.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<KeyboardInputListener>
+const inline std::shared_ptr<KeyboardInputListener>
 ComponentManager::get_component<KeyboardInputListener>(Entity entity) {
   if (keyboard_input_listeners.contains(entity))
     return keyboard_input_listeners.at(entity);
   return nullptr;
 }
 template <>
-std::shared_ptr<Animation>
+const inline std::shared_ptr<Animation>
 ComponentManager::get_component<Animation>(Entity entity) {
   if (animations.contains(entity))
     return animations.at(entity);

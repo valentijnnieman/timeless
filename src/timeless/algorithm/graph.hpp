@@ -86,7 +86,7 @@ public:
 
 	void calculate_nodes(ComponentManager& cm)
 	{
-		for (auto& entity : registered_entities)
+		for (const auto& entity : registered_entities)
 		{
 			add_node(cm.get_component<Node>(entity), cm);
 		}
@@ -107,7 +107,7 @@ public:
 	{
 		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, cm);
 
-		is_inside(node);
+		// is_inside(node);
 
 		vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
 	}
@@ -122,14 +122,14 @@ public:
 		{
 			node_dirs = node->exits;
 		}
-		for (glm::vec2 dir : node_dirs)
+		for (const glm::vec2& dir : node_dirs)
 		{
 			glm::vec2 next = { node->x + dir.x, node->y + dir.y };
 			if (isInBounds(next))
 			{
-				auto it = find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity& entity)
+				auto it = std::find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity& entity)
 					{
-            const auto& node = cm.get_component<Node>(entity);
+            const auto node = cm.get_component<Node>(entity);
 						return node->x == next.x && node->y == next.y;
 					});
 
@@ -158,7 +158,7 @@ public:
 
 	int detectGridLayer(Collider& at)
 	{
-		auto it = find_if(vertices.begin(), vertices.end(), [&at](const map_value_type& node)
+		auto it = std::find_if(vertices.begin(), vertices.end(), [&at](const map_value_type& node)
 			{
 				bool cX = (at.x1 >= node.first->collider.x1 ||
 					at.x2 >= node.first->collider.x1) &&
@@ -182,17 +182,17 @@ public:
 
 	std::shared_ptr<Node> find_node(int x, int y)
 	{
-		auto it = find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
+		auto it = std::find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
 			{ return node.first->x == x && node.first->y == y; });
 		return it->first;
 	}
 
-	std::shared_ptr<Node> find_free_node_of_type(LocationType location)
-	{
-		auto it = find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
-			{ return node.first->location == location && node.first->taken < 3; });
-		return it->first;
-	}
+	// std::shared_ptr<Node> find_free_node_of_type(LocationType location)
+	// {
+	// 	auto it = std::find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
+	// 		{ return node.first->location == location && node.first->taken < 3; });
+	// 	return it->first;
+	// }
 
 	int cost(std::shared_ptr<Node> current, std::shared_ptr<Node> next)
 	{
@@ -220,7 +220,7 @@ public:
 			{
 				break;
 			}
-			for (auto next : vertices.at(current))
+			for (const auto& next : vertices.at(current))
 			{
 				int new_cost = cost_so_far[current] + cost(current, next);
 				if (cost_so_far.find(next) == cost_so_far.end() || new_cost < cost_so_far[next])

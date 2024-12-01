@@ -56,7 +56,7 @@ namespace TE
     }
 
     template <typename T>
-    std::shared_ptr<T> get_component(Entity entity) {
+    const inline std::shared_ptr<T> get_component(Entity entity) {
       return cm->get_component<T>(entity);
     }
 
