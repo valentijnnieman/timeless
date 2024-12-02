@@ -12,6 +12,7 @@ set(BUILD_SHARED_LIBS OFF)
 set(BUILD_DOC OFF)
 set(BUILD_SANDBOX OFF)
 # set(GLFW_INSTALL ON)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if(apple)
@@ -34,8 +35,10 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
+find_package(Vulkan REQUIRED)
+
 # find_package(fmod)
-include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/)
+# include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/)
 add_library(${PROJECT_NAME} STATIC "example/main.cpp")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -61,7 +64,7 @@ set_property(
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
+target_link_libraries(${PROJECT_NAME} glad glfw Vulkan::Vulkan glm freetype fmod fmod_studio)
 link_libraries(${PROJECT_NAME} fmod fmod_studio)
 
 if(WIN32)

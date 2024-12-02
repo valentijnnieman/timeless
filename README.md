@@ -2,6 +2,9 @@
 
 This is my 2d game engine in C++ that I use to build games. It uses an ECS architecture (entity component system) and is very much a work in progress!
 
+## Vulkan
+This engine uses Vulkan. To set up your dev environment for Vulkan follow: https://vulkan-tutorial.com/en/Development_environment
+
 ## Header-only
 To ease with development, and since the classes are relatively compact, the source code is in header files only at this point. This makes it easier/more flexible to use in these early stages, as things are likely to change a lot. As the project grows, more platforms are supported, and when it is getting ready for an actual 1.0 release, this will probably change! The [C++ Dos and Don'ts doc from Chromium, here, ](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/c++/c++-dos-and-donts.md) is a good resource to follow in the future (note to self!).
 

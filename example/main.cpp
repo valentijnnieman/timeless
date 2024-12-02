@@ -1,5 +1,6 @@
 #include <functional>
 #include <memory>
+#include <thread>
 
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/timeless.hpp"
@@ -222,6 +223,7 @@ public:
 
 					glfwSwapBuffers(window);
 					glfwPollEvents();
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 90));
 				}
 			});
 	}
