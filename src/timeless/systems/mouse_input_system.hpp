@@ -49,63 +49,6 @@ public:
 	{
 		auto cam = cm.get_component<Camera>(camera);
 
-		float highest_z = -999.0f;
-		Entity found_entity;
-		bool entity_was_found = false;
-
-		glm::vec2 m_pos(event->screen_position.x, event->screen_position.y);
-
-		// std::sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-		// 	auto trans_a = cm.get_component<Transform>(a);
-		// 	auto trans_b = cm.get_component<Transform>(b);
-		// 	return trans_a->position.z > trans_b->position.z;
-		// 	});
-
-		// for (const auto &[entity, transform] : transforms)
-		// for (auto entity : registered_entities)
-		// {
-		// 	auto transform = cm.get_component<Transform>(entity);
-		// 	if (transform != nullptr)
-		// 	{
-		// 		glm::vec3 t_pos = transform->get_position_from_camera();
-		// 		//if (transform->isometric) 
-		// 		//{
-		// 		//	t_pos.x += 128.0f;
-		// 		//	t_pos.y -= 64.0f;
-		// 		//}
-		// 		//double x_pos = (x - y) * t_width / 2;
-		// 		//double y_pos = (y + x) * t_height / 2;
-		//
-		// 		// small hack - if transform width/height (scale) is 1.0f, i.e. for Text, 
-		// 		// create a quick new hitbox. TODO - use separate Collider here, don't use transform scale here!
-		// 		float w = transform->width;
-		// 		float h = transform->height;
-		// 		if (w == 1.0f)
-		// 		{
-		// 			w = 16.0f;
-		// 		}
-		// 		if (h == 1.0f)
-		// 		{
-		// 			h = 16.0f;
-		// 		}
-		// 		if (m_pos.x > (t_pos.x - w) && m_pos.x < (t_pos.x + w) &&
-		// 			m_pos.y >(t_pos.y - h) && m_pos.y < (t_pos.y + h))
-		// 		{
-		//
-		// 			if (t_pos.z > highest_z)
-		// 			{
-		// 				highest_z = t_pos.z;
-		// 				found_entity = entity;
-		// 				entity_was_found = true;
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// if (entity_was_found)
-		// {
-		// 	notify_listener(cm, event, found_entity);
-		// }
-
 		std::string et = event->eventType;
 		event->eventType = "Global" + et;
 		for (const auto& entity : registered_entities)
@@ -124,12 +67,6 @@ public:
 	}
 	void mouse_move_handler(ComponentManager& cm, MouseMoveEvent* event)
 	{
-		// double normalizedX = (double)event->screen_position.x / TESettings::SCREEN_X;
-		// double normalizedY = (double)event->screen_position.y / TESettings::SCREEN_Y;
-		// glm::vec2 m_pos(normalizedX * TESettings::VIEWPORT_X, normalizedY * TESettings::VIEWPORT_Y);
-		//
-		// event->screen_position = m_pos;
-		//
 		for (const auto& entity : registered_move_entities)
 		{
 			notify_listener(cm, event, entity);
@@ -141,14 +78,12 @@ public:
 	}
 	void mouse_scroll_handler(ComponentManager& cm, MouseEvent* event)
 	{
-		// std::sort(registered_entities.begin(), registered_entities.end(), [&, cm = cm](auto a, auto b) {
-		// 	auto trans_a = cm.get_component<Transform>(a);
-		// 	auto trans_b = cm.get_component<Transform>(b);
-		// 	return trans_a->position.z > trans_b->position.z;
-		// });
 		for (const auto& entity : registered_entities)
 		{
 			notify_listener(cm, event, entity);
+      if(event->picked_up) {
+        break;
+      }
 		}
 		delete event;
 	}

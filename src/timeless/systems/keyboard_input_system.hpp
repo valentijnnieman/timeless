@@ -58,7 +58,7 @@ public:
             }
         }
 
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !keysPressed[space])
         {
             keysPressed[space] = true;
 

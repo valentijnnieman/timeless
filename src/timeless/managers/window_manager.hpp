@@ -6,6 +6,7 @@
 #include "../event.hpp"
 
 #include "../systems/mouse_input_system.hpp"
+#include "timeless/components/transform.hpp"
 
 class WindowManager
 {
@@ -206,7 +207,7 @@ public:
     void mouse_move_handler(MouseMoveEvent* event)
     {
         mouse_position = event->screen_position;
-        set_shader_mouse_position(event->screen_position);
+
         mis->mouse_move_handler(*cm, event);
     }
     void mouse_click_handler(MouseEvent* event)
@@ -225,6 +226,11 @@ public:
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
     {
         WindowManager* wm = static_cast<WindowManager*>(glfwGetWindowUserPointer(window));
+
+        wm->set_shader_mouse_position(glm::vec2(xpos, ypos));
+        xpos -= TESettings::SCREEN_X * 0.5;
+        ypos -= TESettings::SCREEN_Y * 0.5;
+
         wm->mouse_move_handler(new MouseMoveEvent("MouseMove", glm::vec2(xpos, ypos)));
     }
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -237,6 +243,9 @@ public:
         WindowManager* wm = static_cast<WindowManager*>(glfwGetWindowUserPointer(window));
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
+
+        xpos -= TESettings::SCREEN_X * 0.5;
+        ypos -= TESettings::SCREEN_Y * 0.5;
 
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
         {

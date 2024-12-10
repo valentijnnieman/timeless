@@ -31,12 +31,16 @@ public:
   }
 
   void play_forward(ComponentManager &cm) {
-    forward = true;
-    running = true;
+    if (!forward || !running) {
+      forward = true;
+      running = true;
+    }
   }
   void play_backward(ComponentManager &cm) {
-    forward = false;
-    running = true;
+    if (forward || !running) {
+      forward = false;
+      running = true;
+    }
   }
 
   void pause(ComponentManager &cm) { running = false; }
@@ -66,6 +70,16 @@ public:
   void update(ComponentManager &cm) {
     if (timer.pollTime()) {
       if (running) {
+        bool reverse = !forward;
+        for (auto &entity : registered_entities) {
+          auto behaviour = cm.get_component<Behaviour>(entity);
+          auto instr = behaviour->next(main_index);
+          if (instr != nullptr) {
+            instr->run(entity, reverse, speed);
+          }
+        }
+        update_text(cm);
+        update_text(cm);
         if (!forward) {
           if (main_index > 0)
             main_index--;
@@ -73,15 +87,6 @@ public:
           if (main_index < max_time)
             main_index++;
         }
-        for (auto &entity : registered_entities) {
-          auto behaviour = cm.get_component<Behaviour>(entity);
-          auto instr = behaviour->next(main_index);
-          if (instr != nullptr) {
-            bool reverse = !forward;
-            instr->run(entity, reverse, speed);
-          }
-        }
-        update_text(cm);
       }
     }
   }

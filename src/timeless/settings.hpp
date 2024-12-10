@@ -5,13 +5,19 @@ namespace TESettings
     static int SCREEN_X = 1920;
     static int SCREEN_Y = 1080;
 
-    static int VIEWPORT_SCALE = 1;
-    static int VIEWPORT_X = 1920 * VIEWPORT_SCALE;
-    static int VIEWPORT_Y = 1080 * VIEWPORT_SCALE;
+    static float VIEWPORT_SCALE = 1.0;
+    static int VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
+    static int VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
     static float ZOOM = 1.0f;
 
     static unsigned int SHADOW_WIDTH = 1024;
     static unsigned int SHADOW_HEIGHT = 1024;
+
+    void set_viewport_scale(float new_scale) {
+      VIEWPORT_SCALE = new_scale;
+      VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
+      VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
+    }
 
     void rescale_window(int width, int height)
     {

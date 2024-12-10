@@ -130,32 +130,8 @@ public:
 
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
               int tick = 0) {
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // get camera if set
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
-
-    float t_width = 256.0f;
-    float t_height = 128.0f;
-
-    // std::stable_sort(registered_entities.begin(),
-    // registered_entities.end(),
-    // [&, cm = cm](auto a, auto b) { 	auto trans_a =
-    // cm.get_component<Transform>(a); auto trans_b = cm.get_component<Transform>(b);
-    //
-    // 	double a_h = trans_a->height / t_height;
-    // 	double b_h = trans_b->height / t_height;
-    //
-    // 	double a_w = trans_a->width / t_width;
-    // 	double b_w = trans_b->width / t_width;
-    //
-    // 	float a_x_pos = trans_a->grid_x;
-    // 	float a_y_pos = trans_a->grid_y;
-    // 	float b_x_pos = trans_b->grid_x;
-    // 	float b_y_pos = trans_b->grid_y;
-    //
-    // 	return (a_y_pos + a_x_pos) < (b_y_pos + b_x_pos);
-    // 	});
-    //
 
     for (auto &entity : registered_entities) {
       auto shader = cm.get_component<Shader>(entity);
@@ -289,7 +265,7 @@ public:
     // transformMatrix = glm::translate(transformMatrix, cam->get_position());
 
     glm::mat4 view = glm::lookAt(cam->get_position(), cam->get_position() + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
+    glm::mat4 projection = glm::ortho(-(static_cast<float>(x * 0.5) * zoom), static_cast<float>(x * 0.5) * zoom, (static_cast<float>(y * 0.5) * zoom), -static_cast<float>(y * 0.5) * zoom, -1000.0f, 1000.0f);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
                         GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,

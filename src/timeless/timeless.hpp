@@ -163,4 +163,15 @@ namespace TE
           (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
           );
     }
+
+    bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
+    {
+        auto transform = TE::get_component<Transform>(entity);
+        glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+
+        return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
+          &&
+          (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
+          );
+    }
 };

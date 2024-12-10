@@ -35,10 +35,11 @@ public:
     float grid_y = 0;
     bool flip = false;
     bool center = true;
+    bool zoomable = true;
 
-    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true)
+    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
-          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f))
+          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f)), zoomable(zoomable)
     {
         rot = glm::quat(glm::vec3(0, 0, 0));
         model = glm::mat4(1.0f);
@@ -105,41 +106,48 @@ public:
 
     glm::vec3 get_centered_position_from_camera()
     {
-        return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
+      glm::vec3 p = glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
+      return p / TESettings::VIEWPORT_SCALE;
     }
 
-    void update(int x = TESettings::SCREEN_X, int y = TESettings::SCREEN_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
+    void update(int x = TESettings::VIEWPORT_X, int y = TESettings::VIEWPORT_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
     {
-        projection = glm::ortho(0.0f, static_cast<float>(x) * zoom, static_cast<float>(y) * zoom, 0.0f, -1000.0f, 1000.0f);
+      if (zoomable)
+        projection =
+            glm::ortho(-(static_cast<float>(x * 0.5) * zoom),
+                       static_cast<float>(x * 0.5) * zoom,
+                       (static_cast<float>(y * 0.5) * zoom),
+                       -static_cast<float>(y * 0.5) * zoom, -1000.0f, 1000.0f);
+      else
+        projection =
+            glm::ortho(-(static_cast<float>(x * 0.5) ),
+                       static_cast<float>(x * 0.5) ,
+                       (static_cast<float>(y * 0.5)),
+                       -static_cast<float>(y * 0.5), -1000.0f, 1000.0f);
 
-        // view = glm::mat4(1.0f);
-        // glm::mat4 viewTransform = glm::mat4(1.0f);
-        // viewTransform = glm::translate(viewTransform, camera_position);
-        //
-        // view = viewTransform * view;
-        view = glm::lookAt(camera_position, camera_position + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+      view = glm::lookAt(camera_position, camera_position + glm::vec3(0, 0, -1),
+                         glm::vec3(0, 1, 0));
 
-        model = glm::mat4(1.0f);
-        glm::mat4 modelTransform = glm::mat4(1.0f);
-        modelTransform = glm::translate(modelTransform, get_position_minus_offset());
+      model = glm::mat4(1.0f);
+      glm::mat4 modelTransform = glm::mat4(1.0f);
+      modelTransform =
+          glm::translate(modelTransform, get_position_minus_offset());
 
-        if (center)
-        {
-            model = glm::translate(model, glm::vec3(0.5 * width, 0.5 * height, 0.0));
-        }
-        else
-        {
-            model = glm::translate(model, glm::vec3(0.5 * width, 0.0, 0.0));
-        }
-        model = glm::translate(model, offset);
-        glm::mat4 rotation_matrix = glm::toMat4(rot);
-        model = modelTransform * rotation_matrix * model;
+      if (center) {
+        model =
+            glm::translate(model, glm::vec3(0.5 * width, 0.5 * height, 0.0));
+      } else {
+        model = glm::translate(model, glm::vec3(0.5 * width, 0.0, 0.0));
+      }
+      model = glm::translate(model, offset);
+      glm::mat4 rotation_matrix = glm::toMat4(rot);
+      model = modelTransform * rotation_matrix * model;
 
-        if (flip)
-        {
-            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        }
+      if (flip) {
+        model = glm::rotate(model, glm::radians(180.0f),
+                            glm::vec3(0.0f, 1.0f, 0.0f));
+      }
 
-        model = glm::scale(model, scale);
+      model = glm::scale(model, scale);
     }
 };
