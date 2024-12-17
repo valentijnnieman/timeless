@@ -24,6 +24,16 @@ public:
 			}
 		}
 	}
+	virtual void clear(ComponentManager &cm)
+	{
+		if (!registered_entities.empty())
+		{
+      for(auto ent : registered_entities) {
+        cm.remove_entity(ent);
+      }
+      registered_entities.clear();
+		}
+	}
 	virtual void update(ComponentManager &cm, GLFWwindow* window) {};
 	virtual void update(ComponentManager &cm) {};
 	virtual void render(ComponentManager& cm, int x, int y, float zoom = 1.0, int tick = 0) {};

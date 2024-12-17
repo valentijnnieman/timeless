@@ -15,6 +15,9 @@ public:
             glm::vec3 dir = animation->positions.front();
             transform->set_position(dir);
             animation->positions.pop();
+            if (animation->loop) {
+              animation->positions.push(dir);
+            }
           }
         }
         if (!animation->scales.empty()) {

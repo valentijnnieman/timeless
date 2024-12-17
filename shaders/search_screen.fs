@@ -11,11 +11,11 @@ uniform vec2 lightPosition;
 uniform vec2 mousePosition;
 uniform vec4 SCREEN_COLOR;
 
-const float range = 0.0009;
+const float range = 0.0005;
 const float noiseQuality = 10.0;
-const float noiseIntensity = 0.0005;
-const float offsetIntensity = 0.01;
-const float colorOffsetIntensity = 0.25;
+const float noiseIntensity = 0.00024;
+const float offsetIntensity = 0.001;
+const float colorOffsetIntensity = 0.5;
 
 float rand(vec2 co)
 {
@@ -41,7 +41,6 @@ float circle(in vec2 _st, in float _radius){
 
 void main()
 {
-    vec2 uv = TexCoords.xy;
     vec2 st = TexCoords.xy;
     vec2 tc = TexCoords.xy;
     vec2 mp = mousePosition.xy;
@@ -55,11 +54,11 @@ void main()
     dy *= dy;
 
     tc.x -= 0.5;
-    tc.x *= 1.0 + (dy * 0.05);
+    tc.x *= 1.0 + (dy * 0.1);
     tc.x += 0.5;
 
     tc.y -= 0.5;
-    tc.y *= 1.0 + (dx * 0.05);
+    tc.y *= 1.0 + (dx * 0.1);
     tc.y += 0.5;
 
     vec2 f = vec2((st.x - mp.x) * 2.0, distance(st.y, (1.0 - mp.y)));
@@ -72,21 +71,21 @@ void main()
       float d = mod(time * i, 1.7);
       float o = sin(1.0 - tan(time * 0.24 * i));
       o *= offsetIntensity;
-      uv.x += verticalBar(d, uv.y, o);
+      tc.x += verticalBar(d, tc.y, o);
   }
   
-  float uvY = uv.y;
+  float uvY = tc.y;
   uvY *= noiseQuality;
   uvY = float(int(uvY)) * (1.0 / noiseQuality);
   float noise = rand(vec2(time * 0.00001, uvY));
-  uv.x += noise * noiseIntensity;
+  tc.x += noise * noiseIntensity;
 
-  vec2 offsetR = vec2(0.003 * sin(time), 0.0) * colorOffsetIntensity;
-  vec2 offsetG = vec2(0.003 * (cos(time * 0.5)), 0.0) * colorOffsetIntensity;
+  vec2 offsetR = vec2(0.002 * sin(time), 0.0) * colorOffsetIntensity;
+  vec2 offsetG = vec2(0.002 * (cos(time * 0.5)), 0.0) * colorOffsetIntensity;
   
-  float r = texture(screenTexture, uv + offsetR).r;
-  float g = texture(screenTexture, uv + offsetG).g;
-  float b = texture(screenTexture, uv).b;
+  float r = texture(screenTexture, tc + offsetR).r;
+  float g = texture(screenTexture, tc + offsetG).g;
+  float b = texture(screenTexture, tc).b;
 
     vec4 tex = texture(screenTexture, tc);
   tex.rgb += sin(tc.y * SCAN_LINE_MULT) * 0.02;
