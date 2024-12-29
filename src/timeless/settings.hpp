@@ -13,6 +13,8 @@ namespace TESettings
     static unsigned int SHADOW_WIDTH = 1024;
     static unsigned int SHADOW_HEIGHT = 1024;
 
+    static bool FULLSCREEN = false;
+
     void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;
       VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;

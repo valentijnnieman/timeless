@@ -22,7 +22,7 @@ private:
     Timer animationSpeed = Timer(0.075f);
     bool isStatic = true;
     int frames;
-    float og_index;
+    int og_index;
 
 public:
     bool animating;
@@ -30,11 +30,11 @@ public:
     bool hidden = false;
 
     glm::vec4 color;
-    float index;
+    int index;
     glm::vec2 spriteSheetSize;
     glm::vec2 spriteSize;
 
-    Sprite(float index, glm::vec4 color, glm::vec2 spriteSheetSize, glm::vec2 spriteSize, bool isStatic = true, bool animating = false, int frames = 6)
+    Sprite(int index, glm::vec4 color, glm::vec2 spriteSheetSize, glm::vec2 spriteSize, bool isStatic = true, bool animating = false, int frames = 6)
         : color(color), index(index), og_index(index), isStatic(isStatic), animating(animating), frames(frames), spriteSheetSize(spriteSheetSize), spriteSize(spriteSize)
     {
     }
@@ -42,7 +42,7 @@ public:
     {
         color = newColor;
     }
-    void set_index(float newIndex)
+    void set_index(int newIndex)
     {
         index = newIndex;
         og_index = newIndex;

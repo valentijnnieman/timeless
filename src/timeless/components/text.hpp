@@ -6,6 +6,7 @@ class Text : public Component
 {
 private:
     std::unique_ptr<Timer> type_timer;
+    std::function<void()> typing_callback;
 
 public:
     std::string text;
@@ -20,8 +21,8 @@ public:
     bool completed;
     int print_length = 0;
 
-    Text(std::string text, bool center = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f), float type_speed = 0.0f)
-        : text(text), center(center), color(glm::vec4(color.x, color.y, color.z, 1.0f)), type_speed(type_speed)
+    Text(std::string text, bool center = true, glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f), float type_speed = 0.0f, std::function<void()> typing_callback = []() {})
+        : text(text), center(center), color(glm::vec4(color.x, color.y, color.z, 1.0f)), type_speed(type_speed), typing_callback(typing_callback)
     {
         set_default_color_vector();
         if (type_speed > 0.0)
@@ -54,15 +55,7 @@ public:
             {
                 print_length += 1;
 
-                // // play sound if set
-                // if (typingDescription != NULL)
-                // {
-                //     FMOD::Studio::EventInstance *eventInstance = NULL;
-                //     typingDescription->createInstance(&eventInstance);
-
-                //     eventInstance->start();
-                //     eventInstance->release();
-                // }
+                typing_callback();
             }
             else if (!completed && print_length >= text.length())
             {

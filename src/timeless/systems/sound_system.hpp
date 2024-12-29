@@ -9,10 +9,20 @@ private:
 	FMOD::Studio::System* fmodSystem = NULL;
 	FMOD::Studio::Bank* masterBank = NULL;
 	FMOD::Studio::Bank* stringsBank = NULL;
+  FMOD::Studio::EventInstance* looping_event_instance = NULL;
+  bool is_looping = false;
+
+  FMOD_3D_ATTRIBUTES* atrbs;
+  FMOD_3D_ATTRIBUTES* listener_atrbs;
+	Entity camera;
 
 	std::map<std::string, std::shared_ptr<FMOD::Studio::EventDescription>> event_descriptions;
 public:
 	float sampling_rate = 48000;
+  void register_camera(Entity c)
+  {
+      camera = c;
+  }
 	void init()
 	{
 		FMOD_RESULT result = FMOD::Studio::System::create(&fmodSystem);
@@ -27,6 +37,10 @@ public:
 			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
 			exit(-1);
 		}
+
+    listener_atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
+    atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
+
 		std::cout << "[TIMELESS] SoundSystem initialized!" << std::endl;
 	}
 	void load_bank_files(std::string master_bank_filename = "Assets/sound/Master.bank", std::string strings_bank_filename = "Assets/sound/Master.strings.bank")
@@ -45,10 +59,17 @@ public:
 		}
 		std::cout << "[TIMELESS] Sound banks loaded!" << std::endl;
 	}
-	void update()
-	{
+  void update(ComponentManager &cm) {
+    auto main_camera = cm.get_component<Camera>(camera);
+    if(main_camera != nullptr)
+      listener_atrbs->position = FMOD_VECTOR(main_camera->get_position().x, main_camera->get_position().y, 0);
+      fmodSystem->setListenerAttributes(0, listener_atrbs);
+
 		fmodSystem->update();
 	}
+  void set_parameter(const std::string& name, int value) {
+    fmodSystem->setParameterByName(name.c_str(), value);
+  }
 	void load_event_description(std::string soundevent_path)
 	{
 		//FMOD::Studio::EventDescription* new_event_description = NULL;
@@ -59,7 +80,7 @@ public:
 		//std::cout << "[TIMELESS] event loaded!" << std::endl;
 	}
 
-	void trigger_event(std::string soundevent_path, float delay = 0.0f)
+	void trigger_event(std::string soundevent_path, float delay = 0.0f, bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0))
 	{
 		FMOD::Studio::EventDescription* new_event_description = NULL;
 		fmodSystem->getEvent(soundevent_path.c_str(), &new_event_description);
@@ -68,6 +89,12 @@ public:
 
 		FMOD::Studio::EventInstance* event_instance = NULL;
 		new_event_description->createInstance(&event_instance);
+
+
+    if(spatial) {
+      atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
+      event_instance->set3DAttributes(atrbs);
+    }
 
 
 		if (delay > 0)
@@ -81,10 +108,50 @@ public:
 		event_instance->start();
 		event_instance->release();
 	}
+
+	void start_loop(std::string soundevent_path, float delay = 0.0f, bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0))
+	{
+    if(!is_looping) {
+      FMOD::Studio::EventDescription* new_event_description = NULL;
+      fmodSystem->getEvent(soundevent_path.c_str(), &new_event_description);
+
+      new_event_description->loadSampleData();
+
+      new_event_description->createInstance(&looping_event_instance);
+
+
+      if(spatial) {
+        atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
+        looping_event_instance->set3DAttributes(atrbs);
+      }
+
+
+      if (delay > 0)
+      {
+        looping_event_instance->setProperty(
+          FMOD_STUDIO_EVENT_PROPERTY_SCHEDULE_DELAY,
+          delay
+        );
+      }
+
+      looping_event_instance->start();
+      is_looping = true;
+    }
+	}
+  void stop_looping_event()
+  {
+    if(is_looping) {
+      looping_event_instance->stop(FMOD_STUDIO_STOP_MODE(0));
+      looping_event_instance->release();
+      is_looping = false;
+    }
+  }
 	void unload()
 	{
 		masterBank->unload();
 		stringsBank->unload();
+    delete(atrbs);
+    delete(listener_atrbs);
 		fmodSystem->release();
 	}
 	double half_to_time(int p, float speed)

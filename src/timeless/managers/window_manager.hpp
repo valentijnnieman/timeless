@@ -49,23 +49,23 @@ public:
         : cm(cm), mis(mis)
     {
         glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
         const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         int window_width = mode->width;
         int window_height = mode->height;
         TESettings::rescale_window(window_width, window_height);
 
-        //window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
         glfwSetErrorCallback(error_callback);
-        window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
+
+        if(TESettings::FULLSCREEN)
+          window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", glfwGetPrimaryMonitor(), NULL);
+        else
+          window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y, "Timeless", NULL, NULL);
+
         if (window == NULL)
         {
             std::cout << "Failed to create GLFW window" << std::endl;

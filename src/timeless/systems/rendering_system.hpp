@@ -39,8 +39,17 @@ public:
                                   std::shared_ptr<Sprite> sprite, int tick = 0,
                                   glm::vec3 cam_position = glm::vec3(0.0)) {
     if (shader != nullptr && sprite != nullptr) {
+      float cols = sprite->spriteSheetSize.x / sprite->spriteSize.x;
+
+      float col =  sprite->index - cols * floor(sprite->index/cols);
+      float row = floor(sprite->index / cols);
+
       glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
-      glUniform1f(glGetUniformLocation(shader->ID, "index"), sprite->index);
+      glUniform1f(glGetUniformLocation(shader->ID, "index"), static_cast<float>(sprite->index));
+      glUniform1f(glGetUniformLocation(shader->ID, "col"), col);
+      glUniform1f(glGetUniformLocation(shader->ID, "row"), row);
+
+
       glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1,
                    glm::value_ptr(sprite->color));
       glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
@@ -135,8 +144,7 @@ public:
 
     for (auto &entity : registered_entities) {
       auto shader = cm.get_component<Shader>(entity);
-      if (shader != nullptr)
-        shader->use();
+      shader->use();
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         if (cam != nullptr) {
@@ -148,7 +156,7 @@ public:
       auto text = cm.get_component<Text>(entity);
       if (text != nullptr) {
         if (text->center) {
-          cm.get_component<Transform>(entity)->update(
+          transform->update(
               x, y, 1.0f,
               glm::vec3(-get_text_width(entity, cm) * 0.5f,
                         -get_text_height(entity, cm) * 0.5f, 0.0f));
@@ -157,12 +165,7 @@ public:
       }
 
       if (shader != nullptr && transform != nullptr)
-        set_shader_transform_uniforms(cm.get_component<Shader>(entity),
-                                      cm.get_component<Transform>(entity));
-      auto sprite = cm.get_component<Sprite>(entity);
-      if (sprite != nullptr)
-        set_shader_sprite_uniforms(cm.get_component<Shader>(entity), sprite,
-                                   tick, cam->get_position());
+        set_shader_transform_uniforms(shader, transform);
 
       auto quad = cm.get_component<Quad>(entity);
       if (quad != nullptr)
@@ -170,16 +173,18 @@ public:
       auto texture = cm.get_component<Texture>(entity);
       if (texture != nullptr)
         texture->render();
-
+      auto sprite = cm.get_component<Sprite>(entity);
       if (sprite != nullptr) {
         if (!sprite->hidden) {
+          set_shader_sprite_uniforms(shader, sprite,
+                                    tick, cam->get_position());
+
           sprite->update();
           sprite->render();
         }
       }
 
       if (text != nullptr) {
-        auto shader = cm.get_component<Shader>(entity);
         auto font = cm.get_component<Font>(entity);
         if (!text->hidden) {
           text->render(*font, 0.0f, 0.0f, get_text_height(entity, cm), shader);

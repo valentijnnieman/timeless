@@ -10,7 +10,7 @@ uniform float time;
 const float range = 0.0025;
 const float noiseQuality = 10.0;
 const float noiseIntensity = 0.0024;
-const float offsetIntensity = 0.01;
+const float offsetIntensity = 0.1;
 const float colorOffsetIntensity = 1.3;
 
 float rand(vec2 co)
