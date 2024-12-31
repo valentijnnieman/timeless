@@ -97,34 +97,6 @@ public:
     return height;
   }
 
-  void rotate_all_z(ComponentManager &cm, float z) {
-
-    for (auto &entity : registered_entities) {
-      auto transform = cm.get_component<Transform>(entity);
-      if (transform != nullptr) {
-        // transform->position.x += 42.0f;
-        // transform->position.x += transform->width * 0.75f;
-        // transform->position.y -= 8.0f;
-        // transform->position.y += transform->height * 0.5f;
-        transform->rotate(glm::vec3(0.0f, 0.0f, glm::radians(z)));
-      }
-    }
-  }
-
-  void reset_shadow(ComponentManager &cm, float z) {
-
-    for (auto &entity : registered_entities) {
-      auto transform = cm.get_component<Transform>(entity);
-      if (transform != nullptr) {
-        transform->rotate(glm::vec3(0.0f, 0.0f, glm::radians(z)));
-        // transform->position.x -= 42.0f;
-        // transform->position.x -= transform->width * 0.75f;
-        // transform->position.y += 8.0f;
-        // transform->position.y -= transform->height * 0.5f;
-      }
-    }
-  }
-
   void sort(ComponentManager &cm) {
 
     std::stable_sort(registered_entities.begin(), registered_entities.end(),
@@ -135,6 +107,30 @@ public:
                          return false;
                        return trans_a->position.z < trans_b->position.z;
                      });
+  }
+
+  void shadow_rotate(ComponentManager &cm) {
+    for (auto &entity : registered_entities) {
+      auto transform = cm.get_component<Transform>(entity);
+      auto sprite = cm.get_component<Sprite>(entity);
+      transform->rotate(glm::radians(glm::vec3(15,3,45)));
+      transform->position.x += 16.0;
+      transform->position.y -= 8.0;
+      transform->scale.y += 12.0;
+      sprite->color = glm::vec4(0.1, 0.1, 0.1, 0.4);
+    }
+  }
+
+  void shadow_reset_rotation(ComponentManager &cm) {
+    for (auto &entity : registered_entities) {
+      auto transform = cm.get_component<Transform>(entity);
+      auto sprite = cm.get_component<Sprite>(entity);
+      transform->rotate(glm::radians(glm::vec3(0,0,0)));
+      transform->position.x -= 16.0;
+      transform->position.y += 8.0;
+      transform->scale.y -= 12.0;
+      sprite->color = sprite->og_color;
+    }
   }
 
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,

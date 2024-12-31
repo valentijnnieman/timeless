@@ -19,12 +19,12 @@ void main()
     FragColor = col;
 
     float p = shadowValue / size;
-    bool shadow = true;
-    vec4 light = vec4(0.0);
+    bool shadow = false;
+    vec4 shadow_color = vec4(0.1, 0.1, 0.1, 1.0);
 
     if(col.r == SCREEN_COLOR.r && col.g == SCREEN_COLOR.g && col.b == SCREEN_COLOR.b)
     {
-        for(int i = 0; i < 4; i++)
+        for(int i = 0; i < 2; i++)
         {
             float dist = float(i) * p;
 
@@ -32,23 +32,18 @@ void main()
             float uvy = TexCoords.y - dist;
 
             vec4 next = texture(screenTexture, vec2(clamp(uvx, 0.0, 1.0), clamp(uvy, 0.0, 1.0)));
-            //if(next.r > 0.9 && next.g > 0.9 && next.b > 0.9)
-            //if(next.z > 0.9)
+
+            //if(next.r != 1.0 && next.g != 1.0 && next.b != 1.0)
             if(next.r != SCREEN_COLOR.r && next.g != SCREEN_COLOR.g && next.b != SCREEN_COLOR.b)
             {
-                //FragColor = vec4(0.0, 0.0, 0.0, 0.5);
-                light = vec4(0.9, 0.4, 0.1, 0.4);
-                shadow = false;
+                shadow = true;
             }
         }
     }
 
-    //if(col.r > 0.1 && col.g > 0.1 && col.b > 0.1)
-    //if(col.z > 0.9)
-    if(shadow)
+    if(!shadow)
     {
         discard;
-        //FragColor = col;
     }
-    FragColor = light;
+    FragColor = shadow_color;
 }  

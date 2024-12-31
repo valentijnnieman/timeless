@@ -30,12 +30,13 @@ public:
     bool hidden = false;
 
     glm::vec4 color;
+    glm::vec4 og_color;
     int index;
     glm::vec2 spriteSheetSize;
     glm::vec2 spriteSize;
 
     Sprite(int index, glm::vec4 color, glm::vec2 spriteSheetSize, glm::vec2 spriteSize, bool isStatic = true, bool animating = false, int frames = 6)
-        : color(color), index(index), og_index(index), isStatic(isStatic), animating(animating), frames(frames), spriteSheetSize(spriteSheetSize), spriteSize(spriteSize)
+        : color(color), og_color(color), index(index), og_index(index), isStatic(isStatic), animating(animating), frames(frames), spriteSheetSize(spriteSheetSize), spriteSize(spriteSize)
     {
     }
     void setColor(glm::vec4 newColor)
