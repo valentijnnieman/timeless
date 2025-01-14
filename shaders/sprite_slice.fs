@@ -31,4 +31,5 @@ void main()
     vec2 uv = vec2(dx * TexCoord.x + col * dx, 1.0 - dy - row * dy + dy * TexCoord.y);
 
     FragColor = highlightColor * texture(texture1, uv);
+
 }
