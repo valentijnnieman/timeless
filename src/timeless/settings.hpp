@@ -25,7 +25,7 @@ namespace TESettings
     {
         SCREEN_X = width;
         SCREEN_Y = height;
-        VIEWPORT_X = width * VIEWPORT_SCALE;
-        VIEWPORT_Y = height * VIEWPORT_SCALE;
+        // VIEWPORT_X = width * VIEWPORT_SCALE;
+        // VIEWPORT_Y = height * VIEWPORT_SCALE;
     }
 }

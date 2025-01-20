@@ -3,6 +3,7 @@ project(fmod)
 add_library(fmod SHARED IMPORTED GLOBAL)
 add_library(fmod_studio SHARED IMPORTED GLOBAL)
 
+if(apple)
 set_property(TARGET fmod PROPERTY
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/apple/core/lib/libfmod.dylib")
 set_property(TARGET fmod PROPERTY
@@ -12,7 +13,19 @@ set_property(TARGET fmod_studio PROPERTY
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/apple/studio/lib/libfmodstudio.dylib")
 set_property(TARGET fmod_studio PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/apple/studio/inc")
+endif()
+if(EMSCRIPTEN)
+set_property(TARGET fmod PROPERTY
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/core/lib/upstream/w32/fmod_wasm.a")
+set_property(TARGET fmod PROPERTY
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/html5/core/inc")
 
+set_property(TARGET fmod_studio PROPERTY
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/studio/lib/upstream/w32/fmodstudio_wasm.a")
+set_property(TARGET fmod_studio PROPERTY
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/html5/studio/inc")
+
+endif()
 if(LINUX)
 set_property(TARGET fmod PROPERTY
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/linux/core/lib/x86_64/libfmod.so")

@@ -194,7 +194,6 @@ public:
     models.clear();
     sprite_indices.clear();
     sprite_sizes.clear();
-    shader->use();
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     for (auto &entity : registered_entities) {
@@ -208,41 +207,55 @@ public:
       sprite_sizes.push_back(sprite->spriteSize);
     }
 
+    int mat4size = 64;
+    int floatsize = sizeof(float);
+    int vec2size = 8;
+
+    shader->use();
+    printf("generating bufffers... \n");
     glGenBuffers(1, &instanceVBO);
     glGenBuffers(1, &instanceVBO2);
     glGenBuffers(1, &instanceVBO3);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * registered_entities.size(), &sprite_indices[0], GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * registered_entities.size(), &sprite_sizes[0], GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * registered_entities.size(), &models[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mat4size * registered_entities.size(), &models[0], GL_STATIC_DRAW);
 
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
+    glBufferData(GL_ARRAY_BUFFER, floatsize * registered_entities.size(), &sprite_indices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
+    glBufferData(GL_ARRAY_BUFFER, vec2size * registered_entities.size(), &sprite_sizes[0], GL_STATIC_DRAW);
+
+    printf("rendering quad... \n");
     quad->render();
+    printf("enabling vertex attributes... \n");
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 64, (void*)0);
     glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 64, (void*)(16));
     glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 64, (void*)(2 * 16));
     glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 64, (void*)(3 * 16));
+    //
     glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
     glVertexAttribDivisor(4, 1); // tell OpenGL this is an instanced vertex attribute.
     glVertexAttribDivisor(5, 1); // tell OpenGL this is an instanced vertex attribute.
     glVertexAttribDivisor(6, 1); // tell OpenGL this is an instanced vertex attribute.
+    printf("binding buffers... \n");
 
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
     glEnableVertexAttribArray(7);
-    glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+    glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, floatsize, (void*)0);
     glVertexAttribDivisor(7, 1); // tell OpenGL this is an instanced vertex attribute.
-    //
+    // //
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
     glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, vec2size, (void*)0);
     glVertexAttribDivisor(8, 1); // tell OpenGL this is an instanced vertex attribute.
+    printf("done!\n");
   }
   void instanced_render(ComponentManager &cm, int x, int y, std::shared_ptr<Quad> quad, std::shared_ptr<Texture> texture, std::shared_ptr<Shader> shader, float zoom = 1.0,
               int tick = 0) {

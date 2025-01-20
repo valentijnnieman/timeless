@@ -153,17 +153,29 @@ namespace TE
 
     // helper function that checks if mouse event position overlaps with
     // transform position of an entity. Can be used to determine if an entity was clicked on, for example.
-    bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
+    bool clicked_on_ui(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
-        auto transform = TE::get_component<Transform>(entity);
-        glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+      double x = event->screen_position.x - (TESettings::SCREEN_X * 0.5); 
+      double y = event->screen_position.y - (TESettings::SCREEN_Y * 0.5); 
+      auto transform = TE::get_component<Transform>(entity);
+      glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
-        return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
-          &&
-          (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
-          );
+      return ((x > pos.x - transform->width && x < pos.x + transform->width)
+        &&
+        (y > pos.y - transform->height && y < pos.y + transform->height)
+        );
     }
 
+    bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
+    {
+      auto transform = TE::get_component<Transform>(entity);
+      glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+
+      return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
+        &&
+        (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
+        );
+    }
     bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
     {
         auto transform = TE::get_component<Transform>(entity);
