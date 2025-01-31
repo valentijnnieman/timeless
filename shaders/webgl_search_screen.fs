@@ -53,13 +53,6 @@ void main()
     dx *= dx;
     dy *= dy;
 
-    tc.x -= 0.5;
-    tc.x *= 1.0 + (dy * 0.1);
-    tc.x += 0.5;
-
-    tc.y -= 0.5;
-    tc.y *= 1.0 + (dx * 0.1);
-    tc.y += 0.5;
 
     vec2 f = vec2((st.x - mp.x) * 2.0, distance(st.y, (1.0 - mp.y)));
 

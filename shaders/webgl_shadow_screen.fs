@@ -1,9 +1,9 @@
-#version 330 core
+#version 100
+precision mediump float;
 #define PI 3.1415926538
 #define SAMPLES 2
-out vec4 FragColor;
   
-in vec2 TexCoords;
+varying vec2 TexCoords;
 
 uniform sampler2D screenTexture;
 uniform float time;
@@ -32,7 +32,7 @@ void main()
 {
     vec2 coords = TexCoords;
 
-    vec4 col = texture(screenTexture, coords);
+    vec4 col = texture2D(screenTexture, coords);
 
-    FragColor = col * vec4(0.9, 0.9, 0.9, 0.5);
+    gl_FragColor = col * vec4(0.9, 0.9, 0.9, 0.5);
 }  
