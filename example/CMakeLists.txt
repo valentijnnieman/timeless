@@ -17,7 +17,7 @@ foreach(dir ${ENGINE_INCLUDES})
     string(APPEND INCLUDE_COMPILER_STRING "/I${dir} ")
 endforeach()
 
-target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" ${INCLUDE_COMPILER_STRING})
+# target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" ${INCLUDE_COMPILER_STRING})
 target_link_libraries(${PROJECT_NAME} PUBLIC timeless)
 
 add_custom_command(

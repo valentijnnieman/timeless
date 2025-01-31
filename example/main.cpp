@@ -1,5 +1,9 @@
 #include <functional>
 #include <memory>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/timeless.hpp"
@@ -7,6 +11,7 @@
 #include "timeless/algorithm/graph.hpp"
 
 #include "timeless/components/behaviour.hpp"
+#include "timeless/components/font.hpp"
 #include "timeless/components/node.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -31,16 +36,21 @@ public:
 	Game()
 	{
 		// call init() to start up the engine
+    printf("hello! i am ctorman\n");
 		TE::init();
 
+    printf("init is done! \n");
 		// create some resources that we can reuse, such as shaders, fonts, textures, etc.
-		std::shared_ptr<Shader> screen_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/screen.vs", "Assets/shaders/screen.fs"));
-		font_12 = std::shared_ptr<Font>(new Font(12));
+		std::shared_ptr<Shader> screen_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/webgl_screen.vs", "Assets/shaders/webgl_screen.fs"));
+    printf("we got a screen shader \n");
+    font_12 = std::shared_ptr<Font>(new Font(12));
+    printf("we got a font\n");
 		font_16 = std::shared_ptr<Font>(new Font(16));
-		sprite_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/sprite.vs", "Assets/shaders/sprite_slice.fs"));
-		text_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/text.vs", "Assets/shaders/text.fs"));
+		sprite_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/webgl_sprite.vs", "Assets/shaders/webgl_sprite_slice.fs"));
+		text_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/webgl_text.vs", "Assets/shaders/webgl_text.fs"));
 		default_quad = std::shared_ptr<Quad>(new Quad());
 		tiles_texture = std::shared_ptr<Texture>(new Texture("Assets/textures/example_tiles.png", 512, 672));
+    printf("we got everything \n");
 
 		// a window manager is always created, since it is always needed to run the engine.
 		// with get_window_manager() we get a pointer to it, and enable_screen_shader() sets the shader 
@@ -170,68 +180,59 @@ public:
 		TE::get_system<NpcAiSystem>("NpcAiSystem")->attach_text_component(*TE::get_component_manager(), index_text);
 
 	}
-	void loop()
+	static void loop()
 	{
 		// TE::loop() takes in a lambda function that'll be called every frame. 
 		// here we can define how and when to update our systems, and call rendering functions.
 		// we can also define some boilerplate frame limiting stuff (more to come soon)
-		TE::loop(
-			[&](GLFWwindow *window, ComponentManager &cm, WindowManager &wm)
-			{
-				double t = 0.0;
-				double dt = 1.0 / 60.0;
+    TE::loop(
+      [&](GLFWwindow *window, ComponentManager &cm, WindowManager &wm)
+      {
+          // update certain systems here, so the framerate for these are smoother.
+          // for the AI system, this is especially important, because we don't want the 
+          // ticks to update variably based on a users system. 
+          TE::get_system<MovementSystem>("MovementSystem")->update(cm, window);
+          TE::get_system<KeyboardInputSystem>("KeyboardInputSystem")->update(cm, window);
+          TE::get_system<NpcAiSystem>("NpcAiSystem")->update(cm);
+          TE::get_system<AnimationSystem>("AnimationSystem")->update(cm);
 
-				double current_time = glfwGetTime();
-				while (!glfwWindowShouldClose(window) && running)
-				{
-					double new_time = glfwGetTime();
-					double frame_time = new_time - current_time;
-					current_time = new_time;
+          auto ai = TE::get_system<NpcAiSystem>("NpcAiSystem");
 
-					while (frame_time > 0.0)
-					{
-						float delta_time = std::min(frame_time, dt);
+          /** render scene into framebuffer */
+          wm.select_framebuffer(wm.screen_shader, true);
 
-						// update certain systems here, so the framerate for these are smoother.
-						// for the AI system, this is especially important, because we don't want the 
-						// ticks to update variably based on a users system. 
-						TE::get_system<MovementSystem>("MovementSystem")->update(cm, window);
-						TE::get_system<KeyboardInputSystem>("KeyboardInputSystem")->update(cm, window);
-						TE::get_system<NpcAiSystem>("NpcAiSystem")->update(cm);
-						TE::get_system<AnimationSystem>("AnimationSystem")->update(cm);
-						frame_time -= delta_time;
-						t += delta_time;
-					}
+          TE::get_system<TextRenderingSystem>("TextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-					auto ai = TE::get_system<NpcAiSystem>("NpcAiSystem");
+          wm.render_framebuffer_as_quad(wm.screen_shader, true);
 
-					/** render scene into framebuffer */
-					wm.select_framebuffer(wm.screen_shader, true);
+          wm.select_framebuffer(wm.tile_shader, false);
+          TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index);
+          wm.render_framebuffer_as_quad(wm.tile_shader, false);
 
-					TE::get_system<TextRenderingSystem>("TextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          // render ui and other parts not affected by screen shader
+          TE::get_system<RenderingSystem>("UIRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          TE::get_system<TextRenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-					wm.render_framebuffer_as_quad(wm.screen_shader, true);
-
-					wm.select_framebuffer(wm.tile_shader, false);
-					TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index);
-					wm.render_framebuffer_as_quad(wm.tile_shader, false);
-
-					// render ui and other parts not affected by screen shader
-					TE::get_system<RenderingSystem>("UIRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-					TE::get_system<TextRenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-
-					glfwSwapBuffers(window);
-					glfwPollEvents();
-				}
-			});
-	}
+          glfwSwapBuffers(window);
+          glfwPollEvents();
+      });
+  }
 };
 
 int main()
 {
 	Game game = Game();
-
-	game.loop();
+  auto wm = TE::get_window_manager();
+#ifdef __EMSCRIPTEN__
+  emscripten_set_canvas_element_size("canvas", TESettings::SCREEN_X, TESettings::SCREEN_Y);
+  // Receives a function to call and some user data to provide it.
+  emscripten_set_main_loop(game.loop, 0, 1);
+#else
+    while (!glfwWindowShouldClose(wm->window) && wm->running)
+    {
+      game.loop();
+    }
+#endif
 
 	glfwTerminate();
 

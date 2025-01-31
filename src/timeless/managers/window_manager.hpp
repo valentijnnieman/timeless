@@ -1,10 +1,14 @@
 #pragma once
 #include "../event.hpp"
 #include <GLFW/glfw3.h>
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
 #include <glad/glad.h>
+#endif
 #include <iostream>
 #include <memory>
-
 
 #include "../systems/mouse_input_system.hpp"
 #include "timeless/components/transform.hpp"
@@ -21,8 +25,6 @@ private:
 
 public:
   unsigned int framebuffer;
-  unsigned int depthMapFBO;
-  unsigned int depthMap;
 
   unsigned int textureColorbuffer;
   unsigned int rbo;
@@ -37,6 +39,7 @@ public:
   glm::vec2 mouse_position;
 
   GLFWwindow *window;
+  GLFWcursor* cursor;
 
   static void error_callback(int error, const char *description) {
     fprintf(stderr, "Error: %s\n", description);
@@ -46,17 +49,17 @@ public:
                 std::shared_ptr<MouseInputSystem> mis)
       : cm(cm), mis(mis) {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    int window_width = mode->width;
-    int window_height = mode->height;
-    TESettings::rescale_window(window_width, window_height);
+    // const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    // int window_width = mode->width;
+    // int window_height = mode->height;
+    // TESettings::rescale_window(window_width, window_height);
 
-    glfwSetErrorCallback(error_callback);
+    // glfwSetErrorCallback(error_callback);
 
     if (TESettings::FULLSCREEN)
       window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y,
@@ -71,44 +74,31 @@ public:
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetWindowSizeCallback(window, window_size_callback);
+    // glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetWindowUserPointer(window, this);
 
     glfwSwapInterval(1);
 
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+    glfwSetCursor(window, cursor);
+
+#ifdef __EMSCRIPTEN__
+#else
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
       std::cout << "Failed to initialize GLAD" << std::endl;
     }
+#endif
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     std::cout << "OpenGL Initialized!" << std::endl;
     // glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-    glfwSetWindowAspectRatio(window, 16, 9);
+    // glfwSetWindowAspectRatio(window, 16, 9);
 
     glfwSetMouseButtonCallback(window, &mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetScrollCallback(window, &scroll_callback);
-  }
-  void enable_shadows() {
-    glGenFramebuffers(1, &depthMapFBO);
-    glGenTextures(1, &depthMap);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, TESettings::SHADOW_WIDTH,
-                 TESettings::SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
-                 NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                           depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   void enable_screen_shader(std::shared_ptr<Shader> shader,
                             std::shared_ptr<Shader> t_shader = nullptr) {
@@ -170,6 +160,7 @@ public:
   }
   ~WindowManager() {
     glfwDestroyWindow(window);
+    glfwDestroyCursor(cursor);
     glDeleteVertexArrays(1, &ScreenVAO);
     glDeleteBuffers(1, &ScreenVBO);
     glDeleteRenderbuffers(1, &rbo);
@@ -188,7 +179,7 @@ public:
     glUniform2fv(glGetUniformLocation(screen_shader->ID, "lightPosition"), 1,
                  glm::value_ptr(glm::vec2(0.0, 0.0)));
     glUniform2fv(glGetUniformLocation(screen_shader->ID, "resolution"), 1,
-                 glm::value_ptr(glm::vec2(1920.0f, 1080.0f)));
+                 glm::value_ptr(glm::vec2(TESettings::SCREEN_X, TESettings::SCREEN_Y)));
   }
   void set_shader_mouse_position(glm::vec2 mouse_position) {
     tile_shader->use();
@@ -197,19 +188,16 @@ public:
         glm::value_ptr(glm::vec2(mouse_position.x / TESettings::SCREEN_X,
                                  mouse_position.y / TESettings::SCREEN_Y)));
   }
-  static void window_size_callback(GLFWwindow *window, int width, int height) {
-    TESettings::rescale_window(width, height);
-    WindowManager *wm =
-        static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
-    wm->enable_screen_shader(wm->screen_shader);
-    glViewport(0, 0, width, height);
-  }
+  // static void window_size_callback(GLFWwindow *window, int width, int height) {
+  //   // WindowManager *wm =
+  //   //     static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+  //   // wm->enable_screen_shader(wm->screen_shader);
+  //   // glViewport(0, 0, width, height);
+  //   // TESettings::rescale_window(width, height);
+  // }
   static void framebuffer_size_callback(GLFWwindow *window, int width,
                                         int height) {
-    // make sure the viewport matches the new window dimensions; note that width
-    // and height will be significantly larger than specified on retina
-    // displays.
-    glViewport(0, 0, width, height);
+    TESettings::rescale_window(width, height);
   }
   void mouse_move_handler(MouseMoveEvent *event) {
     mouse_position = event->screen_position;
@@ -232,8 +220,17 @@ public:
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
 
     wm->set_shader_mouse_position(glm::vec2(xpos, ypos));
+
     xpos -= TESettings::SCREEN_X * 0.5;
     ypos -= TESettings::SCREEN_Y * 0.5;
+
+    double xnorm = xpos / TESettings::SCREEN_X;
+    double world_x = xnorm * TESettings::VIEWPORT_X;
+    double ynorm = ypos / TESettings::SCREEN_Y;
+    double world_y = ynorm * TESettings::VIEWPORT_Y;
+
+    xpos = world_x;
+    ypos = world_y;
 
     wm->mouse_move_handler(
         new MouseMoveEvent("MouseMove", glm::vec2(xpos, ypos)));
@@ -254,6 +251,14 @@ public:
 
     xpos -= TESettings::SCREEN_X * 0.5;
     ypos -= TESettings::SCREEN_Y * 0.5;
+
+    double xnorm = xpos / TESettings::SCREEN_X;
+    double world_x = xnorm * TESettings::VIEWPORT_X;
+    double ynorm = ypos / TESettings::SCREEN_Y;
+    double world_y = ynorm * TESettings::VIEWPORT_Y;
+
+    xpos = world_x;
+    ypos = world_y;
 
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
       wm->mouse_click_handler(
@@ -284,6 +289,7 @@ public:
   void select_framebuffer(std::shared_ptr<Shader> shader, bool clear = true) {
     if (shader != nullptr) {
       glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+      glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
       if (clear) {
         glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
                      TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
@@ -293,24 +299,13 @@ public:
     }
   }
 
-  void select_depth_framebuffer(bool clear = true) {
-    glViewport(0, 0, TESettings::SHADOW_WIDTH, TESettings::SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    if (clear) {
-      glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-                   TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-              GL_STENCIL_BUFFER_BIT);
-    }
-    glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-  }
-  void deselect_depth_framebuffer() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
   void render_framebuffer_as_quad(std::shared_ptr<Shader> shader,
                                   bool clear = true, int tick = 64) {
     if (shader != nullptr) {
       /** render framebuffer as quad */
       glBindFramebuffer(GL_FRAMEBUFFER, 0); // default buffer
+      glViewport(0, 0, TESettings::SCREEN_X, TESettings::SCREEN_Y);
 
       if (clear) {
         glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
@@ -329,26 +324,6 @@ public:
       set_shader_time(shader);
       glBindVertexArray(ScreenVAO);
       glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
-  }
-
-  void render_depth_framebuffer_as_quad(std::shared_ptr<Shader> shader,
-                                        bool clear = true) {
-    if (shader != nullptr) {
-      /** render framebuffer as quad */
-      glBindFramebuffer(GL_FRAMEBUFFER, 0); // default buffer
-
-      if (clear) {
-        glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-                     TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      }
-
-      shader->use();
-      set_shader_time(shader);
-      glBindVertexArray(ScreenVAO);
-      glBindTexture(GL_TEXTURE_2D, depthMap);
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
   }

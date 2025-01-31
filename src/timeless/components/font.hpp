@@ -1,5 +1,10 @@
 #pragma once
-#include "glad/glad.h"
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
+#include <glad/glad.h>
+#endif
 #include "glm/glm.hpp"
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -22,7 +27,7 @@ public:
     unsigned int VAO, VBO;
     std::map<char, Glyph> glyphs;
 
-    Font(int fontSize, std::string filepath = "Assets/fonts/8bit.ttf")
+    Font(int fontSize, const std::string& filepath = "Assets/fonts/8bit.ttf")
     {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
@@ -63,7 +68,7 @@ public:
                 glTexImage2D(
                     GL_TEXTURE_2D,
                     0,
-                    GL_RED,
+                    GL_R8,
                     face->glyph->bitmap.width,
                     face->glyph->bitmap.rows,
                     0,
