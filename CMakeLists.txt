@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.29)
 
 project(timeless VERSION 0.3)
 
@@ -32,17 +32,15 @@ if(EMSCRIPTEN)
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
 
-  target_link_options(${PROJECT_NAME} PUBLIC -sASYNCIFY -sEXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sSTB_IMAGE=1 --embed-file Assets)
+  target_link_options(${PROJECT_NAME} PUBLIC -sASYNCIFY -sEXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sALLOW_MEMORY_GROWTH -sSTB_IMAGE=1 --embed-file Assets)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --use-port=contrib.glfw3")
 
-  target_link_libraries(${PROJECT_NAME} glm freetype fmod fmod_studio)
+  target_link_libraries(${PROJECT_NAME} glm freetype)
 
-  link_libraries(${PROJECT_NAME} fmod fmod_studio)
   add_subdirectory(example example)
 
 else()
@@ -64,19 +62,11 @@ else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/openal-soft)
 
-# find_package(fmod)
   include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-
-# add property for fmod folder to copy dll files
-  set_property(
-      TARGET ${PROJECT_NAME}
-      APPEND PROPERTY
-      FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod"
-  )
 
 # set_target_properties(${PROJECT_NAME}
 # PROPERTIES SUFFIX ".html"
@@ -85,68 +75,7 @@ else()
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
-  link_libraries(${PROJECT_NAME} fmod fmod_studio)
-
-  if(WIN32)
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod.dll
-          ${CMAKE_CURRENT_BINARY_DIR}/fmod.dll)
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod_vc.lib
-          ${CMAKE_CURRENT_BINARY_DIR}/fmod_vc.lib)
-
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio.dll
-          ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio.dll)
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio_vc.lib
-          ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio_vc.lib)
-  endif()
-
-  if(apple)
-      install(TARGETS ${PROJECT_NAME}
-          glad freetype glm glfw DESTINATION ${PROJECT_BINARY_DIR}
-          BUNDLE DESTINATION ${PROJECT_BINARY_DIR}
-      )
-      install(IMPORTED_RUNTIME_ARTIFACTS ${PROJECT_NAME})
-
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${FMOD_DIR}/apple/core/lib/libfmodL.dylib
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodL.dylib)
-
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${FMOD_DIR}/apple/studio/lib/libfmodstudioL.dylib
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudioL.dylib)
-  endif()
-
-  if(UNIX AND NOT APPLE)
-      message(STATUS "LINUX BUILD!")
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/core/lib/x86_64/libfmod.so.13
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmod.so.13)
-
-      add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/studio/lib/x86_64/libfmodstudio.so.13
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.13)
-  endif()
-
+target_link_libraries(${PROJECT_NAME} glad glfw glm freetype OpenAL::OpenAL)
   add_subdirectory(example example)
 
 endif()

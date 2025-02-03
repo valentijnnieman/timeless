@@ -1,3 +1,4 @@
+#include <thread>
 
 namespace TESettings
 {
@@ -14,6 +15,8 @@ namespace TESettings
     static unsigned int SHADOW_HEIGHT = 1024;
 
     static bool FULLSCREEN = false;
+
+    const auto PROC_COUNT= std::thread::hardware_concurrency();
 
     void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;

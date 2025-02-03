@@ -4,3 +4,6 @@
 [submodule "vendor/cereal"]
 	path = vendor/cereal
 	url = https://github.com/USCiLab/cereal
+[submodule "vendor/openal-soft"]
+	path = vendor/openal-soft
+	url = https://github.com/kcat/openal-soft
