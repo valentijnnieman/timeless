@@ -47,7 +47,7 @@ namespace TE
     template <typename T>
     void create_system(const std::string& key, T* system)
     {
-        systems.insert({ key, std::shared_ptr<T>(system) });
+        systems.insert_or_assign(key, std::shared_ptr<T>(system));
     }
 
     template <typename T>
@@ -69,6 +69,11 @@ namespace TE
         grid->calculate_nodes(*cm);
     }
 
+    void clear_grid()
+    {
+        grid->purge();
+    }
+
     template <typename T>
     void add_component(Entity entity, T *comp)
     {
@@ -86,7 +91,8 @@ namespace TE
         cm->remove_entity(entity);
 
         mis->remove_entity(entity);
-        for (auto [key, system] : systems)
+        mis->remove_move_entity(entity);
+        for (const auto& [key, system] : systems)
         {
             system->remove_entity(entity);
         }
@@ -142,38 +148,36 @@ namespace TE
     {
         wm->running = false;
     }
-    void generate_collider_levels(int start_x1, int start_x2, int start_y1, int start_y2, int n)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            NodeCollider n1(start_x1 - i, start_x2 - i, start_y1 - i, start_y2 - i);
-            grid->colliders.push_back(n1);
-        }
-    }
 
     // helper function that checks if mouse event position overlaps with
     // transform position of an entity. Can be used to determine if an entity was clicked on, for example.
     bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
       auto transform = TE::get_component<Transform>(entity);
-      float w = transform->width / zoom;
-      float h = transform->height / zoom;
-      glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+      if(transform != nullptr) {
+          float w = transform->width / zoom;
+          float h = transform->height / zoom;
+          glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
-      return ((event->screen_position.x > pos.x - w && 
-              event->screen_position.x < pos.x + w) &&
-              (event->screen_position.y > pos.y - h && 
-              event->screen_position.y < pos.y + h)
-        );
+          return ((event->screen_position.x > pos.x - w && 
+                  event->screen_position.x < pos.x + w) &&
+                  (event->screen_position.y > pos.y - h && 
+                  event->screen_position.y < pos.y + h)
+            );
+      }
+      return false;
     }
     bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
     {
         auto transform = TE::get_component<Transform>(entity);
-        glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+        if(transform != nullptr) {
+          glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
-        return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
-          &&
-          (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
-          );
+          return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
+            &&
+            (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
+            );
+        }
+      return false;
     }
 };

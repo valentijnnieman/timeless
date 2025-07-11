@@ -14,7 +14,7 @@ float noiseIntensity = 0.0005;
 
 vec2 wave(vec2 co)
 {
-    return vec2(sin(140 * PI * co.x), sin(140 * PI * co.y));
+    return vec2(sin(140.0 * PI * co.x), sin(140.0 * PI * co.y));
 }
 
 float rand(vec2 co)
@@ -34,5 +34,5 @@ void main()
 
     vec4 col = texture(screenTexture, coords);
 
-    FragColor = col * vec4(0.9, 0.9, 0.9, 0.5);
+    FragColor = col * vec4(1.0-col.r, 1.0-color.g, 1.0-color.b, 0.5);
 }  

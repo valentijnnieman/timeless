@@ -2,6 +2,7 @@
 #include "fmod_studio.hpp"
 #include "fmod.hpp"
 #include "fmod_errors.h"
+#include <unordered_map>
 
 class SoundSystem : public System
 {
@@ -16,6 +17,8 @@ private:
   FMOD_3D_ATTRIBUTES* listener_atrbs;
 	Entity camera;
 
+  std::unordered_map<std::string, FMOD::Studio::EventInstance*> events;
+
 	std::map<std::string, std::shared_ptr<FMOD::Studio::EventDescription>> event_descriptions;
 public:
 	float sampling_rate = 48000;
@@ -25,38 +28,46 @@ public:
   }
 	void init()
 	{
-		FMOD_RESULT result = FMOD::Studio::System::create(&fmodSystem);
-		if (result != FMOD_OK)
-		{
-			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-			exit(-1);
-		}
-		result = fmodSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, 0);
-		if (result != FMOD_OK)
-		{
-			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-			exit(-1);
-		}
+    if(fmodSystem == NULL) {
+      FMOD_RESULT result = FMOD::Studio::System::create(&fmodSystem);
+      if (result != FMOD_OK)
+      {
+        printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+        exit(-1);
+      }
+      result = fmodSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, 0);
+      if (result != FMOD_OK)
+      {
+        printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+        exit(-1);
+      }
 
-    listener_atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
-    atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
+      listener_atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
+      atrbs = new FMOD_3D_ATTRIBUTES(FMOD_VECTOR(0,0,0), FMOD_VECTOR(0,0,0), FMOD_VECTOR(0, 0, 1), FMOD_VECTOR(0, 1, 0));
 
-		std::cout << "[TIMELESS] SoundSystem initialized!" << std::endl;
+      std::cout << "[TIMELESS] SoundSystem initialized!" << std::endl;
+    } else {
+      std::cout << "[TIMELESS] SoundSystem was already initialized!" << std::endl;
+    }
 	}
 	void load_bank_files(std::string master_bank_filename = "Assets/sound/Master.bank", std::string strings_bank_filename = "Assets/sound/Master.strings.bank")
 	{
-		FMOD_RESULT result = fmodSystem->loadBankFile(master_bank_filename.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank);
-		if (result != FMOD_OK)
-		{
-			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-			exit(-1);
-		}
-		result = fmodSystem->loadBankFile(strings_bank_filename.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank);
-		if (result != FMOD_OK)
-		{
-			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-			exit(-1);
-		}
+    if(masterBank == NULL) {
+      FMOD_RESULT result = fmodSystem->loadBankFile(master_bank_filename.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank);
+      if (result != FMOD_OK)
+      {
+        printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+        exit(-1);
+      }
+    }
+    if(stringsBank == NULL) {
+      FMOD_RESULT result = fmodSystem->loadBankFile(strings_bank_filename.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank);
+      if (result != FMOD_OK)
+      {
+        printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+        exit(-1);
+      }
+    }
 		std::cout << "[TIMELESS] Sound banks loaded!" << std::endl;
 	}
   void update(ComponentManager &cm) {
@@ -82,20 +93,25 @@ public:
 
 	void trigger_event(std::string soundevent_path, float delay = 0.0f, bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0))
 	{
-		FMOD::Studio::EventDescription* new_event_description = NULL;
-		fmodSystem->getEvent(soundevent_path.c_str(), &new_event_description);
+    if(!events.contains(soundevent_path)){
+      FMOD::Studio::EventDescription* new_event_description = NULL;
+      std::string e = "event:/" + soundevent_path;
+      fmodSystem->getEvent(e.c_str(), &new_event_description);
 
-		new_event_description->loadSampleData();
+      new_event_description->loadSampleData();
 
-		FMOD::Studio::EventInstance* event_instance = NULL;
-		new_event_description->createInstance(&event_instance);
+      FMOD::Studio::EventInstance* event_instance = NULL;
+      new_event_description->createInstance(&event_instance);
 
+      events.insert({soundevent_path, event_instance});
+    }
+
+    auto event_instance = events.at(soundevent_path);
 
     if(spatial) {
       atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
       event_instance->set3DAttributes(atrbs);
     }
-
 
 		if (delay > 0)
 		{
@@ -106,7 +122,7 @@ public:
 		}
 
 		event_instance->start();
-		event_instance->release();
+		// event_instance->release();
 	}
 
 	void start_loop(std::string soundevent_path, float delay = 0.0f, bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0))
@@ -148,6 +164,9 @@ public:
   }
 	void unload()
 	{
+    for(auto& [event, instance] : events) {
+      instance->release();
+    }
 		masterBank->unload();
 		stringsBank->unload();
     delete(atrbs);

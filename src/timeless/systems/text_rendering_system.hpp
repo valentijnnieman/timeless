@@ -8,6 +8,9 @@ class TextRenderingSystem : public System
 public:
     Entity camera;
 
+    float ui_jitter = 0.005;
+    float ui_jitter_speed = 6.0;
+
     void register_camera(Entity c)
     {
         camera = c;
@@ -67,6 +70,9 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(transform->projection));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(transform->model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(transform->view));
+        glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
+        glUniform1f(glGetUniformLocation(shader->ID, "jitter"), ui_jitter);
+        glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"), ui_jitter_speed);
 
         //glUniform4f(glGetUniformLocation(shader->ID, "textColor"), text->color.r, text->color.g, text->color.b, text->color.a);
         glActiveTexture(GL_TEXTURE0);

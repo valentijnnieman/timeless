@@ -17,6 +17,17 @@ const float noiseIntensity = 0.00024;
 const float offsetIntensity = 0.001;
 const float colorOffsetIntensity = 0.5;
 
+uniform float resolution_downsampling = 4.0;
+uniform float bit_depth = 16.0;
+
+const mat4 bayer_matrix = mat4(
+    vec4(    -0.5,       0.0,  -0.375,   0.125 ),
+    vec4(    0.25,   -0.25,   0.375, - 0.125 ),
+    vec4( -0.3125,  0.1875, -0.4375,  0.0625 ),
+    vec4(  0.4375, -0.0625,  0.3125, -0.1875 )
+);
+
+
 float rand(vec2 co)
 {
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -94,5 +105,5 @@ void main()
 
   vec4 out_tex = mix(tex, tex2, 0.5);
 
-    FragColor = vec4(borderColor * vec3(out_tex), 1.0 - color.z);
+  FragColor = vec4(borderColor * vec3(out_tex), 1.0 - color.z);
 }  

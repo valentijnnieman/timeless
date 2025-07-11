@@ -79,13 +79,15 @@ public:
         next_instructions.resize(max);
     }
 
-    std::shared_ptr<Instruction> next(int index)
-    {
-        if (index > next_instructions.size() - 1)
-        {
-            return nullptr;
+    std::shared_ptr<Instruction> next(int index) {
+      if (!next_instructions.empty()) {
+        if (index > next_instructions.size() - 1) {
+          return nullptr;
         }
-        std::shared_ptr<Instruction> instr = std::make_shared<Instruction>(next_instructions.at(index));
+        std::shared_ptr<Instruction> instr =
+            std::make_shared<Instruction>(next_instructions.at(index));
         return instr;
+      }
+      return nullptr;
     }
 };

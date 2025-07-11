@@ -9,6 +9,14 @@ To ease with development, and since the classes are relatively compact, the sour
 This engine is currently being used to develop a game based on a 2d (isometric!) grid, where objects act on a fixed time scale. Think of it like a music sequencer, where along fixed time intervals notes are fired, creating music. 
 The idea of this engine is that users can create a grid (defined in `algorithms/graph.hpp`) and create `Behaviour`s for objects placed on that grid. A `Behaviour` is really just a vector of lambda functions and some other bits, which the `NpcAiSystem` (name will likely change) takes and sequences. The system will take all the behaviours, and fire the next behaviour for all registered entities at a user defined time interval. It can also, instead of the next behaviour, get the previous one, which is useful as a "go back in time" mechanic or an undo mechanic etc.
 
+## Pontius
+The pontius sound system depends on fftw, which needs to be build using float precision, using something like these steps:
+- `./configure --enable-float`
+- `make`
+- `make install`
+
+refer to the fftw docs for more details! use `emconfigure` and `emmake` for wasm builds.
+
 ## Example
 There's a small example program under `example` which shows how to set up an isometric grid with tiles from a spritesheet, animate it via the animation system, and add a timeline of behaviour ticks with the AI system.
 ![Example gif](https://github.com/valentijnnieman/timeless/blob/main/example.gif)

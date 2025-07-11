@@ -1,7 +1,7 @@
 project(fmod)
 
-add_library(fmod SHARED IMPORTED GLOBAL)
-add_library(fmod_studio SHARED IMPORTED GLOBAL)
+add_library(fmod STATIC IMPORTED GLOBAL)
+add_library(fmod_studio STATIC IMPORTED GLOBAL)
 
 if(apple)
 set_property(TARGET fmod PROPERTY

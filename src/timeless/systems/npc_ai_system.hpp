@@ -1,6 +1,6 @@
 #pragma once
 #include "../timer.hpp"
-#include "system.hpp"
+#include "timeless/systems/system.hpp"
 
 class NpcAiSystem : public System {
 private:

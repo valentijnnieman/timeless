@@ -14,11 +14,11 @@ public:
 	}
 	std::vector<Entity> registered_move_entities;
 
-	virtual void register_move_entity(Entity entity)
+	void register_move_entity(Entity entity)
 	{
 		registered_move_entities.push_back(entity);
 	}
-	virtual void remove_move_entity(Entity entity)
+	void remove_move_entity(Entity entity)
 	{
 		if (!registered_move_entities.empty())
 		{
@@ -67,7 +67,7 @@ public:
 	}
 	void mouse_move_handler(ComponentManager& cm, MouseMoveEvent* event)
 	{
-		for (const auto& entity : registered_move_entities)
+		for (const auto& entity : this->registered_move_entities)
 		{
 			notify_listener(cm, event, entity);
       if(event->picked_up) {

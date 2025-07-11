@@ -8,6 +8,7 @@
 #include "../components/node.hpp"
 #include "timeless/entity.hpp"
 #include "timeless/managers/component_manager.hpp"
+#include "timeless/timeless.hpp"
 
 namespace std
 {
@@ -38,21 +39,6 @@ public:
 	}
 };
 
-class NodeCollider
-{
-public:
-	int x1, x2, y1, y2;
-
-	NodeCollider(int x1, int x2, int y1, int y2)
-		: x1(x1), x2(x2), y1(y1), y2(y2)
-	{
-	}
-	bool is_in_bounds(glm::vec3 p)
-	{
-		return x1 <= p.x && p.x <= x2 && y1 <= p.y && p.y <= y2;
-	}
-};
-
 class Grid
 {
 private:
@@ -71,9 +57,13 @@ private:
 public:
 	map_type vertices;
 	std::vector<Entity> registered_entities;
-	std::vector<NodeCollider> colliders;
 
 	Grid() {}
+
+  void purge() {
+    registered_entities.clear();
+    vertices.clear();
+  }
 
 	void register_entity(Entity entity)
 	{
@@ -92,22 +82,9 @@ public:
 		}
 	}
 
-	void is_inside(std::shared_ptr<Node> node)
-	{
-		for (auto& col : colliders)
-		{
-			if (col.is_in_bounds(glm::vec3(node->x, node->y, 0.0f)))
-			{
-				node->z = 3;
-			}
-		}
-	}
-
 	void add_node(std::shared_ptr<Node> node, ComponentManager& cm)
 	{
 		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, cm);
-
-		// is_inside(node);
 
 		vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
 	}

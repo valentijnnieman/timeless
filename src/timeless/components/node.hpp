@@ -81,6 +81,7 @@ public:
 	std::vector<glm::vec2> exits;
 
 	std::set<Entity> entities; // which entities are located on this node
+	std::set<int> extra_data; // extra data located on this node
 
 	LocationType location = none;
 
@@ -103,6 +104,22 @@ public:
 		collider = Collider(x1, x2, y1, y2, layer);
 	}
 
+	void add_data(int data)
+	{
+		extra_data.insert(data);
+	}
+	void remove_data(int data)
+	{
+		if (!extra_data.empty())
+		{
+			auto found = std::find_if(extra_data.begin(), extra_data.end(), [&](auto& e)
+				{ return e == data; });
+			if (found != extra_data.end())
+			{
+				extra_data.erase(found);
+			}
+		}
+	}
 	void add_entity(Entity entity)
 	{
 		entities.insert(entity);

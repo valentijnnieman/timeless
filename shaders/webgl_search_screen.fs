@@ -11,10 +11,10 @@ uniform vec2 mousePosition;
 uniform vec4 SCREEN_COLOR;
 
 const float range = 0.0005;
-const float noiseQuality = 10.0;
+const float noiseQuality = 1.0;
 const float noiseIntensity = 0.00024;
 const float offsetIntensity = 0.001;
-const float colorOffsetIntensity = 0.5;
+const float colorOffsetIntensity = 0.05;
 
 float rand(vec2 co)
 {
@@ -81,7 +81,7 @@ void main()
   float b = texture2D(screenTexture, tc).b;
 
     vec4 tex = texture2D(screenTexture, tc);
-  tex.rgb += sin(tc.y * SCAN_LINE_MULT) * 0.02;
+  //tex.rgb += sin(tc.y * SCAN_LINE_MULT) * 0.02;
   vec4 tex2 = vec4(r, g, b, 1.0);
 
   vec4 out_tex = mix(tex, tex2, 0.5);
