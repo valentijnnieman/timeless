@@ -144,6 +144,8 @@ public:
   /** this method completely removes all components for an entity */
   void remove_entity(Entity entity) {
     try {
+      mouse_input_listeners.erase(entity);
+      keyboard_input_listeners.erase(entity);
       animations.erase(entity);
       quads.erase(entity);
       textures.erase(entity);
@@ -151,8 +153,6 @@ public:
       sprites.erase(entity);
       transforms.erase(entity);
       geometry.erase(entity);
-      mouse_input_listeners.erase(entity);
-      keyboard_input_listeners.erase(entity);
       cameras.erase(entity);
       colliders.erase(entity);
       movements.erase(entity);

@@ -89,7 +89,6 @@ namespace TE
     void remove_entity(Entity entity)
     {
         cm->remove_entity(entity);
-
         mis->remove_entity(entity);
         mis->remove_move_entity(entity);
         for (const auto& [key, system] : systems)

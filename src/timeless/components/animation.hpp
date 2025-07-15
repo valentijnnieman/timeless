@@ -5,10 +5,6 @@
 #include <cmath>
 #include <queue>
 
-class AnimationFrame {
-public:
-};
-
 class Animation : public Component {
 private:
   Entity entity;

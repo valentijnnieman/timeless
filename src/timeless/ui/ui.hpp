@@ -18,8 +18,6 @@ public:
 
     add_entity(main_ent);
     add_entity(bg_ent);
-
-    add_hover_event_listener();
   }
 
   void add_entity(Entity entity) { 
@@ -32,7 +30,6 @@ public:
   virtual void create_animation() {
     for (auto entity : entities) {
       auto transform = TE::get_component<Transform>(entity);
-      glm::vec3 og_scale = transform->scale;
       glm::vec3 og_position = transform->position;
       TE::get_component<Animation>(entity)->set_position_frames(
           glm::vec3(og_position.x - 100.0, og_position.y, 0.0), og_position,
@@ -41,31 +38,31 @@ public:
   }
 
   virtual void hover_animation() {
-    for (auto entity : {bg_ent}) {
+    for (const auto& entity : {bg_ent}) {
       auto transform = TE::get_component<Transform>(entity);
 
       if(transform != nullptr) {
-        glm::vec3 og_scale = transform->scale;
+        glm::vec3 og_scale = glm::vec3(1.0);
         auto anim = TE::get_component<Animation>(entity);
         if(anim != nullptr) {
           anim->append_scale_frames(og_scale,
-          og_scale + glm::vec3(3.0), 20.0);
+          glm::vec3(1.25), 20.0);
         }
+        transform->scale = glm::vec3(1.25);
       }
     }
   }
 
   virtual void exit_animation() {
-    for (auto entity : {bg_ent}) {
-      auto transform = TE::get_component<Transform>(entity);
+    auto transform = TE::get_component<Transform>(bg_ent);
 
-      if(transform != nullptr) {
-        glm::vec3 og_scale = transform->scale;
-        auto anim = TE::get_component<Animation>(entity);
-        if(anim != nullptr) {
-          anim->append_scale_frames(og_scale,og_scale - glm::vec3(3.0), 20.0);
-        }
+    if(transform != nullptr) {
+        glm::vec3 og_scale = glm::vec3(1.0);
+      auto anim = TE::get_component<Animation>(bg_ent);
+      if(anim != nullptr) {
+        anim->append_scale_frames(glm::vec3(1.25), og_scale, 20.0);
       }
+      transform->scale = glm::vec3(1.0);
     }
   }
 
@@ -86,21 +83,21 @@ public:
     TE::get_system<EventSystem>("EventSystem")->register_entity(entity);
   }
 
-  void add_hover_event_listener() {
+  virtual void add_hover_event_listener() {
     TE::add_component<MouseInputListener<MouseMoveEvent>>(
         bg_ent,
         new MouseInputListener<MouseMoveEvent>(
             [&](
-                MouseMoveEvent *event, Entity entity, int data) {
+                MouseMoveEvent *event, Entity entity, int data) mutable {
               if (event->eventType == "MouseMove" &&
-                  TE::hovered_over(event, entity, TESettings::ZOOM)) {
+                  TE::hovered_over(event, entity)) {
                 auto sprite = TE::get_component<Sprite>(entity);
                 if (sprite != nullptr) {
                   if(!sprite->hidden) {
                     // event->picked_up = true;
                     if(!hovering) {
                       hovering = true;
-                      this->hover_animation();
+                      hover_animation();
                     }
                   } else {
                     // event->picked_up = true;
@@ -110,7 +107,7 @@ public:
               } else {
                 // event->picked_up = true;
                 if(hovering) {
-                  this->exit_animation();
+                  exit_animation();
                 }
                 hovering = false;
               }

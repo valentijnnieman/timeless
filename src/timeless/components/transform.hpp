@@ -39,7 +39,7 @@ public:
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
-          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(w, h, 1.0f)), zoomable(zoomable)
+          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(1.0f)), zoomable(zoomable)
     {
         rot = glm::quat(glm::vec3(0, 0, 0));
         model = glm::mat4(1.0f);
@@ -69,8 +69,8 @@ public:
     void set_scale(glm::vec3 s)
     {
         scale = s;
-        width = s.x;
-        height = s.y;
+        // width = s.x;
+        // height = s.y;
     }
     void set_movement_frames(glm::vec3 destination)
     {
@@ -147,6 +147,8 @@ public:
         model = glm::rotate(model, glm::radians(180.0f),
                             glm::vec3(0.0f, 1.0f, 0.0f));
       }
+
+      model = glm::scale(model, glm::vec3(width, height, 1.0));
 
       model = glm::scale(model, scale);
     }

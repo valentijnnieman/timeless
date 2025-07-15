@@ -1,6 +1,7 @@
 #pragma once
 #include "../components/shader.hpp"
 #include "../components/transform.hpp"
+#include "../components/animation.hpp"
 #include "system.hpp"
 #include "timeless/components/quad.hpp"
 #include "timeless/managers/component_manager.hpp"
@@ -39,15 +40,59 @@ public:
   void register_camera(Entity c) { camera = c; }
 
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
-                                     std::shared_ptr<Transform> transform) {
+                                     std::shared_ptr<Transform> transform,
+                                     std::shared_ptr<Animation> animation = nullptr, 
+                                     int tick = 0) {
     if (shader != nullptr && transform != nullptr) {
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
                          GL_FALSE, glm::value_ptr(transform->projection));
+
+      if(animation != nullptr) {
+        if(!animation->positions.empty()) {
+          glm::vec3 dir = animation->positions.front();
+
+          transform->model = glm::mat4(1.0f);
+          glm::mat4 anim_mat = glm::translate(glm::mat4(1.0f), dir - transform->offset);
+
+          transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
+          transform->model = anim_mat * transform->model;
+          transform->model = glm::scale(transform->model, glm::vec3(transform->width, transform->height, 1.0));
+
+          transform->model = glm::scale(transform->model, transform->scale);
+
+          animation->positions.pop();
+          if (animation->loop) {
+            animation->positions.push(dir);
+          }
+        }
+
+        // if(!animation->rotations.empty()) {
+        //   glm::vec3 rot = animation->rotations.front();
+        //   auto eulers = glm::quat(rot);
+        //   glm::mat4 anim_rot = glm::toMat4(eulers);
+        //   transform->model = transform->model * anim_rot;
+        //   animation->rotations.pop();
+        //   if (animation->loop) {
+        //     animation->rotations.push(rot);
+        //   }
+        // }
+        //
+        // if(!animation->scales.empty()) {
+        //   glm::vec3 scale = animation->scales.front();
+        //   transform->model = glm::scale(transform->model, scale);
+        //   animation->scales.pop();
+        //   if (animation->loop) {
+        //     animation->scales.push(scale);
+        //   }
+        // }
+      }
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
-                         glm::value_ptr(transform->model));
+                        glm::value_ptr(transform->model));
+
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
                          glm::value_ptr(transform->view));
       glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
+      glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
       glUniform1f(glGetUniformLocation(shader->ID, "jitter"), ui_jitter);
       glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"), ui_jitter_speed);
     }
@@ -178,8 +223,9 @@ public:
         bind_text_values(entity, cm);
       }
 
+      auto animation = cm.get_component<Animation>(entity);
       if (shader != nullptr && transform != nullptr)
-        set_shader_transform_uniforms(shader, transform);
+        set_shader_transform_uniforms(shader, transform, animation, tick);
 
       auto quad = cm.get_component<Quad>(entity);
       if (quad != nullptr)
@@ -302,6 +348,7 @@ public:
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
                         glm::value_ptr(view));
     glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
+    glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
     glUniform1f(glGetUniformLocation(shader->ID, "jitter"), inst_jitter);
     glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"), inst_jitter_speed);
 

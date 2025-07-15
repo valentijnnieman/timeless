@@ -11,6 +11,7 @@ uniform mat4 projection;
 uniform mat4 view;
 
 uniform float time;
+uniform float tick;
 uniform float jitter;
 uniform float jitter_speed;
 
@@ -25,8 +26,8 @@ float rand(vec2 co){
 
 void main()
 {
-    float rand_x = (rand(aTexCoord * floor(time * jitter_speed)) * jitter);
-    float rand_y = (rand(aTexCoord * floor(time * jitter_speed)) * jitter);
+    float rand_x = (rand(aTexCoord * floor(tick * jitter_speed)) * jitter);
+    float rand_y = (rand(aTexCoord * floor(tick * jitter_speed)) * jitter);
     gl_Position = projection * view * aModel * vec4(vec3(aPos.x + rand_x, aPos.y + rand_y, aPos.z), 1.0);
     ourColor = aColor;
     index = aIndex;
