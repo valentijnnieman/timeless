@@ -1,4 +1,4 @@
-
+#include <thread>
 namespace TESettings
 {
     static glm::vec4 SCREEN_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -14,6 +14,8 @@ namespace TESettings
     static unsigned int SHADOW_HEIGHT = 1024;
 
     static bool FULLSCREEN = false;
+
+    static int MAX_THREADS = std::thread::hardware_concurrency();
 
     void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;

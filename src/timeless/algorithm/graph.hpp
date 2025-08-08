@@ -74,22 +74,22 @@ public:
 		return 0 <= p.x && p.x < x_bounds && 0 <= p.y && p.y < y_bounds;
 	}
 
-	void calculate_nodes(ComponentManager& cm)
+	void calculate_nodes(std::map<Entity, std::shared_ptr<Node>> &nodes)
 	{
-		for (const auto& entity : registered_entities)
+		for (const auto& [entity, node]: nodes)
 		{
-			add_node(cm.get_component<Node>(entity), cm);
+			add_node(node, nodes);
 		}
 	}
 
-	void add_node(std::shared_ptr<Node> node, ComponentManager& cm)
+	void add_node(std::shared_ptr<Node> node, std::map<Entity, std::shared_ptr<Node>> &nodes)
 	{
-		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, cm);
+		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, nodes);
 
 		vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
 	}
 
-	std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, ComponentManager& cm)
+	std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, std::map<Entity, std::shared_ptr<Node>> &nodes)
 	{
 		std::vector<std::shared_ptr<Node>> results;
 		std::vector<glm::vec2> node_dirs = directions;
@@ -104,15 +104,14 @@ public:
 			glm::vec2 next = { node->x + dir.x, node->y + dir.y };
 			if (isInBounds(next))
 			{
-				auto it = std::find_if(registered_entities.begin(), registered_entities.end(), [&, next](const Entity& entity)
+				auto it = std::find_if(nodes.begin(), nodes.end(), [&, next](const auto& node)
 					{
-            const auto node = cm.get_component<Node>(entity);
-						return node->x == next.x && node->y == next.y;
+						return node.second->x == next.x && node.second->y == next.y;
 					});
 
-				if (it != registered_entities.end())
+				if (it != nodes.end())
 				{
-					const auto n = cm.get_component<Node>(*it);
+					const auto n = it->second;
 					if (n->layer != 1)
 					{
 						std::vector<glm::vec2> n_dirs = directions;
@@ -159,7 +158,7 @@ public:
 
 	std::shared_ptr<Node> find_node(int x, int y)
 	{
-		auto it = std::find_if(vertices.begin(), vertices.end(), [&](map_value_type node)
+		auto it = std::find_if(vertices.begin(), vertices.end(), [x = x, y = y](map_value_type node)
 			{ return node.first->x == x && node.first->y == y; });
 		return it->first;
 	}
@@ -176,9 +175,9 @@ public:
 		return (next->layer - current->layer) + 1;
 	}
 
+  typedef std::pair<int, std::shared_ptr<Node>> WeightedNode;
 	std::vector<std::shared_ptr<Node>> get_path_to_node(std::shared_ptr<Node> start, std::shared_ptr<Node> dest)
 	{
-		typedef std::pair<int, std::shared_ptr<Node>> WeightedNode;
 		std::priority_queue<WeightedNode, std::vector<WeightedNode>, std::greater<WeightedNode>> frontier;
 		frontier.emplace(0, start);
 

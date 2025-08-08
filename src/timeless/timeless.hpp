@@ -66,7 +66,7 @@ namespace TE
      */
     void calculate_grid()
     {
-        grid->calculate_nodes(*cm);
+        grid->calculate_nodes(cm->nodes);
     }
 
     void clear_grid()
@@ -112,6 +112,11 @@ namespace TE
         mis->register_move_entity(entity);
     }
     template<> void add_component<Node>(Entity entity, Node *node)
+    {
+        cm->add_component(entity, node);
+        grid->register_entity(entity);
+    }
+    template<> void add_component<Node>(Entity entity, std::shared_ptr<Node> node)
     {
         cm->add_component(entity, node);
         grid->register_entity(entity);

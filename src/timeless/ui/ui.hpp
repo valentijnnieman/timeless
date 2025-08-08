@@ -38,18 +38,16 @@ public:
   }
 
   virtual void hover_animation() {
-    for (const auto& entity : {bg_ent}) {
-      auto transform = TE::get_component<Transform>(entity);
+    auto transform = TE::get_component<Transform>(bg_ent);
 
-      if(transform != nullptr) {
-        glm::vec3 og_scale = glm::vec3(1.0);
-        auto anim = TE::get_component<Animation>(entity);
-        if(anim != nullptr) {
-          anim->append_scale_frames(og_scale,
-          glm::vec3(1.25), 20.0);
-        }
-        transform->scale = glm::vec3(1.25);
+    if(transform != nullptr) {
+      glm::vec3 og_scale = glm::vec3(1.0);
+      auto anim = TE::get_component<Animation>(bg_ent);
+      if(anim != nullptr) {
+        anim->set_scale_frames(og_scale,
+        glm::vec3(1.25), 10.0);
       }
+			TE::get_component<Animation>(bg_ent)->reset = false;
     }
   }
 
@@ -57,10 +55,10 @@ public:
     auto transform = TE::get_component<Transform>(bg_ent);
 
     if(transform != nullptr) {
-        glm::vec3 og_scale = glm::vec3(1.0);
+      glm::vec3 og_scale = glm::vec3(1.0);
       auto anim = TE::get_component<Animation>(bg_ent);
       if(anim != nullptr) {
-        anim->append_scale_frames(glm::vec3(1.25), og_scale, 20.0);
+        anim->append_scale_frames(glm::vec3(1.25), og_scale, 10.0);
       }
       transform->scale = glm::vec3(1.0);
     }

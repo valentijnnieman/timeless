@@ -18,6 +18,7 @@ public:
 
   bool loop = false;
   bool triggered = false;
+  bool reset = true;
 
   void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
     while (!positions.empty())

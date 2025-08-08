@@ -21,6 +21,7 @@
 #include "timeless/event.hpp"
 #include <memory>
 #include <unordered_map>
+#include <map>
 
 class ComponentManager {
 public:
@@ -43,7 +44,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Camera>> cameras;
   std::unordered_map<Entity, std::shared_ptr<Collider>> colliders;
   std::unordered_map<Entity, std::shared_ptr<MovementController>> movements;
-  std::unordered_map<Entity, std::shared_ptr<Node>> nodes;
+  std::map<Entity, std::shared_ptr<Node>> nodes;
   std::unordered_map<Entity, std::shared_ptr<Font>> fonts;
   std::unordered_map<Entity, std::shared_ptr<Text>> texts;
   std::unordered_map<Entity, std::shared_ptr<Behaviour>> behaviours;
