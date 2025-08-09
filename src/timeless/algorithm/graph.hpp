@@ -56,6 +56,7 @@ private:
 	};
 public:
 	map_type vertices;
+  std::map<std::pair<int, int>, std::shared_ptr<Node>> nodes_by_pos;
 	std::vector<Entity> registered_entities;
 
 	Grid() {}
@@ -80,16 +81,20 @@ public:
 		{
 			add_node(node, nodes);
 		}
+
+		for (const auto& [entity, node]: nodes)
+		{
+      std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, nodes_by_pos);
+      vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
+    }
 	}
 
 	void add_node(std::shared_ptr<Node> node, std::map<Entity, std::shared_ptr<Node>> &nodes)
 	{
-		std::vector<std::shared_ptr<Node>> neighbours = find_neighbours(node, nodes);
-
-		vertices.insert(std::pair<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>>(node, neighbours));
+		nodes_by_pos.insert({{node->x, node->y}, node});
 	}
 
-	std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, std::map<Entity, std::shared_ptr<Node>> &nodes)
+	std::vector<std::shared_ptr<Node>> find_neighbours(std::shared_ptr<Node> node, std::map<std::pair<int, int>, std::shared_ptr<Node>> &nodes)
 	{
 		std::vector<std::shared_ptr<Node>> results;
 		std::vector<glm::vec2> node_dirs = directions;
@@ -104,12 +109,8 @@ public:
 			glm::vec2 next = { node->x + dir.x, node->y + dir.y };
 			if (isInBounds(next))
 			{
-				auto it = std::find_if(nodes.begin(), nodes.end(), [&, next](const auto& node)
-					{
-						return node.second->x == next.x && node.second->y == next.y;
-					});
-
-				if (it != nodes.end())
+				auto it = nodes_by_pos.find({next.x, next.y});
+				if (it != nodes_by_pos.end())
 				{
 					const auto n = it->second;
 					if (n->layer != 1)
