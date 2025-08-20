@@ -73,8 +73,8 @@ void main()
   float noise = rand(vec2(time * 0.00001, uvY));
   tc.x += noise * noiseIntensity;
 
-  vec2 offsetR = vec2(0.002 * sin(time), 0.0) * colorOffsetIntensity;
-  vec2 offsetG = vec2(0.002 * (cos(time * 0.5)), 0.0) * colorOffsetIntensity;
+  vec2 offsetR = vec2(0.005 * sin(time), 0.0) * colorOffsetIntensity;
+  vec2 offsetG = vec2(0.005 * (cos(time * 0.5)), 0.0) * colorOffsetIntensity;
   
   float r = texture2D(screenTexture, tc + offsetR).r;
   float g = texture2D(screenTexture, tc + offsetG).g;

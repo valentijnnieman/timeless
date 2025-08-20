@@ -173,15 +173,18 @@ namespace TE
     }
     bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
     {
-        auto transform = TE::get_component<Transform>(entity);
-        if(transform != nullptr) {
+      auto transform = TE::get_component<Transform>(entity);
+      if(transform != nullptr) {
+          float w = transform->width / zoom;
+          float h = transform->height / zoom;
           glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
-          return ((event->screen_position.x > pos.x - transform->width && event->screen_position.x < pos.x + transform->width)
-            &&
-            (event->screen_position.y > pos.y - transform->height && event->screen_position.y < pos.y + transform->height)
+          return ((event->screen_position.x > pos.x - w && 
+                  event->screen_position.x < pos.x + w) &&
+                  (event->screen_position.y > pos.y - h && 
+                  event->screen_position.y < pos.y + h)
             );
-        }
+      }
       return false;
     }
 };
