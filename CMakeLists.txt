@@ -147,5 +147,6 @@ else()
   endif()
 
   add_subdirectory(example example)
+  add_executable(${PROJECT_NAME}ResourcePacker src/timeless/resource_packer.cpp)
 
 endif()
