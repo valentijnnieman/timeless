@@ -31,6 +31,8 @@ public:
     }
 
     const std::vector<uint8_t>& get(const std::string& name) const {
-      return assets.at(name);
+      static const std::vector<uint8_t> empty;
+      auto it = assets.find(name);
+      return it != assets.end() ? it->second : empty;
     }
 };

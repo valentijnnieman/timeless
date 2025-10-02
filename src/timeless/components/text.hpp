@@ -7,6 +7,7 @@ class Text : public Component
 private:
     std::unique_ptr<Timer> type_timer;
     std::function<void()> typing_callback;
+    std::queue<float> opacities;
 
 public:
     std::string text;
@@ -44,8 +45,34 @@ public:
         }
     }
 
+    void set_opacity_frames(float from, float to, float speed = 1.0) {
+      while (!opacities.empty())
+        opacities.pop();
+
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from, to, i);
+        opacities.push(x_l);
+      }
+    }
+
+    void append_opacity_frames(float from, float to, float speed = 1.0) {
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from, to, i);
+        opacities.push(x_l);
+      }
+    }
+
     void render(Font &font, int x, int y, float height, std::shared_ptr<Shader> shader)
     {
+
+        if (!opacities.empty()) {
+          float o = opacities.front();
+          color.a = o;
+          for (auto &c : color_vector) {
+            c.a = o;
+          }
+          opacities.pop();
+        }
         // iterate through all characters
         std::string::const_iterator c;
 
@@ -97,7 +124,7 @@ public:
             glBindBuffer(GL_ARRAY_BUFFER, font.VBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // be sure to use glBufferSubData and not glBufferData
 
-            // glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
             // render quad
             glDrawArrays(GL_TRIANGLES, 0, 6);
             // now advance cursors for next glyph (note that advance is number of 1/64 pixels)

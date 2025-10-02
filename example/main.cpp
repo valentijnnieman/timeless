@@ -141,11 +141,11 @@ public:
 							// animate tiles up and down based on even/odd positioning
 							if ((x + y + i) % 2 == 0)
 							{
-								TE::get_component<Animation>(tile)->set_position_frames(pos, glm::vec3(pos.x, pos.y + 8.0f, 0.0f), 5.0);
+								// TE::get_component<Animation>(tile)->set_position_frames(pos, glm::vec3(pos.x, pos.y + 8.0f, 0.0f), 5.0);
 							}
 							else
 							{
-								TE::get_component<Animation>(tile)->set_position_frames(glm::vec3(pos.x, pos.y + 8.0f, 0.0f), pos, 5.0);
+								// TE::get_component<Animation>(tile)->set_position_frames(glm::vec3(pos.x, pos.y + 8.0f, 0.0f), pos, 5.0);
 							}
 						}
 					);
@@ -194,7 +194,7 @@ public:
           TE::get_system<MovementSystem>("MovementSystem")->update(cm, window);
           TE::get_system<KeyboardInputSystem>("KeyboardInputSystem")->update(cm, window);
           TE::get_system<NpcAiSystem>("NpcAiSystem")->update(cm);
-          TE::get_system<AnimationSystem>("AnimationSystem")->update(cm);
+          // TE::get_system<AnimationSystem>("AnimationSystem")->update(cm);
 
           auto ai = TE::get_system<NpcAiSystem>("NpcAiSystem");
 

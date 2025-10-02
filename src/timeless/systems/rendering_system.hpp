@@ -25,11 +25,11 @@ private:
 public:
   Entity camera;
 
-  float inst_jitter = 0.15;
-  float inst_jitter_speed = 1.0;
+  float inst_jitter = 0.0f;
+  float inst_jitter_speed = 0.0f;
 
-  float ui_jitter = 0.005;
-  float ui_jitter_speed = 6.0;
+  float ui_jitter = 0.0f;
+  float ui_jitter_speed = 0.0f;
 
   void purge(ComponentManager &cm) {
     for(auto &ent : registered_entities) {
@@ -45,56 +45,11 @@ public:
 
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
                                      std::shared_ptr<Transform> transform,
-                                     std::shared_ptr<Animation> animation = nullptr, 
                                      int tick = 0) {
     if (shader != nullptr && transform != nullptr) {
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
                          GL_FALSE, glm::value_ptr(transform->projection));
 
-      if(animation != nullptr) {
-        if(!animation->positions.empty()) {
-          glm::vec3 dir = animation->positions.front();
-
-          transform->model = glm::mat4(1.0f);
-          glm::mat4 anim_mat = glm::translate(glm::mat4(1.0f), dir - transform->offset);
-
-          transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
-          transform->model = anim_mat * transform->model;
-          transform->model = glm::scale(transform->model, glm::vec3(transform->width, transform->height, 1.0));
-
-          if(animation->scales.empty()) {
-            transform->model = glm::scale(transform->model, transform->scale);
-          }
-
-          animation->positions.pop();
-          if (animation->loop) {
-            animation->positions.push(dir);
-          }
-        }
-
-        if(!animation->rotations.empty()) {
-          glm::vec3 rot = animation->rotations.front();
-          auto eulers = glm::quat(rot);
-          glm::mat4 anim_rot = glm::toMat4(eulers);
-          transform->model = transform->model * anim_rot;
-          animation->rotations.pop();
-          if (animation->loop) {
-            animation->rotations.push(rot);
-          }
-        }
-
-        if(!animation->scales.empty()) {
-          glm::vec3 scale = animation->scales.front();
-          transform->model = glm::scale(transform->model, scale);
-          animation->scales.pop();
-          if(animation->scales.empty() && !animation->reset) {
-            transform->scale = scale;
-          }
-          if (animation->loop) {
-            animation->scales.push(scale);
-          }
-        }
-      }
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
                         glm::value_ptr(transform->model));
 
@@ -232,9 +187,9 @@ public:
         bind_text_values(entity, cm);
       }
 
-      auto animation = cm.get_component<Animation>(entity);
-      if (shader != nullptr && transform != nullptr)
-        set_shader_transform_uniforms(shader, transform, animation, tick);
+      if (shader != nullptr && transform != nullptr) {
+        set_shader_transform_uniforms(shader, transform, tick);
+      }
 
       auto quad = cm.get_component<Quad>(entity);
       if (quad != nullptr)
@@ -252,6 +207,26 @@ public:
           sprite->render();
         }
       }
+      auto animation = cm.get_component<Animation>(entity);
+      if (animation != nullptr) {
+        for (const auto& bone : animation->bones) {
+            if (bone.transform) {
+              bone.transform->update_camera(cam->get_position());
+              bone.transform->update(x, y, zoom);
+              set_shader_transform_uniforms(shader, bone.transform, tick);
+            }
+            if (bone.sprite) {
+                bone.sprite->index = bone.sprite_index;
+                set_shader_sprite_uniforms(bone.shader, bone.sprite,
+                                          tick, cam->get_position());
+
+                bone.sprite->update();
+                bone.quad->render();
+                bone.texture->render();
+                bone.sprite->render();
+            }
+        }
+      }
 
       if (text != nullptr) {
         auto font = cm.get_component<Font>(entity);
@@ -262,84 +237,87 @@ public:
     }
   }
 
-  void prepare_instanced(ComponentManager &cm, std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader, float x, float y, int zoom)
+  void init_instanced_buffers(std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader, size_t max_instances) {
+    quad->render();
+
+    glGenBuffers(1, &instanceVBO);   // Model matrices
+    glGenBuffers(1, &instanceVBO2);  // Sprite indices
+    glGenBuffers(1, &instanceVBO3);  // Sprite sizes
+
+    // Model Matrix (mat4) as 4 vec4 attributes
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+
+    GLuint attrLoc1 = glGetAttribLocation(shader->ID, "aModel");
+    for (int i = 0; i < 4; ++i) {
+      glEnableVertexAttribArray(attrLoc1 + i);
+      glVertexAttribPointer(attrLoc1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * i));
+      glVertexAttribDivisor(attrLoc1 + i, 1);
+    }
+
+    // Sprite Index (float)
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2);
+    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    GLuint attrLoc2 = glGetAttribLocation(shader->ID, "aIndex");
+    glEnableVertexAttribArray(attrLoc2);
+    glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+    glVertexAttribDivisor(attrLoc2, 1);
+
+    // Sprite Size (vec2)
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3);
+    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+
+    GLuint attrLoc3 = glGetAttribLocation(shader->ID, "aSpriteSize");
+    glEnableVertexAttribArray(attrLoc3);
+    glVertexAttribPointer(attrLoc3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+    glVertexAttribDivisor(attrLoc3, 1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // quad->unbind_vao();
+  }
+
+  void prepare_instanced(ComponentManager &cm, float x, float y, int zoom)
   {
     models.clear();
     sprite_indices.clear();
     sprite_sizes.clear();
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
-    if(registered_entities.size() > 0) {
-      for (auto &entity : registered_entities) {
-        auto transform = cm.get_component<Transform>(entity);
-        if(transform != nullptr){
-          transform->update_camera(cam->get_position());
-          transform->update(x, y, zoom);
-          models.push_back(transform->model);
-        }
-        
-        auto sprite = cm.get_component<Sprite>(entity);
-        if(sprite != nullptr){
-          sprite_indices.push_back(sprite->index);
-          sprite_sizes.push_back(sprite->spriteSize);
-        }
+    for (auto &entity : registered_entities) {
+      auto transform = cm.get_component<Transform>(entity);
+      if (transform != nullptr) {
+        transform->update_camera(cam->get_position());
+        transform->update(x, y, zoom);
+        models.push_back(transform->model);
       }
 
-      int mat4size = sizeof(glm::mat4);
-      int floatsize = sizeof(float);
-      int vec2size = sizeof(glm::vec2);
-
-      shader->use();
-      glGenBuffers(1, &instanceVBO);
-      glGenBuffers(1, &instanceVBO2);
-      glGenBuffers(1, &instanceVBO3);
-
-      glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
-      glBufferData(GL_ARRAY_BUFFER, floatsize * registered_entities.size(), &sprite_indices[0], GL_STATIC_DRAW);
-
-      glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
-      glBufferData(GL_ARRAY_BUFFER, vec2size * registered_entities.size(), &sprite_sizes[0], GL_STATIC_DRAW);
-
-      glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
-      glBufferData(GL_ARRAY_BUFFER, mat4size * registered_entities.size(), &models[0], GL_STATIC_DRAW);
-      quad->render();
-
-      attrLoc1 = glGetAttribLocation(shader->ID, "aModel");
-      attrLoc2 = glGetAttribLocation(shader->ID, "aIndex");
-      attrLoc3 = glGetAttribLocation(shader->ID, "aSpriteSize");
-
-      glEnableVertexAttribArray(attrLoc1);
-      glVertexAttribPointer(attrLoc1, 4, GL_FLOAT, GL_FALSE, 64, (void*)0);
-      glEnableVertexAttribArray(attrLoc1 + 1);
-      glVertexAttribPointer(attrLoc1 + 1, 4, GL_FLOAT, GL_FALSE, 64, (void*)(16));
-      glEnableVertexAttribArray(attrLoc1 + 2);
-      glVertexAttribPointer(attrLoc1 + 2, 4, GL_FLOAT, GL_FALSE, 64, (void*)(2 * 16));
-      glEnableVertexAttribArray(attrLoc1 + 3);
-      glVertexAttribPointer(attrLoc1 + 3, 4, GL_FLOAT, GL_FALSE, 64, (void*)(3 * 16));
-      //
-      glVertexAttribDivisor(attrLoc1, 1); // tell OpenGL this is an instanced vertex attribute.
-      glVertexAttribDivisor(attrLoc1 + 1, 1); // tell OpenGL this is an instanced vertex attribute.
-      glVertexAttribDivisor(attrLoc1 + 2, 1); // tell OpenGL this is an instanced vertex attribute.
-      glVertexAttribDivisor(attrLoc1 + 3, 1); // tell OpenGL this is an instanced vertex attribute.
-
-      glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2); // this attribute comes from a different vertex buffer
-      glEnableVertexAttribArray(attrLoc2);
-      glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, floatsize, (void*)0);
-      glVertexAttribDivisor(attrLoc2, 1); // tell OpenGL this is an instanced vertex attribute.
-      //
-      glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3); // this attribute comes from a different vertex buffer
-      glEnableVertexAttribArray(attrLoc3);
-      glVertexAttribPointer(attrLoc3, 2, GL_FLOAT, GL_FALSE, vec2size, (void*)0);
-      glVertexAttribDivisor(attrLoc3, 1); // tell OpenGL this is an instanced vertex attribute.
+      auto sprite = cm.get_component<Sprite>(entity);
+      if (sprite != nullptr) {
+        sprite_indices.push_back(sprite->index);
+        sprite_sizes.push_back(sprite->spriteSize);
+      }
     }
+
+    // Update buffer data (no buffer creation here!)
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    if (!models.empty())
+      glBufferSubData(GL_ARRAY_BUFFER, 0, models.size() * sizeof(glm::mat4), models.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2);
+    if (!sprite_indices.empty())
+      glBufferSubData(GL_ARRAY_BUFFER, 0, sprite_indices.size() * sizeof(float), sprite_indices.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3);
+    if (!sprite_sizes.empty())
+      glBufferSubData(GL_ARRAY_BUFFER, 0, sprite_sizes.size() * sizeof(glm::vec2), sprite_sizes.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
+
   void instanced_render(ComponentManager &cm, int x, int y, std::shared_ptr<Quad> quad, std::shared_ptr<Texture> texture, std::shared_ptr<Shader> shader, float zoom = 1.0,
               int tick = 0) {
-    // get camera if set
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
-
-    float t_width = 256.0f;
-    float t_height = 128.0f;
 
     shader->use();
     quad->render();
@@ -350,9 +328,6 @@ public:
                   glm::value_ptr(glm::vec4(1.0f)));
     glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
                   glm::value_ptr(glm::vec2(texture->width, texture->height)));
-
-    // glm::mat4 transformMatrix = glm::mat4(1.0f);
-    // transformMatrix = glm::translate(transformMatrix, cam->get_position());
 
     glm::mat4 view = glm::lookAt(cam->get_position(), cam->get_position() + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::ortho(-(static_cast<float>(x * 0.5) * zoom), static_cast<float>(x * 0.5) * zoom, (static_cast<float>(y * 0.5) * zoom), -static_cast<float>(y * 0.5) * zoom, -1000.0f, 1000.0f);
@@ -366,5 +341,7 @@ public:
     glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"), inst_jitter_speed);
 
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, registered_entities.size());
+
+    // quad->unbind_vao();
   }
 };

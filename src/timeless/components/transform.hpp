@@ -14,7 +14,9 @@
 class Transform : public Component
 {
 private:
-    std::queue<glm::vec3> movement_frames;
+  std::queue<glm::vec3> positions;
+  std::queue<glm::vec3> scales;
+  std::queue<glm::vec3> rotations;
 
 public:
     glm::vec3 camera_position = glm::vec3(0.0f);
@@ -36,6 +38,11 @@ public:
     bool flip = false;
     bool center = true;
     bool zoomable = true;
+
+    bool loop = false;
+    bool triggered = false;
+    bool reset = true;
+
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
@@ -72,42 +79,108 @@ public:
         // width = s.x;
         // height = s.y;
     }
-    void set_movement_frames(glm::vec3 destination)
-    {
-        //while (!movement_frames.empty())
-        //    movement_frames.pop();
-
-        //glm::vec3 start = position;
-
-        //for (double i = 0.0; i <= 1.0; i += 1.0 / 60.0)
-        //{
-        //    double x_l = std::lerp(start.x, destination.x, i);
-        //    double y_l = std::lerp(start.y, destination.y, i);
-        //    movement_frames.push(glm::vec3(x_l, y_l, destination.z));
-        //}
-    }
 
     void update_camera(glm::vec3 p)
     {
         camera_position = p;
     }
 
+    glm::vec3 get_position()
+    {
+      glm::vec3 p = position;
+      if(!positions.empty()){
+        p = positions.front();
+        position = p;
+        positions.pop();
+        if (loop) {
+          positions.push(p);
+        }
+      }
+    return p;
+    }
+
     glm::vec3 get_position_minus_offset()
     {
-        return glm::vec3((position.x - offset.x), (position.y - offset.y), position.z);
+      glm::vec3 p = get_position();
+      return glm::vec3((p.x - offset.x), (p.y - offset.y), p.z);
     }
 
     /* returns position minus camera - i.e. position as if looking from
     camera's perspective */
     glm::vec3 get_position_from_camera()
     {
-        return glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z);
+      glm::vec3 p = get_position();
+        return glm::vec3((p.x - offset.x) - camera_position.x, (p.y - offset.y) - camera_position.y, p.z - camera_position.z);
     }
 
     glm::vec3 get_centered_position_from_camera()
     {
-      glm::vec3 p = glm::vec3((position.x - offset.x) - camera_position.x, (position.y - offset.y) - camera_position.y, position.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
-      return p / TESettings::VIEWPORT_SCALE;
+      glm::vec3 p = get_position();
+      glm::vec3 p_centered = glm::vec3((p.x - offset.x) - camera_position.x, (p.y - offset.y) - camera_position.y, p.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
+      return p_centered / TESettings::VIEWPORT_SCALE;
+    }
+
+    void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      while (!positions.empty())
+        positions.pop();
+
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        positions.push(glm::vec3(x_l, y_l, z_l));
+      }
+    }
+
+    void append_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        positions.push(glm::vec3(x_l, y_l, z_l));
+      }
+    }
+
+
+    void set_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      while (!rotations.empty())
+        rotations.pop();
+
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        rotations.push(glm::vec3(x_l, y_l, z_l));
+      }
+    }
+
+    void append_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        rotations.push(glm::vec3(x_l, y_l, z_l));
+      }
+    }
+
+    void set_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      while (!scales.empty())
+        scales.pop();
+
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        scales.push(glm::vec3(x_l, y_l, z_l));
+      }
+    }
+    void append_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from.x, to.x, i);
+        double y_l = std::lerp(from.y, to.y, i);
+        double z_l = std::lerp(from.z, to.z, i);
+        scales.push(glm::vec3(x_l, y_l, z_l));
+      }
     }
 
     void update(int x = TESettings::VIEWPORT_X, int y = TESettings::VIEWPORT_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
@@ -129,6 +202,8 @@ public:
                          glm::vec3(0, 1, 0));
 
       model = glm::mat4(1.0f);
+
+
       glm::mat4 modelTransform = glm::mat4(1.0f);
       modelTransform =
           glm::translate(modelTransform, get_position_minus_offset());
@@ -140,7 +215,20 @@ public:
         model = glm::translate(model, glm::vec3(0.5 * width, 0.0, 0.0));
       }
       model = glm::translate(model, offset);
+
       glm::mat4 rotation_matrix = glm::toMat4(rot);
+
+      if(!rotations.empty()) {
+        glm::vec3 new_r = rotations.front();
+        auto eulers = glm::quat(new_r);
+        rot = eulers;
+        rotation_matrix = glm::toMat4(eulers);
+        rotations.pop();
+        if (loop) {
+          rotations.push(new_r);
+        }
+      }
+
       model = modelTransform * rotation_matrix * model;
 
       if (flip) {
@@ -149,7 +237,20 @@ public:
       }
 
       model = glm::scale(model, glm::vec3(width, height, 1.0));
+      glm::vec3 s = scale;
+      if(!scales.empty()) {
+        s = scales.front();
+        scales.pop();
+        if(!reset) {
+          scale = s;
+        }
+        if (loop) {
+          scales.push(scale);
+        }
+      }
+      model = glm::scale(model, s);
 
-      model = glm::scale(model, scale);
+
+
     }
 };

@@ -4,9 +4,13 @@
 #include <iostream>
 #include <filesystem>
 
-int main() {
+int main(int argc, char* argv[]) {
+    std::string assets_folder = "Assets";
+    if (argc > 1) {
+        assets_folder = argv[1];
+    }
     std::vector<std::string> resource_files;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator("Assets")) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(assets_folder)) {
         if (entry.is_regular_file()) {
             resource_files.push_back(entry.path().string());
         }

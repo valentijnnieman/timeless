@@ -22,16 +22,13 @@ public:
 
   void add_entity(Entity entity) { 
     entities.push_back(entity); 
-    TE::add_component<Animation>(entity, new Animation());
-    TE::get_system<AnimationSystem>("AnimationSystem")
-        ->register_entity(entity);
   }
 
   virtual void create_animation() {
     for (auto entity : entities) {
       auto transform = TE::get_component<Transform>(entity);
       glm::vec3 og_position = transform->position;
-      TE::get_component<Animation>(entity)->set_position_frames(
+      TE::get_component<Transform>(entity)->set_position_frames(
           glm::vec3(og_position.x - 100.0, og_position.y, 0.0), og_position,
           20.0);
     }
@@ -42,12 +39,9 @@ public:
 
     if(transform != nullptr) {
       glm::vec3 og_scale = glm::vec3(1.0);
-      auto anim = TE::get_component<Animation>(bg_ent);
-      if(anim != nullptr) {
-        anim->set_scale_frames(og_scale,
-        glm::vec3(1.25), 10.0);
-      }
-			TE::get_component<Animation>(bg_ent)->reset = false;
+      transform->set_scale_frames(og_scale,
+      glm::vec3(1.25), 10.0);
+			TE::get_component<Transform>(bg_ent)->reset = false;
     }
   }
 
@@ -56,10 +50,7 @@ public:
 
     if(transform != nullptr) {
       glm::vec3 og_scale = glm::vec3(1.0);
-      auto anim = TE::get_component<Animation>(bg_ent);
-      if(anim != nullptr) {
-        anim->append_scale_frames(glm::vec3(1.25), og_scale, 10.0);
-      }
+      transform->append_scale_frames(glm::vec3(1.25), og_scale, 10.0);
       transform->scale = glm::vec3(1.0);
     }
   }

@@ -24,6 +24,8 @@ private:
     int frames;
     int og_index;
 
+    std::queue<float> opacities;
+
 public:
     bool animating;
     bool flip = false;
@@ -48,6 +50,23 @@ public:
         index = newIndex;
         og_index = newIndex;
     }
+
+    void set_opacity_frames(float from, float to, float speed = 1.0) {
+      while (!opacities.empty())
+        opacities.pop();
+
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from, to, i);
+        opacities.push(x_l);
+      }
+    }
+
+    void append_opacity_frames(float from, float to, float speed = 1.0) {
+      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
+        double x_l = std::lerp(from, to, i);
+        opacities.push(x_l);
+      }
+    }
     void update()
     {
         if (animationSpeed.pollTime() && animating)
@@ -61,6 +80,13 @@ public:
         else if (!animating && !isStatic)
         {
             index = og_index;
+        }
+
+        if (!opacities.empty()) {
+          float o = opacities.front();
+          color.a = o;
+          opacities.pop();
+
         }
     }
     void render()

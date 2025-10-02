@@ -5,7 +5,6 @@ precision mediump float;
 varying vec2 TexCoords;
 
 uniform sampler2D screenTexture;
-uniform float time;
 uniform vec2 lightPosition;
 uniform vec2 mousePosition;
 uniform vec4 SCREEN_COLOR;
@@ -59,22 +58,14 @@ void main()
     vec3 color = vec3(circle(f,0.01));
     vec3 borderColor = vec3(1.0 - circle(f,0.011));
 
-  for (float i = 0.0; i < 0.71; i += 0.1313)
-  {
-      float d = mod(time * i, 1.7);
-      float o = sin(1.0 - tan(time * 0.24 * i));
-      o *= offsetIntensity;
-      tc.x += verticalBar(d, tc.y, o);
-  }
-  
   float uvY = tc.y;
   uvY *= noiseQuality;
   uvY = float(int(uvY)) * (1.0 / noiseQuality);
-  float noise = rand(vec2(time * 0.00001, uvY));
+  float noise = rand(vec2(0.00001, uvY));
   tc.x += noise * noiseIntensity;
 
-  vec2 offsetR = vec2(0.005 * sin(time), 0.0) * colorOffsetIntensity;
-  vec2 offsetG = vec2(0.005 * (cos(time * 0.5)), 0.0) * colorOffsetIntensity;
+  vec2 offsetR = vec2(0.005 * sin(1.0), 0.0) * colorOffsetIntensity;
+  vec2 offsetG = vec2(0.005 * (cos(1.0 * 0.5)), 0.0) * colorOffsetIntensity;
   
   float r = texture2D(screenTexture, tc + offsetR).r;
   float g = texture2D(screenTexture, tc + offsetG).g;
