@@ -140,7 +140,7 @@ public:
     for (auto &entity : registered_entities) {
       auto transform = cm.get_component<Transform>(entity);
       auto sprite = cm.get_component<Sprite>(entity);
-      transform->rotate(glm::radians(glm::vec3(15,3,45)));
+      transform->setRotationEuler(glm::vec3(15,3,45));
       transform->position.x += 16.0;
       transform->position.y -= 8.0;
       transform->scale.y += 12.0;
@@ -152,7 +152,7 @@ public:
     for (auto &entity : registered_entities) {
       auto transform = cm.get_component<Transform>(entity);
       auto sprite = cm.get_component<Sprite>(entity);
-      transform->rotate(glm::radians(glm::vec3(0,0,0)));
+      transform->setRotationEuler(glm::vec3(0,0,0));
       transform->position.x -= 16.0;
       transform->position.y += 8.0;
       transform->scale.y -= 12.0;
@@ -174,6 +174,38 @@ public:
           transform->update_camera(cam->get_position());
         }
         transform->update(x, y, zoom);
+      }
+
+      auto animation = cm.get_component<Animation>(entity);
+      if (animation != nullptr) {
+        animation->root.transform->update_camera(cam->get_position());
+        animation->root.transform->update(x, y, zoom);
+        set_shader_transform_uniforms(animation->root.shader, animation->root.transform, tick);
+        animation->root.sprite->index = animation->root.sprite_index;
+        set_shader_sprite_uniforms(animation->root.shader, animation->root.sprite,
+                                  tick, cam->get_position());
+
+        animation->root.sprite->update();
+        animation->root.quad->render();
+        animation->root.texture->render();
+        animation->root.sprite->render();
+        for (const auto& bone : animation->bones) {
+            if (bone.transform) {
+              bone.transform->update_camera(cam->get_position());
+              bone.transform->update(x, y, zoom);
+              set_shader_transform_uniforms(shader, bone.transform, tick);
+            }
+            if (bone.sprite) {
+                bone.sprite->index = bone.sprite_index;
+                set_shader_sprite_uniforms(bone.shader, bone.sprite,
+                                          tick, cam->get_position());
+
+                bone.sprite->update();
+                bone.quad->render();
+                bone.texture->render();
+                bone.sprite->render();
+            }
+        }
       }
 
       auto text = cm.get_component<Text>(entity);
@@ -198,33 +230,14 @@ public:
       if (texture != nullptr)
         texture->render();
       auto sprite = cm.get_component<Sprite>(entity);
-      if (sprite != nullptr) {
+      if (sprite != nullptr && animation == nullptr) {
+        // only render sprite if no animation component is present
         if (!sprite->hidden) {
           set_shader_sprite_uniforms(shader, sprite,
                                     tick, cam->get_position());
 
           sprite->update();
           sprite->render();
-        }
-      }
-      auto animation = cm.get_component<Animation>(entity);
-      if (animation != nullptr) {
-        for (const auto& bone : animation->bones) {
-            if (bone.transform) {
-              bone.transform->update_camera(cam->get_position());
-              bone.transform->update(x, y, zoom);
-              set_shader_transform_uniforms(shader, bone.transform, tick);
-            }
-            if (bone.sprite) {
-                bone.sprite->index = bone.sprite_index;
-                set_shader_sprite_uniforms(bone.shader, bone.sprite,
-                                          tick, cam->get_position());
-
-                bone.sprite->update();
-                bone.quad->render();
-                bone.texture->render();
-                bone.sprite->render();
-            }
         }
       }
 

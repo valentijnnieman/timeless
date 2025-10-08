@@ -36,7 +36,6 @@ public:
 	Game()
 	{
 		// call init() to start up the engine
-    printf("hello! i am ctorman\n");
 		TE::init();
 
     printf("init is done! \n");
@@ -119,7 +118,7 @@ public:
 				TE::add_component<Transform>(tile, new Transform(glm::vec3(x_pos, y_pos, 1.0f), 0.0f, 32.0f, 32.0f));
 				// sprites are indexed from bottom-to-top, as per stb_image library
 				TE::add_component<Sprite>(tile, new Sprite(66, glm::vec4(1.0f), glm::vec2(tiles_texture->width, tiles_texture->height), glm::vec2(tiles_texture->width / columns, tiles_texture->height / rows), true, false, columns));
-				TE::add_component<Animation>(tile, new Animation());
+				// TE::add_component<Animation>(tile, new Animation());
 				// lastly, we add an mouse input listener component - although we leave the handler function 
 				// blank for now.
 				TE::add_component<MouseInputListener<MouseEvent>>(tile, new MouseInputListener<MouseEvent>([&](MouseEvent* event, Entity entity, int data)

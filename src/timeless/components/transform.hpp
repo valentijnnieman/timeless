@@ -30,8 +30,8 @@ public:
     glm::vec3 start_position;
     glm::vec3 offset;
     glm::vec3 scale;
-    glm::quat rot;
-    float rotation;
+    glm::quat rotation;
+
     float width, height;
     float grid_x = 0;
     float grid_y = 0;
@@ -46,9 +46,9 @@ public:
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
-          rotation(r), width(w), height(h), offset(o), center(center), scale(glm::vec3(1.0f)), zoomable(zoomable)
+          width(w), height(h), offset(o), center(center), scale(glm::vec3(1.0f)), zoomable(zoomable)
     {
-        rot = glm::quat(glm::vec3(0, 0, 0));
+        rotation = glm::quat(glm::vec3(0, 0, 0));
         model = glm::mat4(1.0f);
         view = glm::mat4(1.0f);
     }
@@ -56,14 +56,26 @@ public:
     {
         position += p;
     }
-    void rotate(float r)
-    {
-        rotation = r;
+    void setRotation(const glm::quat& q) {
+        rotation = q;
     }
 
-    void rotate(glm::vec3 eulers)
-    {
-        rot = glm::quat(eulers);
+    void setRotationEuler(const glm::vec3& eulerDegrees) {
+        glm::vec3 radians = glm::radians(eulerDegrees);
+        rotation = glm::quat(radians);
+    }
+
+    glm::quat getRotationQuat() const {
+        return rotation;
+    }
+
+    glm::vec3 getRotationEuler() const {
+        glm::vec3 radians = glm::eulerAngles(rotation);
+        return glm::degrees(radians);
+    }
+
+    glm::mat4 getRotationMatrix() const {
+        return glm::toMat4(rotation);
     }
     void set_position(glm::vec3 p)
     {
@@ -216,12 +228,12 @@ public:
       }
       model = glm::translate(model, offset);
 
-      glm::mat4 rotation_matrix = glm::toMat4(rot);
+      glm::mat4 rotation_matrix = getRotationMatrix();
 
       if(!rotations.empty()) {
         glm::vec3 new_r = rotations.front();
         auto eulers = glm::quat(new_r);
-        rot = eulers;
+        glm::quat rot = eulers;
         rotation_matrix = glm::toMat4(eulers);
         rotations.pop();
         if (loop) {

@@ -1,7 +1,7 @@
 #pragma once
 #include "component.hpp"
 #include "glm/glm.hpp"
-#include "timeless/entity.hpp"
+#include "timeless/timeless.hpp"
 #include "timeless/components/sprite.hpp"
 #include <cmath>
 #include <queue>
@@ -17,7 +17,7 @@ struct Bone {
     int sprite_index = 0;
 };
 
-struct Frame {
+struct Keyframe {
   float time;
   glm::vec3 position;
   glm::vec3 rotation;
@@ -26,19 +26,28 @@ struct Frame {
 
 struct AnimationData {
   float duration;
-  std::unordered_map<std::string, std::vector<Frame>> frames;
+  std::unordered_map<std::string, std::vector<Keyframe>> frames;
+  bool loop = true;
 };
 
 
 class Animation : public Component {
 private:
-  Entity entity;
   std::unordered_map<std::string, AnimationData> animations;
   std::string current_animation;
   float current_time = 0.0f;
 
 public:
   std::vector<Bone> bones;
+  Bone root;
+
+  Animation(std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, std::shared_ptr<Shader> shader,
+                std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
+
+    std::shared_ptr<Transform> root_transform = std::make_shared<Transform>(*transform);
+    root = Bone("root", quad, transform, root_transform, shader, texture, sprite, sprite_index);
+  }
+
 
   void add_bone(const std::string &name, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, std::shared_ptr<Shader> shader,
                 std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
@@ -51,8 +60,21 @@ public:
   }
   void set_animation(const std::string& name) {
       if (animations.find(name) != animations.end()) {
-          current_animation = name;
-          current_time = 0.0f; // Reset time when changing animation
+        reset();
+        current_animation = name;
+        current_time = 0.0f; // Reset time when changing animation
+      }
+  }
+
+  void reset() {
+      current_time = 0.0f;
+      root.transform->position = root.parent_transform->position;
+      root.transform->rotation = root.parent_transform->rotation;
+      root.transform->scale = root.parent_transform->scale;
+      for (auto& bone : bones) {
+        bone.transform->position = bone.parent_transform->position;
+        bone.transform->rotation = bone.parent_transform->rotation;
+        bone.transform->scale = bone.parent_transform->scale;
       }
   }
 
@@ -61,8 +83,37 @@ public:
     if (animations.find(current_animation) != animations.end()) {
       const auto& anim_data = animations.at(current_animation);
 
-      if (current_time > anim_data.duration)
+      if (anim_data.loop) {
+        if (current_time > anim_data.duration)
           current_time = fmod(current_time, anim_data.duration);
+      } else {
+        if (current_time > anim_data.duration)
+        current_time = anim_data.duration;
+      }
+
+      // ANIMATE ROOT
+      if (anim_data.frames.find(root.name) != anim_data.frames.end()) {
+        const auto& keyframes = anim_data.frames.at(root.name);
+        if (current_time > anim_data.duration)
+          root.transform->position = root.parent_transform->position;
+
+        // Find the two keyframes surrounding current_time
+        const Keyframe* prev = &keyframes.front();
+        const Keyframe* next = &keyframes.back();
+        for (size_t i = 1; i < keyframes.size(); ++i) {
+            if (keyframes[i].time > current_time) {
+                prev = &keyframes[i - 1];
+                next = &keyframes[i];
+                break;
+            }
+        }
+
+        // Interpolate between prev and next
+        float t = (current_time - prev->time) / (next->time - prev->time);
+        root.transform->position = root.parent_transform->position + glm::mix(prev->position, next->position, t);
+        root.transform->setRotationEuler(root.parent_transform->getRotationEuler() + glm::mix(prev->rotation, next->rotation, t));
+        root.transform->scale = root.parent_transform->scale + glm::mix(prev->scale,    next->scale,    t);
+      }
 
       for (auto& bone : bones) {
         if (anim_data.frames.find(bone.name) != anim_data.frames.end()) {
@@ -71,8 +122,8 @@ public:
             bone.transform->position = bone.parent_transform->position;
 
           // Find the two keyframes surrounding current_time
-          const Frame* prev = &keyframes.front();
-          const Frame* next = &keyframes.back();
+          const Keyframe* prev = &keyframes.front();
+          const Keyframe* next = &keyframes.back();
           for (size_t i = 1; i < keyframes.size(); ++i) {
               if (keyframes[i].time > current_time) {
                   prev = &keyframes[i - 1];
@@ -83,21 +134,16 @@ public:
 
           // Interpolate between prev and next
           float t = (current_time - prev->time) / (next->time - prev->time);
-          bone.transform->position = bone.parent_transform->position + glm::mix(prev->position, next->position, t);
-          bone.transform->rot = bone.parent_transform->rotation + glm::radians(glm::mix(prev->rotation, next->rotation, t));
-          bone.transform->scale = bone.parent_transform->scale + glm::mix(prev->scale,    next->scale,    t);
+          bone.transform->position = root.transform->position + glm::mix(prev->position, next->position, t);
+          bone.transform->setRotationEuler(root.transform->getRotationEuler() + glm::mix(prev->rotation, next->rotation, t));
+          bone.transform->scale = root.transform->scale + glm::mix(prev->scale,    next->scale,    t);
         }
         else {
-          bone.transform->position = bone.parent_transform->position;
-          bone.transform->rotation = bone.parent_transform->rotation;
-          bone.transform->scale = bone.parent_transform->scale;
+          bone.transform->position = root.transform->position;
+          bone.transform->rotation = root.transform->rotation;
+          bone.transform->scale = root.transform->scale;
         }
       }
     }
   }
-  // const Frame& get_current_frame() const {
-  //     const auto& anim = animations.at(current_animation);
-  //     size_t frame_index = static_cast<size_t>((current_time / anim.duration) * anim.frames.size()) % anim.frames.size();
-  //     return anim.frames[frame_index];
-  // }
 };
