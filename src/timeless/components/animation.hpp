@@ -66,6 +66,13 @@ public:
       }
   }
 
+  void set_sprites_color(glm::vec4 color) {
+      root.sprite->color = color;
+      for (auto& bone : bones) {
+        bone.sprite->color = color;
+      }
+  }
+
   void reset() {
       current_time = 0.0f;
       root.transform->position = root.parent_transform->position;
