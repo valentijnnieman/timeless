@@ -120,6 +120,20 @@ public:
 			}
 		}
 	}
+	int get_data_index(int index)
+	{
+		if (!extra_data.empty())
+		{
+			auto found = std::find_if(extra_data.begin(), extra_data.end(), [&](auto& e)
+				{ return e == index; });
+			if (found != extra_data.end())
+			{
+        return std::distance(extra_data.begin(), found);
+				// return found - entities.begin();
+			}
+		}
+		return -1;
+	}
 	void add_entity(Entity entity)
 	{
 		entities.insert(entity);

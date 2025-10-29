@@ -212,7 +212,7 @@ public:
       if (text != nullptr) {
         if (text->center) {
           transform->update(
-              x, y, 1.0f,
+              x, y, 1.0f, // 1.0f zoom for text
               glm::vec3(-get_text_width(entity, cm) * 0.5f,
                         -get_text_height(entity, cm) * 0.5f, 0.0f));
         }
