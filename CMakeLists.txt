@@ -18,7 +18,23 @@ set(CMAKE_BUILD_RPATH ${CMAKE_CURRENT_BINARY_DIR}/timeless/)
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
 
-add_library(${PROJECT_NAME} STATIC "example/main.cpp")
+# Collect all source files from src/timeless
+file(GLOB_RECURSE TIMELESS_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/**/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/*.cpp"
+)
+
+# Remove resource_packer.cpp from library sources (it's a separate executable)
+list(FILTER TIMELESS_SOURCES EXCLUDE REGEX ".*resource_packer\\.cpp$")
+
+# Create the library with collected sources or a dummy file if no sources exist
+if(TIMELESS_SOURCES)
+    add_library(${PROJECT_NAME} STATIC ${TIMELESS_SOURCES})
+else()
+    # Header-only library - create an empty source file
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp" "// Dummy file for header-only library\n")
+    add_library(${PROJECT_NAME} STATIC "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp")
+endif()
   
 # add property for shaders folder - to be copied into game build "Assets/" folder
   set_property(
@@ -36,7 +52,7 @@ if(EMSCRIPTEN)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
 
   target_link_options(${PROJECT_NAME} PUBLIC -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY -sEXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sSTB_IMAGE=1 --embed-file Assets)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --use-port=contrib.glfw3")
@@ -82,7 +98,7 @@ else()
 # PROPERTIES SUFFIX ".html"
 # LINK_FLAGS " -O3 -sFULL_ES3 -sUSE_GLFW=3 -sUSE_FREETYPE=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] --preload-file Assets")
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
   target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
