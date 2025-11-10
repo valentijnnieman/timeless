@@ -59,7 +59,7 @@ if(EMSCRIPTEN)
 
   target_link_libraries(${PROJECT_NAME} glm freetype fmod fmod_studio)
 
-  add_subdirectory(example example)
+  # add_subdirectory(example example)
 
 else()
   if(apple)
