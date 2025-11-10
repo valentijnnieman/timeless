@@ -18,7 +18,23 @@ set(CMAKE_BUILD_RPATH ${CMAKE_CURRENT_BINARY_DIR}/timeless/)
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
 
-add_library(${PROJECT_NAME} STATIC "example/main.cpp")
+# Collect all source files from src/timeless
+file(GLOB_RECURSE TIMELESS_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/**/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/*.cpp"
+)
+
+# Remove resource_packer.cpp from library sources (it's a separate executable)
+list(FILTER TIMELESS_SOURCES EXCLUDE REGEX ".*resource_packer\\.cpp$")
+
+# Create the library with collected sources or a dummy file if no sources exist
+if(TIMELESS_SOURCES)
+    add_library(${PROJECT_NAME} STATIC ${TIMELESS_SOURCES})
+else()
+    # Header-only library - create an empty source file
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp" "// Dummy file for header-only library\n")
+    add_library(${PROJECT_NAME} STATIC "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp")
+endif()
   
 # add property for shaders folder - to be copied into game build "Assets/" folder
   set_property(
