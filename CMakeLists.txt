@@ -36,7 +36,7 @@ if(EMSCRIPTEN)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
 
   target_link_options(${PROJECT_NAME} PUBLIC -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY -sEXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sSTB_IMAGE=1 --embed-file Assets)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --use-port=contrib.glfw3")
@@ -82,7 +82,7 @@ else()
 # PROPERTIES SUFFIX ".html"
 # LINK_FLAGS " -O3 -sFULL_ES3 -sUSE_GLFW=3 -sUSE_FREETYPE=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] --preload-file Assets")
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
 # target_include_directories(${PROJECT_NAME} INTERFACE src/)
   target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
