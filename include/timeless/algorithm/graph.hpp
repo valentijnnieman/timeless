@@ -1,11 +1,11 @@
 #pragma once
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 #include <unordered_map>
 #include <queue>
 #include <set>
 #include <algorithm>
-#include "timeless/components/collider.hpp"
-#include "timeless/components/node.hpp"
+#include "../components/collider.hpp"
+#include "../components/node.hpp"
 #include "timeless/entity.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/timeless.hpp"
@@ -64,6 +64,11 @@ public:
   void purge() {
     registered_entities.clear();
     vertices.clear();
+    nodes_by_pos.clear();
+  }
+
+  int size() {
+    return vertices.size();
   }
 
 	void register_entity(Entity entity)

@@ -50,6 +50,20 @@ namespace TE
         systems.insert_or_assign(key, std::shared_ptr<T>(system));
     }
 
+    void remove_system(const std::string& key)
+    {
+      systems[key]->purge();
+      systems.erase(key);
+    }
+
+    void print_systems()
+    {
+      for (const auto& [key, system] : systems)
+      {
+          std::cout << "System Key: " << key << std::endl;
+      }
+    }
+
     template <typename T>
     std::shared_ptr<T> get_system(const std::string &key) {
       return std::dynamic_pointer_cast<T>(systems[key]);
