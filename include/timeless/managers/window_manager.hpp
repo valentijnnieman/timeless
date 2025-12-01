@@ -10,8 +10,8 @@
 #include <iostream>
 #include <memory>
 
-#include "timeless/systems/mouse_input_system.hpp"
 #include "timeless/components/transform.hpp"
+#include "timeless/systems/mouse_input_system.hpp"
 
 class WindowManager {
 private:
@@ -39,7 +39,7 @@ public:
   glm::vec2 mouse_position;
 
   GLFWwindow *window;
-  GLFWcursor* cursor;
+  GLFWcursor *cursor;
 
   static void error_callback(int error, const char *description) {
     fprintf(stderr, "Error: %s\n", description);
@@ -123,8 +123,9 @@ public:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+    // GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D,
+    // GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     // glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -172,29 +173,33 @@ public:
     // Sound::unload();
   }
 
-void set_shader_time(std::shared_ptr<Shader> shader) {
-  if (!shader) return;
+  void set_shader_time(std::shared_ptr<Shader> shader) {
+    if (!shader)
+      return;
 
-  GLint timeLoc = glGetUniformLocation(shader->ID, "time");
-  if (timeLoc != -1)
-    glUniform1f(timeLoc, glfwGetTime());
+    GLint timeLoc = glGetUniformLocation(shader->ID, "time");
+    if (timeLoc != -1)
+      glUniform1f(timeLoc, glfwGetTime());
 
-  if (tile_shader) {
-    GLint tileTimeLoc = glGetUniformLocation(tile_shader->ID, "time");
-    if (tileTimeLoc != -1)
-      glUniform1f(tileTimeLoc, glfwGetTime());
+    if (tile_shader) {
+      GLint tileTimeLoc = glGetUniformLocation(tile_shader->ID, "time");
+      if (tileTimeLoc != -1)
+        glUniform1f(tileTimeLoc, glfwGetTime());
+    }
+
+    if (screen_shader) {
+      GLint lightPosLoc =
+          glGetUniformLocation(screen_shader->ID, "lightPosition");
+      if (lightPosLoc != -1)
+        glUniform2fv(lightPosLoc, 1, glm::value_ptr(glm::vec2(0.0f, 0.0f)));
+
+      GLint resLoc = glGetUniformLocation(screen_shader->ID, "resolution");
+      if (resLoc != -1)
+        glUniform2fv(resLoc, 1,
+                     glm::value_ptr(glm::vec2(TESettings::SCREEN_X,
+                                              TESettings::SCREEN_Y)));
+    }
   }
-
-  if (screen_shader) {
-    GLint lightPosLoc = glGetUniformLocation(screen_shader->ID, "lightPosition");
-    if (lightPosLoc != -1)
-      glUniform2fv(lightPosLoc, 1, glm::value_ptr(glm::vec2(0.0f, 0.0f)));
-
-    GLint resLoc = glGetUniformLocation(screen_shader->ID, "resolution");
-    if (resLoc != -1)
-      glUniform2fv(resLoc, 1, glm::value_ptr(glm::vec2(TESettings::SCREEN_X, TESettings::SCREEN_Y)));
-  }
-}
   void set_shader_mouse_position(glm::vec2 mouse_position) {
     tile_shader->use();
     glUniform2fv(
@@ -202,7 +207,8 @@ void set_shader_time(std::shared_ptr<Shader> shader) {
         glm::value_ptr(glm::vec2(mouse_position.x / TESettings::SCREEN_X,
                                  mouse_position.y / TESettings::SCREEN_Y)));
   }
-  // static void window_size_callback(GLFWwindow *window, int width, int height) {
+  // static void window_size_callback(GLFWwindow *window, int width, int height)
+  // {
   //   // WindowManager *wm =
   //   //     static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
   //   // wm->enable_screen_shader(wm->screen_shader);
@@ -235,19 +241,24 @@ void set_shader_time(std::shared_ptr<Shader> shader) {
 
     wm->set_shader_mouse_position(glm::vec2(xpos, ypos));
 
-    xpos -= TESettings::SCREEN_X * 0.5;
-    ypos -= TESettings::SCREEN_Y * 0.5;
+    // Scale mouse position from screen space to framebuffer (viewport) space
+    double scale_x = double(TESettings::VIEWPORT_X) / TESettings::SCREEN_X;
+    double scale_y = double(TESettings::VIEWPORT_Y) / TESettings::SCREEN_Y;
+    double fb_x = xpos * scale_x;
+    double fb_y = ypos * scale_y;
 
-    double xnorm = xpos / TESettings::SCREEN_X;
+    // Center the coordinates
+    fb_x -= TESettings::VIEWPORT_X * 0.5;
+    fb_y -= TESettings::VIEWPORT_Y * 0.5;
+
+    // Normalize and map to world coordinates
+    double xnorm = fb_x / TESettings::VIEWPORT_X;
     double world_x = xnorm * TESettings::VIEWPORT_X;
-    double ynorm = ypos / TESettings::SCREEN_Y;
+    double ynorm = fb_y / TESettings::VIEWPORT_Y;
     double world_y = ynorm * TESettings::VIEWPORT_Y;
 
-    xpos = world_x;
-    ypos = world_y;
-
     wm->mouse_move_handler(
-        new MouseMoveEvent("MouseMove", glm::vec2(xpos, ypos)));
+        new MouseMoveEvent("MouseMove", glm::vec2(world_x, world_y)));
   }
   static void scroll_callback(GLFWwindow *window, double xoffset,
                               double yoffset) {
@@ -313,25 +324,26 @@ void set_shader_time(std::shared_ptr<Shader> shader) {
     }
   }
 
-
-void render_framebuffer_as_quad(std::shared_ptr<Shader> shader,
-                               bool clear = true, int tick = 0) {
-    if (!shader) return;
+  void render_framebuffer_as_quad(std::shared_ptr<Shader> shader,
+                                  bool clear = true, int tick = 0) {
+    if (!shader)
+      return;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // default buffer
     glViewport(0, 0, TESettings::SCREEN_X, TESettings::SCREEN_Y);
 
     if (clear) {
-        glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-                     TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
+                   TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+              GL_STENCIL_BUFFER_BIT);
     }
 
     shader->use();
 
     GLint loc_size = glGetUniformLocation(shader->ID, "size");
     if (loc_size != -1)
-        glUniform1f(loc_size, TESettings::VIEWPORT_X * TESettings::ZOOM);
+      glUniform1f(loc_size, TESettings::VIEWPORT_X * TESettings::ZOOM);
 
     // GLint loc_shadow = glGetUniformLocation(shader->ID, "shadowValue");
     // if (loc_shadow != -1)
@@ -339,7 +351,7 @@ void render_framebuffer_as_quad(std::shared_ptr<Shader> shader,
 
     GLint loc_color = glGetUniformLocation(shader->ID, "SCREEN_COLOR");
     if (loc_color != -1)
-        glUniform4fv(loc_color, 1, glm::value_ptr(TESettings::SCREEN_COLOR));
+      glUniform4fv(loc_color, 1, glm::value_ptr(TESettings::SCREEN_COLOR));
 
     set_shader_time(shader);
 
@@ -348,5 +360,5 @@ void render_framebuffer_as_quad(std::shared_ptr<Shader> shader,
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
-}
+  }
 };

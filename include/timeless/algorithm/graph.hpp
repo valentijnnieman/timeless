@@ -21,7 +21,7 @@ namespace std
 		}
 	};
 }
-bool operator==(const Node& lhs, const Node& rhs)
+inline bool operator==(const Node& lhs, const Node& rhs)
 {
 	return lhs.x == rhs.x && lhs.y == rhs.y;
 }

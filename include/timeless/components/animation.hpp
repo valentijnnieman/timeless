@@ -86,7 +86,7 @@ public:
   }
 
   void update(float dt) {
-    current_time += (dt * 10000.0f);
+    current_time += dt;
     if (animations.find(current_animation) != animations.end()) {
       const auto& anim_data = animations.at(current_animation);
 

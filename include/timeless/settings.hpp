@@ -19,13 +19,13 @@ namespace TESettings
 
     static int MAX_TICKS = 200;
 
-    void set_viewport_scale(float new_scale) {
+    inline void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;
       VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
       VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
     }
 
-    void rescale_window(int width, int height)
+    inline void rescale_window(int width, int height)
     {
         SCREEN_X = width;
         SCREEN_Y = height;

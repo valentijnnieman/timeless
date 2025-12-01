@@ -28,14 +28,14 @@
 
 namespace TE
 {
-    std::map<std::string, std::shared_ptr<System>> systems;
+    inline std::map<std::string, std::shared_ptr<System>> systems;
 
-    std::shared_ptr<ComponentManager> cm;
-    std::shared_ptr<MouseInputSystem> mis;
-    std::shared_ptr<WindowManager> wm;
-    std::shared_ptr<Grid> grid;
+    inline std::shared_ptr<ComponentManager> cm;
+    inline std::shared_ptr<MouseInputSystem> mis;
+    inline std::shared_ptr<WindowManager> wm;
+    inline std::shared_ptr<Grid> grid;
 
-    void init()
+    inline void init()
     {
         cm = std::make_shared<ComponentManager>();
         mis = std::make_shared<MouseInputSystem>();
@@ -45,13 +45,13 @@ namespace TE
     }
 
     template <typename T>
-    void create_system(const std::string& key, T* system)
+    inline void create_system(const std::string& key, T* system)
     {
         systems.insert_or_assign(key, std::shared_ptr<T>(system));
     }
 
     template <typename T>
-    std::shared_ptr<T> get_system(const std::string &key) {
+    inline std::shared_ptr<T> get_system(const std::string &key) {
       return std::dynamic_pointer_cast<T>(systems[key]);
     }
 
@@ -64,29 +64,29 @@ namespace TE
      * This needs to be called seperately and after init(), so components
      * can be created for the grid first (see main.cpp in example game)
      */
-    void calculate_grid()
+    inline void calculate_grid()
     {
         grid->calculate_nodes(cm->nodes);
     }
 
-    void clear_grid()
+    inline void clear_grid()
     {
         grid->purge();
     }
 
     template <typename T>
-    void add_component(Entity entity, T *comp)
+    inline void add_component(Entity entity, T *comp)
     {
         cm->add_component(entity, comp);
     }
 
     template <typename T>
-    void add_component(Entity entity, std::shared_ptr<T> comp)
+    inline void add_component(Entity entity, std::shared_ptr<T> comp)
     {
         cm->add_component(entity, comp);
     }
 
-    void remove_entity(Entity entity)
+    inline void remove_entity(Entity entity)
     {
         cm->remove_entity(entity);
         mis->remove_entity(entity);
@@ -101,22 +101,22 @@ namespace TE
     /** These separately defined methods are so we can handle things like
      * registering entities/components with default systems like the mouse input system and the grid system.
      */
-    template<> void add_component<MouseInputListener<MouseEvent>>(Entity entity, MouseInputListener<MouseEvent> *mouse_input)
+    template<> inline void add_component<MouseInputListener<MouseEvent>>(Entity entity, MouseInputListener<MouseEvent> *mouse_input)
     {
         cm->add_component(entity, mouse_input);
         mis->register_entity(entity);
     }
-    template<> void add_component<MouseInputListener<MouseMoveEvent>>(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input)
+    template<> inline void add_component<MouseInputListener<MouseMoveEvent>>(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input)
     {
         cm->add_component(entity, mouse_input);
         mis->register_move_entity(entity);
     }
-    template<> void add_component<Node>(Entity entity, Node *node)
+    template<> inline void add_component<Node>(Entity entity, Node *node)
     {
         cm->add_component(entity, node);
         grid->register_entity(entity);
     }
-    template<> void add_component<Node>(Entity entity, std::shared_ptr<Node> node)
+    template<> inline void add_component<Node>(Entity entity, std::shared_ptr<Node> node)
     {
         cm->add_component(entity, node);
         grid->register_entity(entity);
@@ -127,35 +127,35 @@ namespace TE
      * and manager pointers go out of scope before the program finishes, probably
      * better to do something else here.
      */
-    std::shared_ptr<ComponentManager> get_component_manager()
+    inline std::shared_ptr<ComponentManager> get_component_manager()
     {
         return cm;
     }
-    std::shared_ptr<Grid> get_grid()
+    inline std::shared_ptr<Grid> get_grid()
     {
         return grid;
     }
-    std::shared_ptr<MouseInputSystem> get_mouse_input_system()
+    inline std::shared_ptr<MouseInputSystem> get_mouse_input_system()
     {
         return mis;
     }
-    std::shared_ptr<WindowManager> get_window_manager()
+    inline std::shared_ptr<WindowManager> get_window_manager()
     {
         return wm;
     }
 
-    void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
+    inline void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
     {
         loop_func(wm->window, *cm, *wm);
     }
-    void quit()
+    inline void quit()
     {
         wm->running = false;
     }
 
     // helper function that checks if mouse event position overlaps with
     // transform position of an entity. Can be used to determine if an entity was clicked on, for example.
-    bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
+    inline bool clicked_on(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
       auto transform = TE::get_component<Transform>(entity);
       if(transform != nullptr) {
@@ -171,7 +171,7 @@ namespace TE
       }
       return false;
     }
-    bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
+    inline bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
     {
       auto transform = TE::get_component<Transform>(entity);
       if(transform != nullptr) {

@@ -18,7 +18,7 @@ enum LocationType
 };
 const int LOCATIONS_AMOUNT = 9;
 
-std::string to_string(LocationType t)
+inline std::string to_string(LocationType t)
 {
 	switch (t)
 	{
@@ -35,7 +35,7 @@ std::string to_string(LocationType t)
 	}
 }
 
-LocationType loc_from_string(std::string t)
+inline LocationType loc_from_string(std::string t)
 {
 	if(t == "none") return none;
 	if(t == "home") return home;
@@ -49,7 +49,7 @@ LocationType loc_from_string(std::string t)
 	else return none;
 }
 
-std::vector<glm::vec2> directions = {
+inline std::vector<glm::vec2> directions = {
 	/** N, E, S, W*/
 	glm::vec2(0.0f, -1.0f),
 	glm::vec2(1.0f, 0.0f),

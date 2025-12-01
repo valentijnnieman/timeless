@@ -34,6 +34,9 @@ public:
       registered_entities.clear();
 		}
 	}
+  virtual int get_registered_entity_count() {
+    return registered_entities.size();
+  }
 	virtual void update(ComponentManager &cm, GLFWwindow* window) {};
 	virtual void update(ComponentManager &cm) {};
 	virtual void render(ComponentManager& cm, int x, int y, float zoom = 1.0, int tick = 0) {};

@@ -166,6 +166,7 @@ public:
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     for (auto &entity : registered_entities) {
+      std::cout << entity << ", ";
       auto shader = cm.get_component<Shader>(entity);
       shader->use();
       auto transform = cm.get_component<Transform>(entity);
@@ -248,6 +249,7 @@ public:
         }
       }
     }
+      std::cout << " are being rendered" << std::endl;
   }
 
   void init_instanced_buffers(std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader, size_t max_instances) {
