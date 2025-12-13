@@ -142,6 +142,9 @@ public:
   template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
     return nullptr;
   }
+
+  template <class T> const inline void remove_component(Entity entity) {
+  }
   /** this method completely removes all components for an entity */
   void remove_entity(Entity entity) {
     try {
@@ -168,6 +171,12 @@ public:
     }
   }
 };
+
+template <>
+const inline void ComponentManager::remove_component<Shader>(Entity entity) {
+  if (shaders.contains(entity))
+    shaders.erase(entity);
+}
 
 template <>
 const inline std::shared_ptr<Node> ComponentManager::get_component<Node>(Entity entity) {

@@ -58,6 +58,7 @@ public:
   void purge() {
     registered_entities.clear();
     vertices.clear();
+    nodes_by_pos.clear();
   }
 
   void register_entity(Entity entity) { registered_entities.push_back(entity); }
@@ -98,8 +99,8 @@ public:
     for (const glm::vec2 &dir : node_dirs) {
       glm::vec2 next = {node->x + dir.x, node->y + dir.y};
       if (isInBounds(next)) {
-        auto it = nodes_by_pos.find({next.x, next.y});
-        if (it != nodes_by_pos.end()) {
+        auto it = nodes.find({next.x, next.y});
+        if (it != nodes.end()) {
           const auto n = it->second;
           if (n->layer != 1) {
             std::vector<glm::vec2> n_dirs = directions;
@@ -164,8 +165,7 @@ public:
   std::vector<std::shared_ptr<Node>>
   get_path_to_node(std::shared_ptr<Node> start, std::shared_ptr<Node> dest) {
     std::priority_queue<WeightedNode, std::vector<WeightedNode>,
-                        std::greater<WeightedNode>>
-        frontier;
+                        std::greater<WeightedNode>> frontier;
     frontier.emplace(0, start);
 
     std::unordered_map<std::shared_ptr<Node>, std::shared_ptr<Node>> came_from;

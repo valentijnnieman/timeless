@@ -55,7 +55,7 @@ void main()
 
     vec2 f = vec2((st.x - mp.x) * 2.0, distance(st.y, (1.0 - mp.y)));
 
-    vec3 color = vec3(circle(f,0.01));
+    vec3 color = vec3(circle(f,0.04));
     vec3 borderColor = vec3(1.0 - circle(f,0.011));
 
   float uvY = tc.y;

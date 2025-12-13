@@ -7,11 +7,11 @@
 #include <queue>
 
 struct Bone {
+    Entity entity;
     std::string name;
     std::shared_ptr<Quad> quad;
     std::shared_ptr<Transform> parent_transform;
     std::shared_ptr<Transform> transform;
-    std::shared_ptr<Shader> shader;
     std::shared_ptr<Texture> texture;
     std::shared_ptr<Sprite> sprite;
     int sprite_index = 0;
@@ -41,19 +41,19 @@ public:
   std::vector<Bone> bones;
   Bone root;
 
-  Animation(std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, std::shared_ptr<Shader> shader,
+  Animation(Entity entity, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, 
                 std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
 
     std::shared_ptr<Transform> root_transform = std::make_shared<Transform>(*transform);
-    root = Bone("root", quad, transform, root_transform, shader, texture, sprite, sprite_index);
+    root = Bone(entity, "root", quad, transform, root_transform, texture, sprite, sprite_index);
   }
 
 
-  void add_bone(const std::string &name, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, std::shared_ptr<Shader> shader,
+  void add_bone(Entity entity, const std::string &name, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform,
                 std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
       
     std::shared_ptr<Transform> bone_transform = std::make_shared<Transform>(*transform);
-    bones.push_back({name, quad, transform, bone_transform, shader, texture, sprite, sprite_index});
+    bones.push_back({entity, name, quad, transform, bone_transform, texture, sprite, sprite_index});
   }
   void add_animation(const std::string& name, const AnimationData& data) {
       animations[name] = data;
