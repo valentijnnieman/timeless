@@ -91,7 +91,8 @@ public:
 
       glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
                    glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
-      // glUniform1f(glGetUniformLocation(shader->ID, "cutoffDistance"), 100.0f);
+      // glUniform1f(glGetUniformLocation(shader->ID, "cutoffDistance"),
+      // 100.0f);
     }
   }
 
@@ -189,27 +190,25 @@ public:
         animation->root.transform->update_camera(cam->get_position());
         animation->root.transform->update(x, y, zoom);
         auto root_shader = cm.get_component<Shader>(animation->root.entity);
-        set_shader_transform_uniforms(root_shader,
-                                      animation->root.transform, tick);
+        set_shader_transform_uniforms(root_shader, animation->root.transform,
+                                      tick);
         animation->root.sprite->index = animation->root.sprite_index;
 
         animation->root.sprite->update();
         animation->root.quad->render();
         if (animation->root.sprite->slice_shader != nullptr) {
-          set_shader_sprite_uniforms(root_shader,
-                                    animation->root.sprite, tick,
-                                    cam->get_position());
+          set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
+                                     cam->get_position());
           animation->root.sprite->render_sliced();
         } else {
           animation->root.texture->render();
-          set_shader_sprite_uniforms(root_shader,
-                                    animation->root.sprite, tick,
-                                    cam->get_position());
+          set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
+                                     cam->get_position());
           animation->root.sprite->render();
         }
         for (const auto &bone : animation->bones) {
           auto bone_shader = cm.get_component<Shader>(bone.entity);
-          if(bone_shader)
+          if (bone_shader)
             bone_shader->use();
           if (bone.transform) {
             bone.transform->update_camera(cam->get_position());
@@ -226,14 +225,14 @@ public:
             } else {
               bone.texture->render();
               set_shader_sprite_uniforms(bone_shader, bone.sprite, tick,
-                                       cam->get_position());
+                                         cam->get_position());
               bone.sprite->render();
             }
           }
         }
       }
 
-      if(animation == nullptr) {
+      if (animation == nullptr) {
         auto text = cm.get_component<Text>(entity);
         if (text != nullptr) {
           if (text->center) {
@@ -250,8 +249,9 @@ public:
         }
 
         auto quad = cm.get_component<Quad>(entity);
-        if (quad != nullptr)
+        if (quad != nullptr) {
           quad->render();
+        }
         if (sprite != nullptr) {
           if (!sprite->hidden) {
             sprite->update();
@@ -260,18 +260,26 @@ public:
               sprite->render_sliced();
             } else {
               auto texture = cm.get_component<Texture>(entity);
-              if (texture != nullptr)
+              if (texture != nullptr) {
                 texture->render();
-              set_shader_sprite_uniforms(shader, sprite, tick, cam->get_position());
+              }
+              set_shader_sprite_uniforms(shader, sprite, tick,
+                                         cam->get_position());
               sprite->render();
             }
           }
         }
 
+        auto model = cm.get_component<Model>(entity);
+        if (model != nullptr) {
+          model->render();
+        }
+
         if (text != nullptr) {
           auto font = cm.get_component<Font>(entity);
           if (!text->hidden) {
-            text->render(*font, 0.0f, 0.0f, get_text_height(entity, cm), shader);
+            text->render(*font, 0.0f, 0.0f, get_text_height(entity, cm),
+                         shader);
           }
         }
       }

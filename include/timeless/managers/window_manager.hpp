@@ -108,7 +108,9 @@ public:
     }
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    // glEnable(GL_STENCIL_TEST);
+    glEnable(GL_STENCIL_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -201,11 +203,13 @@ public:
     }
   }
   void set_shader_mouse_position(glm::vec2 mouse_position) {
-    tile_shader->use();
-    glUniform2fv(
-        glGetUniformLocation(tile_shader->ID, "mousePosition"), 1,
-        glm::value_ptr(glm::vec2(mouse_position.x / TESettings::SCREEN_X,
-                                 mouse_position.y / TESettings::SCREEN_Y)));
+    if (tile_shader) {
+      tile_shader->use();
+      glUniform2fv(
+          glGetUniformLocation(tile_shader->ID, "mousePosition"), 1,
+          glm::value_ptr(glm::vec2(mouse_position.x / TESettings::SCREEN_X,
+                                  mouse_position.y / TESettings::SCREEN_Y)));
+    }
   }
   // static void window_size_callback(GLFWwindow *window, int width, int height)
   // {

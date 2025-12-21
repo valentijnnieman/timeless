@@ -18,6 +18,7 @@
 #include "timeless/components/transform.hpp"
 #include "timeless/entity.hpp"
 #include "timeless/components/quad.hpp"
+#include "timeless/components/model.hpp"
 #include "timeless/event.hpp"
 #include <memory>
 #include <unordered_map>
@@ -26,6 +27,7 @@
 class ComponentManager {
 public:
   std::unordered_map<Entity, std::shared_ptr<Quad>> quads;
+  std::unordered_map<Entity, std::shared_ptr<Model>> models;
   std::unordered_map<Entity, std::shared_ptr<Texture>> textures;
   std::unordered_map<Entity, std::shared_ptr<Shader>> shaders;
   std::unordered_map<Entity, std::shared_ptr<Sprite>> sprites;
@@ -58,6 +60,12 @@ public:
   }
   void add_component(Entity entity, std::shared_ptr<Quad> quad) {
     quads.insert({entity, quad});
+  }
+  void add_component(Entity entity, Model *model) {
+    models.insert({entity, std::shared_ptr<Model>(model)});
+  }
+  void add_component(Entity entity, std::shared_ptr<Model> model) {
+    models.insert({entity, model});
   }
   void add_component(Entity entity, Texture *texture) {
     textures.insert({entity, std::shared_ptr<Texture>(texture)});
@@ -188,6 +196,12 @@ template <>
 const inline std::shared_ptr<Quad> ComponentManager::get_component<Quad>(Entity entity) {
   if (quads.contains(entity))
     return quads.at(entity);
+  return nullptr;
+}
+template <>
+const inline std::shared_ptr<Model> ComponentManager::get_component<Model>(Entity entity) {
+  if (models.contains(entity))
+    return models.at(entity);
   return nullptr;
 }
 template <>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "timeless/components/component.hpp"
 
 class Quad : public Component

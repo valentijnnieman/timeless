@@ -43,6 +43,7 @@ public:
     bool triggered = false;
     bool reset = true;
 
+    bool uses_3d_projection = false;
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
@@ -206,15 +207,21 @@ public:
       else
         projection =
             glm::ortho(-(static_cast<float>(x * 0.5) ),
-                       static_cast<float>(x * 0.5) ,
-                       (static_cast<float>(y * 0.5)),
-                       -static_cast<float>(y * 0.5), -1000.0f, 1000.0f);
+                      static_cast<float>(x * 0.5) ,
+                      (static_cast<float>(y * 0.5)),
+                      -static_cast<float>(y * 0.5), -1000.0f, 1000.0f);
 
       view = glm::lookAt(camera_position, camera_position + glm::vec3(0, 0, -1),
                          glm::vec3(0, 1, 0));
 
       model = glm::mat4(1.0f);
 
+
+      if(uses_3d_projection) {
+        float aspect = static_cast<float>(x) / static_cast<float>(y);
+        projection = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 100.0f);
+        // model = glm::scale(model, glm::vec3(0.1f));
+      }
 
       glm::mat4 modelTransform = glm::mat4(1.0f);
       modelTransform =

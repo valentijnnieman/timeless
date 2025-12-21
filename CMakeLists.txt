@@ -17,6 +17,11 @@ set(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_BINARY_DIR}/timeless/)
 set(CMAKE_BUILD_RPATH ${CMAKE_CURRENT_BINARY_DIR}/timeless/)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+
 option(EMSCRIPTEN "WASM build or regular" OFF)
 
 # Collect all source files from src/timeless
@@ -51,6 +56,7 @@ if(EMSCRIPTEN)
 
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
@@ -58,7 +64,7 @@ if(EMSCRIPTEN)
   target_link_options(${PROJECT_NAME} PUBLIC -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY -sEXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sSTB_IMAGE=1 --embed-file Assets)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --use-port=contrib.glfw3")
 
-  target_link_libraries(${PROJECT_NAME} glm freetype fmod fmod_studio)
+  target_link_libraries(${PROJECT_NAME} glm freetype fmod fmod_studio assimp)
 
   # add_subdirectory(example example)
 
@@ -82,9 +88,10 @@ else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
   # find_package(fmod)
-  include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/)
+  include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/ assimp/include)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -102,7 +109,7 @@ else()
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio)
+  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio assimp)
 
   if(WIN32)
     add_custom_command(
