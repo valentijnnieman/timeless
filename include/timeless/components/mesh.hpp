@@ -16,8 +16,10 @@ class Mesh : public Component {
 public:
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
+  glm::vec3 diffuseColor;
+  glm::vec3 specularColor;
 
-  Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Shader> shader);
+  Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Shader> shader, glm::vec3 diffuseColor, glm::vec3 specularColor);
 
   void setupMesh(std::shared_ptr<Shader> shader);
 

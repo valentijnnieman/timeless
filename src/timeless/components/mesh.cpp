@@ -1,18 +1,16 @@
 #include "timeless/components/mesh.hpp"
 #include <memory>
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Shader> shader) {
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Shader> shader, glm::vec3 diffuseColor, glm::vec3 specularColor) {
   this->vertices = vertices;
   this->indices = indices;
+  this->diffuseColor = diffuseColor;
+  this->specularColor = specularColor;
 
   setupMesh(shader);
 }
 
 void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
-  for(int i = 0; i < indices.size(); i++) {
-    std::cout << indices[i] << " ";
-  }
-  std::cout << std::endl;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
   glGenBuffers(1, &EBO);
@@ -43,16 +41,22 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   //           << ", Norm: " << normLoc
   //           << ", TexCoord: " << texLoc << std::endl;
   // vertex positions
-  glEnableVertexAttribArray(posLoc);
-  glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+  if(posLoc>= 0) {
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+  }
   // vertex normals
-  glEnableVertexAttribArray(normLoc);
-  glVertexAttribPointer(normLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, Normal));
+  if(normLoc >= 0) {
+    glEnableVertexAttribArray(normLoc);
+    glVertexAttribPointer(normLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, Normal));
+  }
   // vertex texture coords
-  glEnableVertexAttribArray(texLoc);
-  glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, TexCoords));
+  if(texLoc >= 0) {
+    glEnableVertexAttribArray(texLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, TexCoords));
+  }
 
   err = glGetError();
   if (err != GL_NO_ERROR) {
@@ -60,4 +64,6 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   }
 
   glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }

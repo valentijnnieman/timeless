@@ -25,6 +25,8 @@ private:
 public:
   Entity camera;
 
+  Entity debug_ligth_ent;
+
   float inst_jitter = 0.0f;
   float inst_jitter_speed = 0.0f;
 
@@ -41,7 +43,9 @@ public:
     sprite_sizes.clear();
   }
 
-  void register_camera(Entity c) { camera = c; }
+  void register_camera(Entity c) { 
+    camera = c; 
+  }
 
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
                                      std::shared_ptr<Transform> transform,
@@ -55,11 +59,12 @@ public:
 
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
                          glm::value_ptr(transform->view));
+        
       glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
       glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
-      glUniform1f(glGetUniformLocation(shader->ID, "jitter"), ui_jitter);
-      glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
-                  ui_jitter_speed);
+      // glUniform1f(glGetUniformLocation(shader->ID, "jitter"), ui_jitter);
+      // glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
+      //             ui_jitter_speed);
     }
   }
   void set_shader_sprite_uniforms(std::shared_ptr<Shader> shader,
@@ -93,14 +98,6 @@ public:
                    glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
       // glUniform1f(glGetUniformLocation(shader->ID, "cutoffDistance"),
       // 100.0f);
-    }
-  }
-
-  void bind_text_values(Entity entity, ComponentManager &cm) {
-    auto font = cm.get_component<Font>(entity);
-    if (font != nullptr) {
-      glActiveTexture(GL_TEXTURE0);
-      glBindVertexArray(font->VAO);
     }
   }
 
@@ -241,11 +238,18 @@ public:
                                         -get_text_height(entity, cm) * 0.5f,
                                         0.0f));
           }
-          bind_text_values(entity, cm);
         }
-
         if (shader != nullptr && transform != nullptr) {
           set_shader_transform_uniforms(shader, transform, tick);
+        }
+        if(text != nullptr) {
+          auto font = cm.get_component<Font>(entity);
+          if(font != nullptr) {
+            if (!text->hidden) {
+              text->render(font, 0.0f, 0.0f, get_text_height(entity, cm),
+                          shader);
+            }
+          }
         }
 
         auto quad = cm.get_component<Quad>(entity);
@@ -272,16 +276,37 @@ public:
 
         auto model = cm.get_component<Model>(entity);
         if (model != nullptr) {
+          float radius = 1.0f; // Distance from scene center
+          float height = 1.0f; // Max height of the sun
+
+          // Angle goes from -π/2 (sunrise) to π/2 (sunset)
+          float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(), (float)tick / (TESettings::MAX_TICKS / 2.0) ); // dayProgress: 0.0 to 1.0
+          //
+          glm::vec3 lightPos;
+          lightPos.x = radius * sin(angle);
+          // lightPos.z = 1.0f; // Or vary z for a different path
+          // lightPos.x = 0.0f;
+          lightPos.y = 0.0f;
+          // lightPos.z = -1.0f;
+          // lightPos.y = -sin(angle);
+          // lightPos.y = radius * cos(angle);
+          lightPos.z = sin(angle);
+
+          auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
+          if(light_transfrom != nullptr) {
+            light_transfrom->position = lightPos * 100.0f;
+          }
+
+          glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 0.1f);
+          glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+                      glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.9f)));
+          glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
+                      glm::value_ptr(lightPos));
+          glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
+                      glm::value_ptr(cam->get_position()));
           model->render();
         }
 
-        if (text != nullptr) {
-          auto font = cm.get_component<Font>(entity);
-          if (!text->hidden) {
-            text->render(*font, 0.0f, 0.0f, get_text_height(entity, cm),
-                         shader);
-          }
-        }
       }
     }
   }

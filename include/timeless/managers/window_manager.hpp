@@ -108,12 +108,6 @@ public:
     }
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glGenTextures(1, &textureColorbuffer);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);

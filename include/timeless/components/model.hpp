@@ -14,6 +14,10 @@ public:
       : texture(texture), shader(shader) {
     loadModel(path);
   }
+  Model(const std::string &path, std::shared_ptr<Shader> shader)
+      : shader(shader) {
+    loadModel(path);
+  }
   void render();
   std::vector<std::shared_ptr<Mesh>> meshes;
 
@@ -24,5 +28,5 @@ private:
 
   void loadModel(const std::string &path);
   void processNode(aiNode *node, const aiScene *scene);
-  std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene);
+  std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor);
 };

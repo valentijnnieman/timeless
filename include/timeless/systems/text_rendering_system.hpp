@@ -81,30 +81,30 @@ public:
 
     void render(ComponentManager &cm, int x, int y)
     {
-        std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
-        for (auto &entity : registered_entities)
-        {
-            auto text = cm.get_component<Text>(entity);
-            auto font = cm.get_component<Font>(entity);
-            auto shader = cm.get_component<Shader>(entity);
-
-            cm.get_component<Shader>(entity)->use();
-            cm.get_component<Transform>(entity)->update(x, y);
-
-            if (cam != nullptr)
-            {
-                cm.get_component<Transform>(entity)->update_camera(cam->get_position());
-            }
-            if (text->center)
-            {
-                cm.get_component<Transform>(entity)->update(x, y, 1.0f, glm::vec3(-getWidth(entity, cm) * 0.5f, -getHeight(entity, cm) * 0.5f, 0.0f));
-            }
-
-            set_shader_uniforms(entity, cm);
-            if (!text->hidden)
-            {
-                text->render(*font, 0.0f, 0.0f, getHeight(entity, cm), shader);
-            }
-        }
+        // std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
+        // for (auto &entity : registered_entities)
+        // {
+        //     auto text = cm.get_component<Text>(entity);
+        //     auto font = cm.get_component<Font>(entity);
+        //     auto shader = cm.get_component<Shader>(entity);
+        //
+        //     cm.get_component<Shader>(entity)->use();
+        //     cm.get_component<Transform>(entity)->update(x, y);
+        //
+        //     if (cam != nullptr)
+        //     {
+        //         cm.get_component<Transform>(entity)->update_camera(cam->get_position());
+        //     }
+        //     if (text->center)
+        //     {
+        //         cm.get_component<Transform>(entity)->update(x, y, 1.0f, glm::vec3(-getWidth(entity, cm) * 0.5f, -getHeight(entity, cm) * 0.5f, 0.0f));
+        //     }
+        //
+        //     set_shader_uniforms(entity, cm);
+        //     if (!text->hidden)
+        //     {
+        //         text->render(*font, 0.0f, 0.0f, getHeight(entity, cm), shader);
+        //     }
+        // }
     }
 };

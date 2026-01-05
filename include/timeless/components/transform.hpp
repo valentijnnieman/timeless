@@ -43,7 +43,7 @@ public:
     bool triggered = false;
     bool reset = true;
 
-    bool uses_3d_projection = false;
+    bool isometric = false;
 
     Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
         : position(p), start_position(p),
@@ -64,6 +64,11 @@ public:
     void setRotationEuler(const glm::vec3& eulerDegrees) {
         glm::vec3 radians = glm::radians(eulerDegrees);
         rotation = glm::quat(radians);
+    }
+
+    void setRotationAngleAxis(float angleDegrees, const glm::vec3& axis) {
+        float angleRadians = glm::radians(angleDegrees);
+        rotation = glm::angleAxis(angleRadians, glm::normalize(axis));
     }
 
     glm::quat getRotationQuat() const {
@@ -216,16 +221,7 @@ public:
 
       model = glm::mat4(1.0f);
 
-
-      if(uses_3d_projection) {
-        float aspect = static_cast<float>(x) / static_cast<float>(y);
-        projection = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 100.0f);
-        // model = glm::scale(model, glm::vec3(0.1f));
-      }
-
-      glm::mat4 modelTransform = glm::mat4(1.0f);
-      modelTransform =
-          glm::translate(modelTransform, get_position_minus_offset());
+      model = glm::translate(model, get_position_minus_offset());
 
       if (center) {
         model =
@@ -234,21 +230,6 @@ public:
         model = glm::translate(model, glm::vec3(0.5 * width, 0.0, 0.0));
       }
       model = glm::translate(model, offset);
-
-      glm::mat4 rotation_matrix = getRotationMatrix();
-
-      if(!rotations.empty()) {
-        glm::vec3 new_r = rotations.front();
-        auto eulers = glm::quat(new_r);
-        glm::quat rot = eulers;
-        rotation_matrix = glm::toMat4(eulers);
-        rotations.pop();
-        if (loop) {
-          rotations.push(new_r);
-        }
-      }
-
-      model = modelTransform * rotation_matrix * model;
 
       if (flip) {
         model = glm::rotate(model, glm::radians(180.0f),
@@ -269,7 +250,24 @@ public:
       }
       model = glm::scale(model, s);
 
+      if(isometric){
+        model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1, 0, 0));
+        model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0, 0, 1));
+      }
 
+      glm::mat4 rotation_matrix = getRotationMatrix();
 
+      if(!rotations.empty()) {
+        glm::vec3 new_r = rotations.front();
+        auto eulers = glm::quat(new_r);
+        glm::quat rot = eulers;
+        rotation_matrix = glm::toMat4(eulers);
+        rotations.pop();
+        if (loop) {
+          rotations.push(new_r);
+        }
+      }
+
+      model = model * rotation_matrix;
     }
 };

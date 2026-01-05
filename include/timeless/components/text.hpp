@@ -1,6 +1,9 @@
 #pragma once
 #include "timeless/timer.hpp"
 #include "timeless/components/component.hpp"
+#include "timeless/components/font.hpp"
+#include "timeless/components/shader.hpp"
+#include <memory>
 
 class Text : public Component
 {
@@ -62,9 +65,10 @@ public:
       }
     }
 
-    void render(Font &font, int x, int y, float height, std::shared_ptr<Shader> shader)
+    void render(std::shared_ptr<Font> font, int x, int y, float height, std::shared_ptr<Shader> shader)
     {
-
+      glActiveTexture(GL_TEXTURE0);
+      glBindVertexArray(font->VAO);
         if (!opacities.empty()) {
           float o = opacities.front();
           color.a = o;
@@ -102,7 +106,7 @@ public:
             {
                 set_default_color_vector();
             }
-            Glyph glyph = font.glyphs.at(*c);
+            Glyph glyph = font->glyphs.at(*c);
 
             float w = glyph.size.x;
             float h = glyph.size.y;
@@ -121,7 +125,7 @@ public:
             // render glyph texture over quad
             glBindTexture(GL_TEXTURE_2D, glyph.textureId);
             // update content of VBO memory
-            glBindBuffer(GL_ARRAY_BUFFER, font.VBO);
+            glBindBuffer(GL_ARRAY_BUFFER, font->VBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // be sure to use glBufferSubData and not glBufferData
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -131,5 +135,7 @@ public:
             x += (glyph.advance >> 6); // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
             i++;
         }
+
+        glBindVertexArray(0);
     }
 };
