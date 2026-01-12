@@ -13,8 +13,6 @@
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/managers/window_manager.hpp"
 #include "timeless/systems/rendering_system.hpp"
-#include "timeless/systems/geo_rendering_system.hpp"
-#include "timeless/systems/text_rendering_system.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
 #include "timeless/systems/movement_system.hpp"
 #include "timeless/systems/keyboard_input_system.hpp"
@@ -22,6 +20,7 @@
 #include "timeless/systems/inventory_system.hpp"
 #include "timeless/systems/event_system.hpp"
 #include "timeless/systems/animation_system.hpp"
+#include "timeless/systems/camera_system.hpp"
 #include "timeless/systems/sound_system.hpp"
 #include "timeless/algorithm/graph.hpp"
 #include "timeless/systems/system.hpp"
@@ -42,6 +41,30 @@ namespace TE
         wm = std::make_shared<WindowManager>(cm, mis);
 
         grid = std::make_shared<Grid>(Grid());
+    }
+
+    inline void cleanup()
+    {
+        std::cout << "TE Cleanup called" << std::endl;
+
+        for (const auto& [key, system] : systems)
+        {
+            system->purge();
+        }
+
+        // mis.reset();
+
+        cm->cleanup();
+        cm.reset();
+
+        grid.reset();
+
+        wm->cleanup();
+        wm.reset();
+
+        std::cout << "TE Cleanup finished" << std::endl;
+        std::cout << "Terminating GLFW..." << std::endl;
+        glfwTerminate();
     }
 
     template <typename T>
@@ -177,27 +200,93 @@ namespace TE
           float h = transform->height / zoom;
           glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
 
-          return ((event->screen_position.x > pos.x - w && 
-                  event->screen_position.x < pos.x + w) &&
-                  (event->screen_position.y > pos.y - h && 
-                  event->screen_position.y < pos.y + h)
+          glm::vec3 mouse_pos(event->screen_position, 0.0f); // Promote to vec3 if needed
+          // Inverse rotation
+          glm::quat inv_rot = glm::inverse(glm::normalize(transform->camera_rotation));
+
+          // Rotate mouse position
+          glm::vec3 rotated_mouse = inv_rot * mouse_pos;
+
+          return ((rotated_mouse.x > pos.x - w && 
+                  rotated_mouse.x < pos.x + w) &&
+                  (rotated_mouse.y > pos.y - h && 
+                  rotated_mouse.y < pos.y + h)
             );
       }
       return false;
     }
-    inline bool hovered_over(MouseMoveEvent* event, Entity entity, float zoom = 1.0f)
-    {
-      auto transform = TE::get_component<Transform>(entity);
-      if(transform != nullptr) {
-          float w = transform->width / zoom;
-          float h = transform->height / zoom;
-          glm::vec2 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom);
+    //
+    // inline bool intersect_ray_aabb(const glm::vec3 &origin, const glm::vec3 &dir,
+    //                               const glm::vec3 &aabb_min, const glm::vec3 &aabb_max) {
+    //   float tmin = (aabb_min.x - origin.x) / dir.x;
+    //   float tmax = (aabb_max.x - origin.x) / dir.x;
+    //   if (tmin > tmax) std::swap(tmin, tmax);
+    //
+    //   float tymin = (aabb_min.y - origin.y) / dir.y;
+    //   float tymax = (aabb_max.y - origin.y) / dir.y;
+    //   if (tymin > tymax) std::swap(tymin, tymax);
+    //
+    //   if ((tmin > tymax) || (tymin > tmax))
+    //     return false;
+    //
+    //   if (tymin > tmin)
+    //     tmin = tymin;
+    //   if (tymax < tmax)
+    //     tmax = tymax;
+    //
+    //   float tzmin = (aabb_min.z - origin.z) / dir.z;
+    //   float tzmax = (aabb_max.z - origin.z) / dir.z;
+    //   if (tzmin > tzmax) std::swap(tzmin, tzmax);
+    //
+    //   if ((tmin > tzmax) || (tzmin > tmax))
+    //     return false;
+    //
+    //   return true;
+    // }
+    //
+    // inline bool clicked_on_perspective(MouseEvent *event, Entity entity,
+    //                                    float zoom,
+    //                                    const glm::mat4 &view,
+    //                                    const glm::mat4 &proj,
+    //                                    const glm::vec4 &viewport) {
+    //
+    //   auto transform = TE::get_component<Transform>(entity);
+    //   if(transform != nullptr) {
+    //     // 1. Unproject mouse to world space (near and far plane)
+    //     glm::vec3 win_near(event->screen_position.x,
+    //                       viewport.w - event->screen_position.y, 0.0f);
+    //     glm::vec3 win_far(event->screen_position.x,
+    //                       viewport.w - event->screen_position.y, 1.0f);
+    //
+    //     glm::vec3 world_near = glm::unProject(win_near, view, proj, viewport);
+    //     glm::vec3 world_far = glm::unProject(win_far, view, proj, viewport);
+    //
+    //     // 2. Ray direction
+    //     glm::vec3 ray_dir = glm::normalize(world_far - world_near);
+    //
+    //     glm::vec3 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom, transform->get_centered_position_from_camera().z / zoom);
+    //     float w = transform->width / zoom;
+    //     float h = transform->height / zoom;
+    //     return intersect_ray_aabb(world_near, ray_dir, pos - w,
+    //                               pos + w);
+    //   }
+    //   return false;
+    // }
 
-          return ((event->screen_position.x > pos.x - w && 
-                  event->screen_position.x < pos.x + w) &&
-                  (event->screen_position.y > pos.y - h && 
-                  event->screen_position.y < pos.y + h)
-            );
+    inline bool hovered_over(MouseMoveEvent *event, Entity entity,
+                             float zoom = 1.0f) {
+      auto transform = TE::get_component<Transform>(entity);
+      if (transform != nullptr) {
+        float w = transform->width / zoom;
+        float h = transform->height / zoom;
+        glm::vec2 pos =
+            glm::vec2(transform->get_centered_position_from_camera().x / zoom,
+                      transform->get_centered_position_from_camera().y / zoom);
+
+        return ((event->screen_position.x > pos.x - w &&
+                 event->screen_position.x < pos.x + w) &&
+                (event->screen_position.y > pos.y - h &&
+                 event->screen_position.y < pos.y + h));
       }
       return false;
     }

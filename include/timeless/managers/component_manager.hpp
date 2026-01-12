@@ -178,8 +178,29 @@ public:
       throw e;
     }
   }
+  void cleanup() {
+    quads.clear();
+    models.clear();
+    textures.clear();
+    shaders.clear();
+    sprites.clear();
+    transforms.clear();
+    mouse_input_listeners.clear();
+    mouse_move_listeners.clear();
+    event_listeners.clear();
+    position_event_listeners.clear();
+    keyboard_input_listeners.clear();
+    cameras.clear();
+    colliders.clear();
+    movements.clear();
+    nodes.clear();
+    fonts.clear();
+    texts.clear();
+    behaviours.clear();
+    geometry.clear();
+    animations.clear();
+  }
 };
-
 template <>
 const inline void ComponentManager::remove_component<Shader>(Entity entity) {
   if (shaders.contains(entity))

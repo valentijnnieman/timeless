@@ -1,13 +1,11 @@
 #version 100
-precision mediump float;
+precision highp float;
 #define SCAN_LINE_MULT 1250.0
   
 varying vec2 TexCoords;
 
 uniform sampler2D screenTexture;
-uniform vec2 lightPosition;
 uniform vec2 mousePosition;
-uniform vec4 SCREEN_COLOR;
 
 const float range = 0.0005;
 const float noiseQuality = 1.0;

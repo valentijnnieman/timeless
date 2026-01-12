@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -10,6 +11,7 @@
 #include <iostream>
 #include "timeless/settings.hpp"
 #include "timeless/components/component.hpp"
+#include "timeless/components/camera.hpp"
 
 class Transform : public Component
 {
@@ -20,7 +22,8 @@ private:
 
 public:
     glm::vec3 camera_position = glm::vec3(0.0f);
-    glm::mat4 model, view, projection;
+    glm::quat camera_rotation = glm::quat();
+    glm::mat4 model;
 
     glm::mat4 light_view;
     glm::mat4 light_projection;
@@ -51,7 +54,13 @@ public:
     {
         rotation = glm::quat(glm::vec3(0, 0, 0));
         model = glm::mat4(1.0f);
-        view = glm::mat4(1.0f);
+    }
+    Transform(glm::vec3 p, glm::vec3 rot, glm::vec3 s, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
+        : position(p), start_position(p),
+          offset(o), center(center), scale(s), zoomable(zoomable)
+    {
+        rotation = glm::quat(rot);
+        model = glm::mat4(1.0f);
     }
     void translate(glm::vec3 p)
     {
@@ -98,9 +107,14 @@ public:
         // height = s.y;
     }
 
-    void update_camera(glm::vec3 p)
+    void update_camera(std::shared_ptr<Camera> camera)
     {
-        camera_position = p;
+        camera_position = camera->get_position();
+        camera_rotation = camera->get_rotation();
+        // Use camera rotation if needed for view matrix
+        // view = glm::mat4_cast(camera->get_rotation());
+        // Optionally, if you want to look in a specific direction:
+        // view = glm::lookAt(camera.get_position(), camera.get_position() + camera.get_forward(), glm::vec3(0, 1, 0));
     }
 
     glm::vec3 get_position()
@@ -128,14 +142,22 @@ public:
     glm::vec3 get_position_from_camera()
     {
       glm::vec3 p = get_position();
-        return glm::vec3((p.x - offset.x) - camera_position.x, (p.y - offset.y) - camera_position.y, p.z - camera_position.z);
+      glm::vec3 relative = p - camera_position;
+      // Apply inverse camera rotation to get position in camera space
+      glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * relative;
+      return camera_space;
     }
 
     glm::vec3 get_centered_position_from_camera()
     {
       glm::vec3 p = get_position();
       glm::vec3 p_centered = glm::vec3((p.x - offset.x) - camera_position.x, (p.y - offset.y) - camera_position.y, p.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
-      return p_centered / TESettings::VIEWPORT_SCALE;
+
+      p_centered /= TESettings::VIEWPORT_SCALE;
+      // Apply inverse camera rotation to get position in camera space
+      glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * p_centered;
+
+      return camera_space;
     }
 
     void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
@@ -201,24 +223,8 @@ public:
       }
     }
 
-    void update(int x = TESettings::VIEWPORT_X, int y = TESettings::VIEWPORT_Y, float zoom = 1.0f, glm::vec3 offset = glm::vec3(0.0f))
+    void update(glm::vec3 offset = glm::vec3(0.0f))
     {
-      if (zoomable)
-        projection =
-            glm::ortho(-(static_cast<float>(x * 0.5) * zoom),
-                       static_cast<float>(x * 0.5) * zoom,
-                       (static_cast<float>(y * 0.5) * zoom),
-                       -static_cast<float>(y * 0.5) * zoom, -1000.0f, 1000.0f);
-      else
-        projection =
-            glm::ortho(-(static_cast<float>(x * 0.5) ),
-                      static_cast<float>(x * 0.5) ,
-                      (static_cast<float>(y * 0.5)),
-                      -static_cast<float>(y * 0.5), -1000.0f, 1000.0f);
-
-      view = glm::lookAt(camera_position, camera_position + glm::vec3(0, 0, -1),
-                         glm::vec3(0, 1, 0));
-
       model = glm::mat4(1.0f);
 
       model = glm::translate(model, get_position_minus_offset());
@@ -236,27 +242,13 @@ public:
                             glm::vec3(0.0f, 1.0f, 0.0f));
       }
 
-      model = glm::scale(model, glm::vec3(width, height, 1.0));
-      glm::vec3 s = scale;
-      if(!scales.empty()) {
-        s = scales.front();
-        scales.pop();
-        if(!reset) {
-          scale = s;
-        }
-        if (loop) {
-          scales.push(scale);
-        }
-      }
-      model = glm::scale(model, s);
-
       if(isometric){
-        model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1, 0, 0));
+        // model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1, 0, 0));
+        // model = glm::rotate(model, glm::radians(63.559f), glm::vec3(0, 0, 1));
         model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0, 0, 1));
       }
 
       glm::mat4 rotation_matrix = getRotationMatrix();
-
       if(!rotations.empty()) {
         glm::vec3 new_r = rotations.front();
         auto eulers = glm::quat(new_r);
@@ -269,5 +261,22 @@ public:
       }
 
       model = model * rotation_matrix;
+
+      if(isometric){
+      } else {
+        model = glm::scale(model, glm::vec3(width, height, width));
+      }
+      glm::vec3 s = scale;
+      if(!scales.empty()) {
+        s = scales.front();
+        scales.pop();
+        if(!reset) {
+          scale = s;
+        }
+        if (loop) {
+          scales.push(scale);
+        }
+      }
+      model = glm::scale(model, s);
     }
 };

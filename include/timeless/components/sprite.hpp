@@ -49,8 +49,11 @@ public:
         isStatic(isStatic), animating(animating), frames(frames),
         spriteSheetSize(spriteSheetSize), spriteSize(spriteSize) {}
   ~Sprite() {
-    glDeleteFramebuffers(1, &framebuffer);
-    glDeleteTextures(1, &tex);
+    if (slice_shader) {
+      std::cout << "Deleting sprite framebuffer and texture..." << std::endl;
+      glDeleteFramebuffers(1, &framebuffer);
+      glDeleteTextures(1, &tex);
+    }
   }
   void setColor(glm::vec4 newColor) { color = newColor; }
   void set_index(int newIndex) {
@@ -64,6 +67,10 @@ public:
     slice_texture = texture;
     slice_shader = shader;
 
+    if(spriteSize.x == 0 || spriteSize.y == 0) {
+      std::cerr << "Sprite size is zero, cannot create framebuffer!" << std::endl;
+      return;
+    }
     // Create a texture for the framebuffer (destination)
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &tex);
@@ -86,6 +93,11 @@ public:
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
       std::cerr << "FBO incomplete!" << std::endl;
     }
+
+    GLint width = 0;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    if (width == 0) std::cerr << "Sprite framebuffer texture not valid!" << std::endl;
 
     // 4. Render the sliced sprite to the framebuffer
     render_sliced_to_texture();

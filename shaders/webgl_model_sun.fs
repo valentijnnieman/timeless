@@ -9,7 +9,7 @@ uniform vec3 materialDiffuse;
 uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform float ambientStrength;
-uniform vec3 cameraPos; // Add this uniform for correct viewDir
+uniform vec3 cameraPos;
 
 void main()
 {
@@ -29,7 +29,7 @@ void main()
     float outlineFactor = smoothstep(0.0, outlineWidth, abs(edge));
     vec3 outlineColor = vec3(0.0, 0.0, 0.0); // Black outline
 
-    // Diffuse component (fixed)
+    // Diffuse component
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * materialDiffuse * lightColor;
 

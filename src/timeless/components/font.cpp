@@ -39,6 +39,7 @@ Font::Font(int fontSize, const std::string& filepath)
             }
             unsigned int texture;
             glGenTextures(1, &texture);
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
             glTexImage2D(
                 GL_TEXTURE_2D,
@@ -62,8 +63,12 @@ Font::Font(int fontSize, const std::string& filepath)
                 glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
                 (unsigned int)face->glyph->advance.x};
             gen_glyphs.insert(std::pair<char, Glyph>(c, glyph));
+
+            GLint dwidth = 0;
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
+            if (dwidth == 0) std::cout << "Font texture not valid! texture: " << texture << std::endl;
         }
-        glBindTexture(GL_TEXTURE_2D, 1);
+        glBindTexture(GL_TEXTURE_2D, 0);
         FT_Done_Face(face);
         FT_Done_FreeType(ft);
     }
@@ -81,6 +86,11 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
+    }
 
     std::map<char, Glyph> gen_glyphs;
     FT_Library ft;
@@ -106,6 +116,7 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
         }
         GLuint texture;
         glGenTextures(1, &texture);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexImage2D(
             GL_TEXTURE_2D,
@@ -117,6 +128,10 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
             GL_RED,
             GL_UNSIGNED_BYTE,
             face->glyph->bitmap.buffer);
+          GLenum err;
+          while ((err = glGetError()) != GL_NO_ERROR) {
+              std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
+          }
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -130,6 +145,14 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
             static_cast<unsigned int>(face->glyph->advance.x)
         };
         gen_glyphs.insert(std::pair<char, Glyph>(c, glyph));
+
+        while ((err = glGetError()) != GL_NO_ERROR) {
+            std::cerr << "OpenGL error during glyphs: 0x" << std::hex << err << std::endl;
+    }
+
+        GLint dwidth = 0;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
+        if (dwidth == 0) std::cout << "Font texture not valid! texture: " << texture << std::endl;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     FT_Done_Face(face);

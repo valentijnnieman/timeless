@@ -2,9 +2,6 @@
 precision mediump float;
   
 uniform sampler2D screenTexture;
-uniform float time;
-uniform vec2 lightPosition;
-uniform vec2 mousePosition;
 
 varying vec2 TexCoords;
 

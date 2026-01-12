@@ -54,7 +54,7 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
   // Initialize vertex positions and texcoords
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
     Vertex vertex;
-    vertex.Position = glm::vec3(mesh->mVertices[i].x, -mesh->mVertices[i].y, mesh->mVertices[i].z);
+    vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
     if (mesh->mTextureCoords[0]) {
       vertex.TexCoords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
     } else {
@@ -91,7 +91,6 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
       indices.push_back(face.mIndices[j]);
     }
 
-
   }
 
   // Normalize accumulated normals
@@ -105,16 +104,16 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
 void Model::render() {
   for (unsigned int i = 0; i < meshes.size(); i++) {
     glBindVertexArray(meshes[i]->VAO);
-    if(texture != nullptr) {
-      texture->render();
-    }
+    // if(texture != nullptr) {
+    //   texture->render();
+    // }
     glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                 glm::value_ptr(meshes[i]->diffuseColor));
     glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                 glm::value_ptr(meshes[i]->specularColor));
     glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
                 glm::value_ptr(glm::vec3(1.0f)));
-    glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+    // glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
     glDrawElements(GL_TRIANGLES,
                    static_cast<unsigned int>(meshes[i]->indices.size()),
                    GL_UNSIGNED_INT, 0);

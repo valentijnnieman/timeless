@@ -105,5 +105,5 @@ void main()
 
   vec4 out_tex = mix(tex, tex2, 0.5);
 
-  FragColor = vec4(borderColor * vec3(out_tex), 1.0 - color.z);
+  FragColor = vec4(borderColor * vec3(out_tex), 0.5 - color.z);
 }  

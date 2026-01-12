@@ -49,16 +49,18 @@ public:
 
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
                                      std::shared_ptr<Transform> transform,
+                                     std::shared_ptr<Camera> camera,
+                                     int x, int y, float zoom,
                                      int tick = 0) {
     if (shader != nullptr && transform != nullptr) {
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
-                         GL_FALSE, glm::value_ptr(transform->projection));
-
+                         GL_FALSE, glm::value_ptr(camera->get_projection_matrix(x, y, zoom, camera->perspective)));
+        
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
                          glm::value_ptr(transform->model));
 
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
-                         glm::value_ptr(transform->view));
+                         glm::value_ptr(camera->get_view_matrix()));
         
       glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
       glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
@@ -109,7 +111,12 @@ public:
     // Get width of string
     std::string::const_iterator c;
     for (c = text->text.begin(); c != text->text.end(); c++) {
-      Glyph glyph = font->glyphs.at(*c);
+      auto glyphIt = font->glyphs.find(*c);
+      // if (glyphIt == font->glyphs.end()) {
+      //   // Optionally handle/log missing glyph
+      //   continue;
+      // }
+      Glyph glyph = glyphIt->second;
       width += glyph.advance >> 6;
     }
     return width;
@@ -120,10 +127,15 @@ public:
     auto text = cm.get_component<Text>(entity);
 
     float height = 0.0f;
-    // Get width of string
+    // Get height of string
     std::string::const_iterator c;
     for (c = text->text.begin(); c != text->text.end(); c++) {
-      Glyph glyph = font->glyphs.at(*c);
+      auto glyphIt = font->glyphs.find(*c);
+      // if (glyphIt == font->glyphs.end()) {
+      //   // Optionally handle/log missing glyph
+      //   continue;
+      // }
+      Glyph glyph = glyphIt->second;
       height = glyph.size.y;
     }
     return height;
@@ -177,17 +189,17 @@ public:
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         if (cam != nullptr) {
-          transform->update_camera(cam->get_position());
+          transform->update_camera(cam);
         }
-        transform->update(x, y, zoom);
+        transform->update(glm::vec3(0.0f));
       }
 
       auto animation = cm.get_component<Animation>(entity);
       if (animation != nullptr) {
-        animation->root.transform->update_camera(cam->get_position());
-        animation->root.transform->update(x, y, zoom);
+        animation->root.transform->update_camera(cam);
+        animation->root.transform->update(glm::vec3(0.0f));
         auto root_shader = cm.get_component<Shader>(animation->root.entity);
-        set_shader_transform_uniforms(root_shader, animation->root.transform,
+        set_shader_transform_uniforms(root_shader, animation->root.transform, cam, x, y, zoom,
                                       tick);
         animation->root.sprite->index = animation->root.sprite_index;
 
@@ -198,9 +210,11 @@ public:
                                      cam->get_position());
           animation->root.sprite->render_sliced();
         } else {
-          animation->root.texture->render();
-          set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
-                                     cam->get_position());
+          if(animation->root.texture != nullptr) {
+            animation->root.texture->render();
+            set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
+                                      cam->get_position());
+          }
           animation->root.sprite->render();
         }
         for (const auto &bone : animation->bones) {
@@ -208,9 +222,9 @@ public:
           if (bone_shader)
             bone_shader->use();
           if (bone.transform) {
-            bone.transform->update_camera(cam->get_position());
-            bone.transform->update(x, y, zoom);
-            set_shader_transform_uniforms(bone_shader, bone.transform, tick);
+            bone.transform->update_camera(cam);
+            bone.transform->update(glm::vec3(0.0f));
+            set_shader_transform_uniforms(bone_shader, bone.transform, cam, x, y, zoom, tick);
           }
           if (bone.sprite) {
             bone.sprite->index = bone.sprite_index;
@@ -220,7 +234,8 @@ public:
             if (bone.sprite->slice_shader != nullptr) {
               bone.sprite->render_sliced();
             } else {
-              bone.texture->render();
+              if(animation->root.texture != nullptr)
+                bone.texture->render();
               set_shader_sprite_uniforms(bone_shader, bone.sprite, tick,
                                          cam->get_position());
               bone.sprite->render();
@@ -233,19 +248,16 @@ public:
         auto text = cm.get_component<Text>(entity);
         if (text != nullptr) {
           if (text->center) {
-            transform->update(x, y, zoom,
-                              glm::vec3(-get_text_width(entity, cm) * 0.5f,
+            transform->update(glm::vec3(-get_text_width(entity, cm) * 0.5f,
                                         -get_text_height(entity, cm) * 0.5f,
                                         0.0f));
           }
-        }
-        if (shader != nullptr && transform != nullptr) {
-          set_shader_transform_uniforms(shader, transform, tick);
         }
         if(text != nullptr) {
           auto font = cm.get_component<Font>(entity);
           if(font != nullptr) {
             if (!text->hidden) {
+              set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
               text->render(font, 0.0f, 0.0f, get_text_height(entity, cm),
                           shader);
             }
@@ -265,41 +277,40 @@ public:
             } else {
               auto texture = cm.get_component<Texture>(entity);
               if (texture != nullptr) {
+
+                set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
+                set_shader_sprite_uniforms(shader, sprite, tick,
+                                          cam->get_position());
                 texture->render();
+                sprite->render();
+              } else {
+                std::cout << "No texture for sprite entity " << entity << std::endl;
               }
-              set_shader_sprite_uniforms(shader, sprite, tick,
-                                         cam->get_position());
-              sprite->render();
             }
           }
         }
 
         auto model = cm.get_component<Model>(entity);
         if (model != nullptr) {
-          float radius = 1.0f; // Distance from scene center
-          float height = 1.0f; // Max height of the sun
-
+          transform->update(glm::vec3(0.0f));
+          set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
           // Angle goes from -π/2 (sunrise) to π/2 (sunset)
           float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(), (float)tick / (TESettings::MAX_TICKS / 2.0) ); // dayProgress: 0.0 to 1.0
           //
           glm::vec3 lightPos;
-          lightPos.x = radius * sin(angle);
-          // lightPos.z = 1.0f; // Or vary z for a different path
-          // lightPos.x = 0.0f;
+          lightPos.x = 1.0f;
           lightPos.y = 0.0f;
-          // lightPos.z = -1.0f;
-          // lightPos.y = -sin(angle);
-          // lightPos.y = radius * cos(angle);
-          lightPos.z = sin(angle);
+          lightPos.z = 1.0f;
 
           auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
           if(light_transfrom != nullptr) {
             light_transfrom->position = lightPos * 100.0f;
           }
 
-          glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 0.1f);
+          glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), sin(angle) * 0.5f + 0.6f);
+          // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 1.0f);
           glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                      glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.9f)));
+                      glm::value_ptr(glm::vec3(1.0f)));
           glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
                       glm::value_ptr(lightPos));
           glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
@@ -368,8 +379,8 @@ public:
     for (auto &entity : registered_entities) {
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
-        transform->update_camera(cam->get_position());
-        transform->update(x, y, zoom);
+        transform->update_camera(cam);
+        transform->update(glm::vec3(0.0f));
         models.push_back(transform->model);
       }
 
@@ -380,7 +391,6 @@ public:
       }
     }
 
-    // Update buffer data (no buffer creation here!)
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
     if (!models.empty())
       glBufferSubData(GL_ARRAY_BUFFER, 0, models.size() * sizeof(glm::mat4),

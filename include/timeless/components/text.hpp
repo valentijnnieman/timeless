@@ -124,6 +124,9 @@ public:
                 {xpos + w, ypos + h, 1.0f, 1.0f}};
             // render glyph texture over quad
             glBindTexture(GL_TEXTURE_2D, glyph.textureId);
+            // GLint dwidth = 0;
+            // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
+            // if (dwidth == 0) std::cout << "Font texture not valid! glyph.textureId: " << glyph.textureId << " has a width of: " << dwidth << std::endl;
             // update content of VBO memory
             glBindBuffer(GL_ARRAY_BUFFER, font->VBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // be sure to use glBufferSubData and not glBufferData
@@ -135,7 +138,8 @@ public:
             x += (glyph.advance >> 6); // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
             i++;
         }
-
+  
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
     }
 };
