@@ -54,7 +54,7 @@ public:
                                      int tick = 0) {
     if (shader != nullptr && transform != nullptr) {
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
-                         GL_FALSE, glm::value_ptr(camera->get_projection_matrix(x, y, zoom, camera->perspective)));
+                         GL_FALSE, glm::value_ptr(camera->get_projection_matrix(x, y, zoom)));
         
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
                          glm::value_ptr(transform->model));

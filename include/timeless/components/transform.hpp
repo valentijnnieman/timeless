@@ -21,6 +21,7 @@ private:
   std::queue<glm::vec3> rotations;
 
 public:
+    std::shared_ptr<Camera> camera;
     glm::vec3 camera_position = glm::vec3(0.0f);
     glm::quat camera_rotation = glm::quat();
     glm::mat4 model;
@@ -107,14 +108,10 @@ public:
         // height = s.y;
     }
 
-    void update_camera(std::shared_ptr<Camera> camera)
-    {
-        camera_position = camera->get_position();
-        camera_rotation = camera->get_rotation();
-        // Use camera rotation if needed for view matrix
-        // view = glm::mat4_cast(camera->get_rotation());
-        // Optionally, if you want to look in a specific direction:
-        // view = glm::lookAt(camera.get_position(), camera.get_position() + camera.get_forward(), glm::vec3(0, 1, 0));
+    void update_camera(std::shared_ptr<Camera> camera) {
+      this->camera = camera;
+      camera_position = camera->get_position();
+      camera_rotation = camera->get_rotation();
     }
 
     glm::vec3 get_position()
@@ -142,7 +139,7 @@ public:
     glm::vec3 get_position_from_camera()
     {
       glm::vec3 p = get_position();
-      glm::vec3 relative = p - camera_position;
+      glm::vec3 relative = p - camera->get_position();
       // Apply inverse camera rotation to get position in camera space
       glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * relative;
       return camera_space;

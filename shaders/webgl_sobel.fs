@@ -54,7 +54,7 @@ void main(void)
 
      float noise = fract(sin(time * PI) + sin(dot(TexCoords.xy ,vec2(12.9898,78.233))) * 43758.5453);
      // float thickness = 0.2 + 0.1 * noise; // randomize thickness
-     float thickness = 0.4;
+     float thickness = 0.3;
 
      float edge = length(vec2(gx, gy));
      vec3 origColor = texture2D(screenTexture, TexCoords).rgb;

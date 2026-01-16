@@ -31,7 +31,7 @@ private:
   float orbit_angular_speed;
   bool orbit_active = true;
 public:
-  bool perspective = false;
+  bool perspective;
   std::optional<glm::vec3> focus_point;
 
   Camera(glm::vec3 p, bool perspective = false,
@@ -92,8 +92,8 @@ public:
     return view;
   }
 
-  glm::mat4 get_projection_matrix(int x = TESettings::VIEWPORT_X, int y = TESettings::VIEWPORT_Y, float zoom = 1.0f, bool uses_perspective = false) {
-      if (uses_perspective) {
+  glm::mat4 get_projection_matrix(int x = TESettings::VIEWPORT_X, int y = TESettings::VIEWPORT_Y, float zoom = 1.0f) {
+      if (perspective) {
         projection = glm::perspective(glm::radians(40.0f),
                                       float(x) / float(y), 1.0f, 10000.0f);
         projection *= glm::scale(glm::mat4(1.0f), glm::vec3(-1, 1, 1));

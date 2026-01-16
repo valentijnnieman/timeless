@@ -39,6 +39,7 @@ public:
   std::shared_ptr<MouseInputSystem> mis;
 
   glm::vec2 mouse_position;
+  glm::vec2 raw_mouse_position;
   glm::vec2 shader_mouse_position;
 
   unsigned int ScreenVAO, ScreenVBO;
@@ -276,14 +277,14 @@ public:
     double world_y = ynorm * TESettings::VIEWPORT_Y;
 
     wm->mouse_move_handler(
-        new MouseMoveEvent("MouseMove", glm::vec2(world_x, world_y)));
+        new MouseMoveEvent("MouseMove", glm::vec2(world_x, world_y), glm::vec2(xpos, ypos)));
   }
   static void scroll_callback(GLFWwindow *window, double xoffset,
                               double yoffset) {
     WindowManager *wm =
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
     wm->mouse_scroll_handler(
-        new MouseEvent("MouseScroll", wm->mouse_position, xoffset, yoffset));
+        new MouseEvent("MouseScroll", wm->mouse_position, wm->raw_mouse_position, xoffset, yoffset));
   }
   static void mouse_button_callback(GLFWwindow *window, int button, int action,
                                     int mods) {
@@ -291,6 +292,9 @@ public:
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
+
+    double raw_xpos = xpos;
+    double raw_ypos = ypos;
 
     xpos -= TESettings::SCREEN_X * 0.5;
     ypos -= TESettings::SCREEN_Y * 0.5;
@@ -305,27 +309,27 @@ public:
 
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
       wm->mouse_click_handler(
-          new MouseEvent("LeftMousePress", glm::vec2(xpos, ypos)));
+          new MouseEvent("LeftMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
       wm->mouse_release_handler(
-          new MouseEvent("LeftMouseRelease", glm::vec2(xpos, ypos)));
+          new MouseEvent("LeftMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
       wm->mouse_click_handler(
-          new MouseEvent("RightMousePress", glm::vec2(xpos, ypos)));
+          new MouseEvent("RightMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
       wm->mouse_release_handler(
-          new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos)));
+          new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
       wm->mouse_click_handler(
-          new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos)));
+          new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE) {
       wm->mouse_release_handler(
-          new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos)));
+          new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
     }
   }
 };

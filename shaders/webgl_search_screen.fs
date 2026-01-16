@@ -71,9 +71,9 @@ void main()
 
     vec4 tex = texture2D(screenTexture, tc);
   //tex.rgb += sin(tc.y * SCAN_LINE_MULT) * 0.02;
-  vec4 tex2 = vec4(r, g, b, 1.0);
+  // vec4 tex2 = vec4(r, g, b, 1.0);
 
-  vec4 out_tex = mix(tex, tex2, 0.5);
+  // vec4 out_tex = mix(tex, tex2, 0.5);
 
-    gl_FragColor = vec4(borderColor * vec3(out_tex), 1.0 - color.z);
+    gl_FragColor = vec4(borderColor * vec3(tex), 1.0 - color.z);
 }  

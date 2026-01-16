@@ -25,10 +25,11 @@ class MouseEvent : public Event
 {
 public:
     glm::vec2 screen_position;
+    glm::vec2 raw_position;
     float x_scroll;
     float y_scroll;
-    MouseEvent(std::string et, glm::vec2 sp, float x_scroll = 0.0f, float y_scroll = 0.0f)
-        : Event(et), screen_position(sp), x_scroll(x_scroll), y_scroll(y_scroll)
+    MouseEvent(std::string et, glm::vec2 sp, glm::vec2 rp, float x_scroll = 0.0f, float y_scroll = 0.0f)
+        : Event(et), screen_position(sp), raw_position(rp), x_scroll(x_scroll), y_scroll(y_scroll)
     {
     }
 };
@@ -37,8 +38,9 @@ class MouseMoveEvent : public Event
 {
 public:
     glm::vec2 screen_position;
-    MouseMoveEvent(std::string et, glm::vec2 sp)
-        : Event(et), screen_position(sp) 
+    glm::vec2 raw_position;
+    MouseMoveEvent(std::string et, glm::vec2 sp, glm::vec2 rp)
+        : Event(et), screen_position(sp), raw_position(rp)
     {
     }
 };

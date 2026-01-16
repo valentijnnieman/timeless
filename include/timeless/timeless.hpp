@@ -216,62 +216,73 @@ namespace TE
       return false;
     }
     //
-    // inline bool intersect_ray_aabb(const glm::vec3 &origin, const glm::vec3 &dir,
-    //                               const glm::vec3 &aabb_min, const glm::vec3 &aabb_max) {
-    //   float tmin = (aabb_min.x - origin.x) / dir.x;
-    //   float tmax = (aabb_max.x - origin.x) / dir.x;
-    //   if (tmin > tmax) std::swap(tmin, tmax);
-    //
-    //   float tymin = (aabb_min.y - origin.y) / dir.y;
-    //   float tymax = (aabb_max.y - origin.y) / dir.y;
-    //   if (tymin > tymax) std::swap(tymin, tymax);
-    //
-    //   if ((tmin > tymax) || (tymin > tmax))
-    //     return false;
-    //
-    //   if (tymin > tmin)
-    //     tmin = tymin;
-    //   if (tymax < tmax)
-    //     tmax = tymax;
-    //
-    //   float tzmin = (aabb_min.z - origin.z) / dir.z;
-    //   float tzmax = (aabb_max.z - origin.z) / dir.z;
-    //   if (tzmin > tzmax) std::swap(tzmin, tzmax);
-    //
-    //   if ((tmin > tzmax) || (tzmin > tmax))
-    //     return false;
-    //
-    //   return true;
-    // }
-    //
-    // inline bool clicked_on_perspective(MouseEvent *event, Entity entity,
-    //                                    float zoom,
-    //                                    const glm::mat4 &view,
-    //                                    const glm::mat4 &proj,
-    //                                    const glm::vec4 &viewport) {
-    //
-    //   auto transform = TE::get_component<Transform>(entity);
-    //   if(transform != nullptr) {
-    //     // 1. Unproject mouse to world space (near and far plane)
-    //     glm::vec3 win_near(event->screen_position.x,
-    //                       viewport.w - event->screen_position.y, 0.0f);
-    //     glm::vec3 win_far(event->screen_position.x,
-    //                       viewport.w - event->screen_position.y, 1.0f);
-    //
-    //     glm::vec3 world_near = glm::unProject(win_near, view, proj, viewport);
-    //     glm::vec3 world_far = glm::unProject(win_far, view, proj, viewport);
-    //
-    //     // 2. Ray direction
-    //     glm::vec3 ray_dir = glm::normalize(world_far - world_near);
-    //
-    //     glm::vec3 pos = glm::vec2(transform->get_centered_position_from_camera().x / zoom, transform->get_centered_position_from_camera().y / zoom, transform->get_centered_position_from_camera().z / zoom);
-    //     float w = transform->width / zoom;
-    //     float h = transform->height / zoom;
-    //     return intersect_ray_aabb(world_near, ray_dir, pos - w,
-    //                               pos + w);
-    //   }
-    //   return false;
-    // }
+    inline bool intersect_ray_aabb(const glm::vec3 &origin, const glm::vec3 &dir,
+                                  const glm::vec3 &aabb_min, const glm::vec3 &aabb_max) {
+      float tmin = (aabb_min.x - origin.x) / dir.x;
+      float tmax = (aabb_max.x - origin.x) / dir.x;
+      if (tmin > tmax) std::swap(tmin, tmax);
+
+      float tymin = (aabb_min.y - origin.y) / dir.y;
+      float tymax = (aabb_max.y - origin.y) / dir.y;
+      if (tymin > tymax) std::swap(tymin, tymax);
+
+      if ((tmin > tymax) || (tymin > tmax))
+        return false;
+
+      if (tymin > tmin)
+        tmin = tymin;
+      if (tymax < tmax)
+        tmax = tymax;
+
+      float tzmin = (aabb_min.z - origin.z) / dir.z;
+      float tzmax = (aabb_max.z - origin.z) / dir.z;
+      if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+      if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+
+      return true;
+    }
+
+    inline bool clicked_on_perspective(MouseEvent* event, Entity entity, float zoom = 1.0f)
+    {
+    auto transform = TE::get_component<Transform>(entity);
+    if(transform != nullptr) {
+        // Get camera matrices and viewport
+        auto camera = transform->camera;
+        glm::mat4 view = camera->get_view_matrix();
+        glm::mat4 proj = camera->get_projection_matrix();
+
+        // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
+        glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+
+        std::cout << "Viewport: " << viewport.x << ", " << viewport.y << ", " << viewport.z << ", " << viewport.w << std::endl;
+
+        // Mouse position to NDC
+        float mouse_x = event->raw_position.x;
+        float mouse_y = event->raw_position.y;
+        float win_x = mouse_x;
+        float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
+        glm::vec3 cam_pos = glm::vec3(glm::inverse(view)[3]);
+
+        // Unproject to world space (near and far plane)
+        glm::vec3 near_point = glm::unProject(glm::vec3(win_x, win_y, 0.0f), view, proj, viewport);
+        glm::vec3 far_point  = glm::unProject(glm::vec3(win_x, win_y, 1.0f), view, proj, viewport);
+
+        // Ray from camera position to far_point
+        glm::vec3 ray_dir = glm::normalize(far_point - near_point);
+
+        // Entity bounding box (centered position, width, height)
+        glm::vec3 box_center = transform->get_position();
+        float w = transform->width / zoom;
+        float h = transform->height / zoom;
+        glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
+        glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
+
+        return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
+    }
+    return false;
+    }
 
     inline bool hovered_over(MouseMoveEvent *event, Entity entity,
                              float zoom = 1.0f) {
@@ -287,6 +298,46 @@ namespace TE
                  event->screen_position.x < pos.x + w) &&
                 (event->screen_position.y > pos.y - h &&
                  event->screen_position.y < pos.y + h));
+      }
+      return false;
+    }
+
+    inline bool hovered_over_perspective(MouseMoveEvent *event, Entity entity,
+                                         float zoom = 1.0f) {
+      auto transform = TE::get_component<Transform>(entity);
+      if (transform != nullptr) {
+        // Get camera matrices and viewport
+        auto camera = transform->camera;
+        if (camera != nullptr) {
+          glm::mat4 view = camera->get_view_matrix();
+          glm::mat4 proj = camera->get_projection_matrix();
+          glm::vec4 viewport =
+              glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+
+          // Mouse position to NDC
+          float mouse_x = event->raw_position.x;
+          float mouse_y = event->raw_position.y;
+          float win_x = mouse_x;
+          float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
+
+          // Unproject to world space (near and far plane)
+          glm::vec3 near_point = glm::unProject(glm::vec3(win_x, win_y, 0.0f),
+                                                view, proj, viewport);
+          glm::vec3 far_point = glm::unProject(glm::vec3(win_x, win_y, 1.0f),
+                                               view, proj, viewport);
+
+          // Ray from camera position to far_point
+          glm::vec3 ray_dir = glm::normalize(far_point - near_point);
+
+          // Entity bounding box (centered position, width, height)
+          glm::vec3 box_center = transform->get_position();
+          float w = transform->width / zoom;
+          float h = transform->height / zoom;
+          glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
+          glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
+
+          return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
+        }
       }
       return false;
     }
