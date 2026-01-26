@@ -283,6 +283,10 @@ namespace TE
         glm::vec3 box_center = transform->get_position();
         float w = transform->width;
         float h = transform->height;
+        if(transform->width == 0.0f && transform->height == 0.0f) {
+          w = transform->scale.x;
+          h = transform->scale.y;
+        }
         glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
         glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
 
@@ -349,6 +353,10 @@ namespace TE
           glm::vec3 box_center = transform->get_position();
           float w = transform->width;
           float h = transform->height;
+          if(transform->width == 0.0f && transform->height == 0.0f) {
+            w = transform->scale.x;
+            h = transform->scale.y;
+          }
           glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
           glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
 

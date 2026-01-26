@@ -15,7 +15,6 @@ void Model::loadModel(const std::string &path) {
 }
 
 void Model::processNode(aiNode *node, const aiScene *scene) {
-  std::cout << node->mNumMeshes << " meshes in node." << std::endl;
   // process all the node's meshes (if any)
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     aiMesh *aimesh = scene->mMeshes[node->mMeshes[i]];
@@ -113,6 +112,8 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time) {
 
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                   glm::value_ptr(meshes[i]->diffuseColor));
+    glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+                 glm::value_ptr(meshes[i]->diffuseColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                   glm::value_ptr(meshes[i]->specularColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,

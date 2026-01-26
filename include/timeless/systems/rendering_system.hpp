@@ -59,7 +59,9 @@ public:
           transform->model =
               glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.5 * transform->height, 0.0));
         } else {
-          transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
+          if(transform->width != 0.0f && transform->height != 0.0f){
+            transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
+          }
         }
       }
       if(o != glm::vec3(0.0f))
@@ -80,8 +82,7 @@ public:
 
       transform->model = transform->model * rotation_matrix;
 
-      if(transform->isometric){
-      } else {
+      if(transform->width != 0.0f && transform->height != 0.0f){
         transform->model = glm::scale(transform->model, glm::vec3(transform->width, transform->height, transform->width));
       }
       glm::vec3 s = transform->get_scale();
@@ -226,9 +227,9 @@ public:
         (float)tick / (TESettings::MAX_TICKS / 2.0)); // dayProgress: 0.0 to 1.0
     //
     glm::vec3 lightPos;
-    lightPos.x = 1.0f;
+    lightPos.x = 0.0f;
     lightPos.y = 0.0f;
-    lightPos.z = 1.0f;
+    lightPos.z = -1.0f;
 
     auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
     if (light_transfrom != nullptr) {
@@ -237,11 +238,12 @@ public:
 
     // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
     // sin(angle) * 0.5f + 0.6f);
-    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 1.0f);
-    glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                 glm::value_ptr(glm::vec3(1.0f)));
-    glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
-                 glm::value_ptr(lightPos));
+    glUniform1f(glGetUniformLocation(shader->ID, "metallic"), 0.9f);
+    glUniform1f(glGetUniformLocation(shader->ID, "roughness"), 0.1f);
+    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 0.3f);
+
+    glm::vec3 lightDir = glm::normalize(lightPos);
+    glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1, glm::value_ptr(lightDir));
     glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                  glm::value_ptr(cam->get_position()));
   }
