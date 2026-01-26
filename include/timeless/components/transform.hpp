@@ -57,7 +57,7 @@ public:
         model = glm::mat4(1.0f);
     }
     Transform(glm::vec3 p, glm::vec3 rot, glm::vec3 s, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
-        : position(p), start_position(p),
+        : position(p), start_position(p), width(0.0f), height(0.0f),
           offset(o), center(center), scale(s), zoomable(zoomable)
     {
         rotation = glm::quat(rot);
@@ -245,5 +245,4 @@ public:
         scales.push(glm::vec3(x_l, y_l, z_l));
       }
     }
-
 };

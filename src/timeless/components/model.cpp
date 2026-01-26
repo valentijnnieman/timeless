@@ -15,6 +15,7 @@ void Model::loadModel(const std::string &path) {
 }
 
 void Model::processNode(aiNode *node, const aiScene *scene) {
+  std::cout << node->mNumMeshes << " meshes in node." << std::endl;
   // process all the node's meshes (if any)
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     aiMesh *aimesh = scene->mMeshes[node->mMeshes[i]];
@@ -101,22 +102,26 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
   return std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
 }
 
-void Model::render() {
-  for (unsigned int i = 0; i < meshes.size(); i++) {
-    glBindVertexArray(meshes[i]->VAO);
-    // if(texture != nullptr) {
-    //   texture->render();
-    // }
-    glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
-                glm::value_ptr(meshes[i]->diffuseColor));
-    glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
-                glm::value_ptr(meshes[i]->specularColor));
-    glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                glm::value_ptr(glm::vec3(1.0f)));
-    // glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
-    glDrawElements(GL_TRIANGLES,
-                   static_cast<unsigned int>(meshes[i]->indices.size()),
-                   GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+void Model::render(glm::mat4 global_model_matrix, float delta_time) {
+  if(!hidden) {
+    for (unsigned int i = 0; i < meshes.size(); i++) {
+      glBindVertexArray(meshes[i]->VAO);
+      // Set the model matrix uniform
+      meshes[i]->update_animation(delta_time);
+      glm::mat4 meshModelMatrix = global_model_matrix * meshes[i]->getModelMatrix();
+      glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(meshModelMatrix));
+
+      glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
+                  glm::value_ptr(meshes[i]->diffuseColor));
+      glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
+                  glm::value_ptr(meshes[i]->specularColor));
+      glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+                  glm::value_ptr(glm::vec3(1.0f)));
+      glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+      glDrawElements(GL_TRIANGLES,
+                    static_cast<unsigned int>(meshes[i]->indices.size()),
+                    GL_UNSIGNED_INT, 0);
+      glBindVertexArray(0);
+    }
   }
 }

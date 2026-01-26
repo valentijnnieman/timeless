@@ -3,18 +3,48 @@
 #include <glm/glm.hpp>
 #include "timeless/timeless.hpp"
 #include "timeless/components/sprite.hpp"
+#include "timeless/components/model.hpp"
 #include <cmath>
+#include <memory>
 #include <queue>
 
 struct Bone {
-    Entity entity;
-    std::string name;
-    std::shared_ptr<Quad> quad;
-    std::shared_ptr<Transform> parent_transform;
-    std::shared_ptr<Transform> transform;
-    std::shared_ptr<Texture> texture;
-    std::shared_ptr<Sprite> sprite;
-    int sprite_index = 0;
+  Entity entity;
+  std::string name;
+  std::shared_ptr<Transform> parent_transform;
+  std::shared_ptr<Transform> transform;
+  virtual ~Bone() = default;
+
+  Bone(Entity entity, const std::string &name,
+       std::shared_ptr<Transform> parent_transform,
+       std::shared_ptr<Transform> transform)
+      : entity(entity), name(name), parent_transform(parent_transform),
+        transform(transform) {}
+};
+
+struct SpriteBone : public Bone {
+  std::shared_ptr<Quad> quad;
+  std::shared_ptr<Texture> texture;
+  std::shared_ptr<Sprite> sprite;
+  int sprite_index = 0;
+
+  SpriteBone(Entity entity, const std::string &name, std::shared_ptr<Quad> quad,
+             std::shared_ptr<Transform> parent_transform,
+             std::shared_ptr<Transform> transform,
+             std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite,
+             int sprite_index)
+      : Bone{entity, name, parent_transform, transform}, quad(quad),
+        texture(texture), sprite(sprite), sprite_index(sprite_index) {}
+};
+
+struct ModelBone : public Bone {
+  std::shared_ptr<Model> model;
+
+  ModelBone(Entity entity, const std::string &name,
+            std::shared_ptr<Transform> parent_transform,
+            std::shared_ptr<Transform> transform, std::shared_ptr<Model> model)
+
+      : Bone{entity, name, parent_transform, transform}, model(model) {}
 };
 
 struct Keyframe {
@@ -30,7 +60,6 @@ struct AnimationData {
   bool loop = true;
 };
 
-
 class Animation : public Component {
 private:
   std::unordered_map<std::string, AnimationData> animations;
@@ -38,117 +67,159 @@ private:
   float current_time = 0.0f;
 
 public:
-  std::vector<Bone> bones;
-  Bone root;
+  std::vector<std::shared_ptr<Bone>> bones;
+  std::shared_ptr<Bone> root;
+  bool playing = true;
 
-  Animation(Entity entity, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform, 
-                std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
+  Animation(Entity entity, std::shared_ptr<Quad> quad,
+            std::shared_ptr<Transform> transform,
+            std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite,
+            int sprite_index) {
 
-    std::shared_ptr<Transform> root_transform = std::make_shared<Transform>(*transform);
-    root = Bone(entity, "root", quad, transform, root_transform, texture, sprite, sprite_index);
+    std::shared_ptr<Transform> root_transform =
+        std::make_shared<Transform>(*transform);
+    root = std::make_shared<SpriteBone>(entity, "root", quad, transform,
+                                        root_transform, texture, sprite,
+                                        sprite_index);
   }
 
+  Animation(Entity entity, std::shared_ptr<Transform> transform) {
+    std::shared_ptr<Transform> root_transform =
+        std::make_shared<Transform>(*transform);
+    root = std::make_shared<Bone>(entity, "root", transform, root_transform);
+  }
 
-  void add_bone(Entity entity, const std::string &name, std::shared_ptr<Quad> quad, std::shared_ptr<Transform> transform,
-                std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite, int sprite_index) {
-      
-    std::shared_ptr<Transform> bone_transform = std::make_shared<Transform>(*transform);
-    bones.push_back({entity, name, quad, transform, bone_transform, texture, sprite, sprite_index});
+  Animation(Entity entity, std::shared_ptr<Transform> transform,
+            std::shared_ptr<Model> model) {
+    std::shared_ptr<Transform> root_transform =
+        std::make_shared<Transform>(*transform);
+    root = std::make_shared<ModelBone>(entity, "root", transform,
+                                       root_transform, model);
   }
-  void add_animation(const std::string& name, const AnimationData& data) {
-      animations[name] = data;
+
+  void add_bone(Entity entity, const std::string &name,
+                std::shared_ptr<Quad> quad,
+                std::shared_ptr<Transform> transform,
+                std::shared_ptr<Texture> texture,
+                std::shared_ptr<Sprite> sprite, int sprite_index) {
+
+    std::shared_ptr<Transform> bone_transform =
+        std::make_shared<Transform>(*transform);
+    bones.push_back(std::make_shared<SpriteBone>(entity, name, quad, transform,
+                                                 bone_transform, texture,
+                                                 sprite, sprite_index));
   }
-  void set_animation(const std::string& name) {
-      if (animations.find(name) != animations.end()) {
-        reset();
-        current_animation = name;
-        current_time = 0.0f; // Reset time when changing animation
-      }
+  void add_animation(const std::string &name, const AnimationData &data) {
+    animations[name] = data;
+  }
+  void set_animation(const std::string &name) {
+    if (animations.find(name) != animations.end()) {
+      reset();
+      current_animation = name;
+      current_time = 0.0f; // Reset time when changing animation
+    }
+  }
+
+  void stop_playing() {
+    playing = false;
+    root->parent_transform->position = root->transform->position;
   }
 
   void set_sprites_color(glm::vec4 color) {
-      root.sprite->color = color;
-      for (auto& bone : bones) {
-        bone.sprite->color = color;
+    if (auto rootSpriteBone = std::dynamic_pointer_cast<SpriteBone>(root)) {
+      rootSpriteBone->sprite->color = color;
+    }
+    for (auto &bone : bones) {
+      if (auto spriteBone = std::dynamic_pointer_cast<SpriteBone>(bone)) {
+        spriteBone->sprite->color = color;
       }
+    }
   }
 
   void reset() {
-      current_time = 0.0f;
-      root.transform->position = root.parent_transform->position;
-      root.transform->rotation = root.parent_transform->rotation;
-      root.transform->scale = root.parent_transform->scale;
-      for (auto& bone : bones) {
-        bone.transform->position = bone.parent_transform->position;
-        bone.transform->rotation = bone.parent_transform->rotation;
-        bone.transform->scale = bone.parent_transform->scale;
-      }
+    current_time = 0.0f;
+    root->transform->position = root->parent_transform->position;
+    root->transform->rotation = root->parent_transform->rotation;
+    root->transform->scale = root->parent_transform->scale;
+    for (auto &bone : bones) {
+      bone->transform->position = bone->parent_transform->position;
+      bone->transform->rotation = bone->parent_transform->rotation;
+      bone->transform->scale = bone->parent_transform->scale;
+    }
   }
 
   void update(float dt) {
     current_time += dt;
     if (animations.find(current_animation) != animations.end()) {
-      const auto& anim_data = animations.at(current_animation);
+      const auto &anim_data = animations.at(current_animation);
 
       if (anim_data.loop) {
         if (current_time > anim_data.duration)
           current_time = fmod(current_time, anim_data.duration);
       } else {
         if (current_time > anim_data.duration)
-        current_time = anim_data.duration;
+          current_time = anim_data.duration;
       }
 
       // ANIMATE ROOT
-      if (anim_data.frames.find(root.name) != anim_data.frames.end()) {
-        const auto& keyframes = anim_data.frames.at(root.name);
+      if (anim_data.frames.find(root->name) != anim_data.frames.end()) {
+        const auto &keyframes = anim_data.frames.at(root->name);
         if (current_time > anim_data.duration)
-          root.transform->position = root.parent_transform->position;
+          root->transform->position = root->parent_transform->position;
 
         // Find the two keyframes surrounding current_time
-        const Keyframe* prev = &keyframes.front();
-        const Keyframe* next = &keyframes.back();
+        const Keyframe *prev = &keyframes.front();
+        const Keyframe *next = &keyframes.back();
         for (size_t i = 1; i < keyframes.size(); ++i) {
-            if (keyframes[i].time > current_time) {
-                prev = &keyframes[i - 1];
-                next = &keyframes[i];
-                break;
-            }
+          if (keyframes[i].time > current_time) {
+            prev = &keyframes[i - 1];
+            next = &keyframes[i];
+            break;
+          }
         }
 
         // Interpolate between prev and next
         float t = (current_time - prev->time) / (next->time - prev->time);
-        root.transform->position = root.parent_transform->position + glm::mix(prev->position, next->position, t);
-        root.transform->setRotationEuler(root.parent_transform->getRotationEuler() + glm::mix(prev->rotation, next->rotation, t));
-        root.transform->scale = root.parent_transform->scale + glm::mix(prev->scale,    next->scale,    t);
+        root->transform->position = root->parent_transform->position +
+                                    glm::mix(prev->position, next->position, t);
+        root->transform->setRotationEuler(
+            root->parent_transform->getRotationEuler() +
+            glm::mix(prev->rotation, next->rotation, t));
+        root->transform->scale = root->parent_transform->scale +
+                                 glm::mix(prev->scale, next->scale, t);
       }
 
-      for (auto& bone : bones) {
-        if (anim_data.frames.find(bone.name) != anim_data.frames.end()) {
-          const auto& keyframes = anim_data.frames.at(bone.name);
+      for (auto &bone : bones) {
+        if (anim_data.frames.find(bone->name) != anim_data.frames.end()) {
+          const auto &keyframes = anim_data.frames.at(bone->name);
           if (current_time > anim_data.duration)
-            bone.transform->position = bone.parent_transform->position;
+            bone->transform->position = bone->parent_transform->position;
 
           // Find the two keyframes surrounding current_time
-          const Keyframe* prev = &keyframes.front();
-          const Keyframe* next = &keyframes.back();
+          const Keyframe *prev = &keyframes.front();
+          const Keyframe *next = &keyframes.back();
           for (size_t i = 1; i < keyframes.size(); ++i) {
-              if (keyframes[i].time > current_time) {
-                  prev = &keyframes[i - 1];
-                  next = &keyframes[i];
-                  break;
-              }
+            if (keyframes[i].time > current_time) {
+              prev = &keyframes[i - 1];
+              next = &keyframes[i];
+              break;
+            }
           }
 
           // Interpolate between prev and next
           float t = (current_time - prev->time) / (next->time - prev->time);
-          bone.transform->position = root.transform->position + glm::mix(prev->position, next->position, t);
-          bone.transform->setRotationEuler(root.transform->getRotationEuler() + glm::mix(prev->rotation, next->rotation, t));
-          bone.transform->scale = root.transform->scale + glm::mix(prev->scale,    next->scale,    t);
-        }
-        else {
-          bone.transform->position = root.transform->position;
-          bone.transform->rotation = root.transform->rotation;
-          bone.transform->scale = root.transform->scale;
+          bone->transform->position =
+              root->transform->position +
+              glm::mix(prev->position, next->position, t);
+          bone->transform->setRotationEuler(
+              root->transform->getRotationEuler() +
+              glm::mix(prev->rotation, next->rotation, t));
+          bone->transform->scale =
+              root->transform->scale + glm::mix(prev->scale, next->scale, t);
+        } else {
+          bone->transform->position = root->transform->position;
+          bone->transform->rotation = root->transform->rotation;
+          bone->transform->scale = root->transform->scale;
         }
       }
     }

@@ -6,6 +6,7 @@
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/systems/system.hpp"
 #include "timeless/timeless.hpp"
+#include <memory>
 #include <string.h>
 
 class RenderingSystem : public System {
@@ -61,7 +62,8 @@ public:
           transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
         }
       }
-      transform->model = glm::translate(transform->model, o);
+      if(o != glm::vec3(0.0f))
+        transform->model = glm::translate(transform->model, o);
 
       if (transform->flip) {
         transform->model = glm::rotate(transform->model, glm::radians(180.0f),
@@ -216,8 +218,36 @@ public:
     }
   }
 
+  void calculate_sun(ComponentManager &cm, std::shared_ptr<Shader> shader,
+                     std::shared_ptr<Camera> cam, int tick) {
+    // Angle goes from -π/2 (sunrise) to π/2 (sunset)
+    float angle = glm::mix(
+        -glm::half_pi<float>(), glm::half_pi<float>(),
+        (float)tick / (TESettings::MAX_TICKS / 2.0)); // dayProgress: 0.0 to 1.0
+    //
+    glm::vec3 lightPos;
+    lightPos.x = 1.0f;
+    lightPos.y = 0.0f;
+    lightPos.z = 1.0f;
+
+    auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
+    if (light_transfrom != nullptr) {
+      light_transfrom->position = lightPos * 100.0f;
+    }
+
+    // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
+    // sin(angle) * 0.5f + 0.6f);
+    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 1.0f);
+    glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+                 glm::value_ptr(glm::vec3(1.0f)));
+    glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
+                 glm::value_ptr(lightPos));
+    glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
+                 glm::value_ptr(cam->get_position()));
+  }
+
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
-              int tick = 0) {
+              int tick = 0, float delta_time = 0.016f) {
     // get camera if set
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
@@ -236,56 +266,77 @@ public:
       }
 
       auto animation = cm.get_component<Animation>(entity);
-      if (animation != nullptr) {
-        animation->root.transform->update_camera(cam);
-        update_transform(animation->root.transform);
-        auto root_shader = cm.get_component<Shader>(animation->root.entity);
-        set_shader_transform_uniforms(root_shader, animation->root.transform, cam, x, y, zoom,
-                                      tick);
-        animation->root.sprite->index = animation->root.sprite_index;
+      if (animation != nullptr && animation->playing) {
+        animation->root->transform->update_camera(cam);
+        update_transform(animation->root->transform);
+        auto root_shader = cm.get_component<Shader>(animation->root->entity);
+        set_shader_transform_uniforms(root_shader, animation->root->transform,
+                                      cam, x, y, zoom, tick);
 
-        animation->root.sprite->update();
-        animation->root.quad->render();
-        if (animation->root.sprite->slice_shader != nullptr) {
-          set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
-                                     cam->get_position());
-          animation->root.sprite->render_sliced();
-        } else {
-          if(animation->root.texture != nullptr) {
-            animation->root.texture->render();
-            set_shader_sprite_uniforms(root_shader, animation->root.sprite, tick,
-                                      cam->get_position());
+        if (auto rootModelBone =
+                std::dynamic_pointer_cast<ModelBone>(animation->root)) {
+          auto model = rootModelBone->model;
+          if (model != nullptr) {
+            calculate_sun(cm, root_shader, cam, tick);
+            auto texture = cm.get_component<Texture>(entity);
+            if(texture != nullptr) {
+              texture->render();
+            }
+            model->render(rootModelBone->transform->model, delta_time);
           }
-          animation->root.sprite->render();
+        }
+
+        if (auto rootSpriteBone =
+                std::dynamic_pointer_cast<SpriteBone>(animation->root)) {
+          rootSpriteBone->sprite->index = rootSpriteBone->sprite_index;
+          rootSpriteBone->sprite->update();
+          rootSpriteBone->quad->render();
+
+          if (rootSpriteBone->sprite->slice_shader != nullptr) {
+            set_shader_sprite_uniforms(root_shader, rootSpriteBone->sprite,
+                                       tick, cam->get_position());
+            rootSpriteBone->sprite->render_sliced();
+          } else {
+            if (rootSpriteBone->texture != nullptr) {
+              rootSpriteBone->texture->render();
+              set_shader_sprite_uniforms(root_shader, rootSpriteBone->sprite,
+                                         tick, cam->get_position());
+            }
+            rootSpriteBone->sprite->render();
+          }
         }
         for (const auto &bone : animation->bones) {
-          auto bone_shader = cm.get_component<Shader>(bone.entity);
+          auto bone_shader = cm.get_component<Shader>(bone->entity);
           if (bone_shader)
             bone_shader->use();
-          if (bone.transform) {
-            bone.transform->update_camera(cam);
-            update_transform(bone.transform);
-            set_shader_transform_uniforms(bone_shader, bone.transform, cam, x, y, zoom, tick);
+          if (bone->transform) {
+            bone->transform->update_camera(cam);
+            update_transform(bone->transform);
+            set_shader_transform_uniforms(bone_shader, bone->transform, cam, x,
+                                          y, zoom, tick);
           }
-          if (bone.sprite) {
-            bone.sprite->index = bone.sprite_index;
 
-            bone.sprite->update();
-            bone.quad->render();
-            if (bone.sprite->slice_shader != nullptr) {
-              bone.sprite->render_sliced();
-            } else {
-              if(animation->root.texture != nullptr)
-                bone.texture->render();
-              set_shader_sprite_uniforms(bone_shader, bone.sprite, tick,
-                                         cam->get_position());
-              bone.sprite->render();
+          if (auto spriteBone = std::dynamic_pointer_cast<SpriteBone>(bone)) {
+            if (spriteBone->sprite) {
+              spriteBone->sprite->index = spriteBone->sprite_index;
+
+              spriteBone->sprite->update();
+              spriteBone->quad->render();
+              if (spriteBone->sprite->slice_shader != nullptr) {
+                spriteBone->sprite->render_sliced();
+              } else {
+                // if (animation->root.texture != nullptr)
+                spriteBone->texture->render();
+                set_shader_sprite_uniforms(bone_shader, spriteBone->sprite, tick,
+                                           cam->get_position());
+                spriteBone->sprite->render();
+              }
             }
           }
         }
       }
 
-      if (animation == nullptr) {
+      if (animation == nullptr || !animation->playing) {
         auto text = cm.get_component<Text>(entity);
         if (text != nullptr) {
           if (text->center) {
@@ -335,28 +386,12 @@ public:
         if (model != nullptr) {
           // update_transform(transform);
           set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
-          // Angle goes from -π/2 (sunrise) to π/2 (sunset)
-          float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(), (float)tick / (TESettings::MAX_TICKS / 2.0) ); // dayProgress: 0.0 to 1.0
-          //
-          glm::vec3 lightPos;
-          lightPos.x = 1.0f;
-          lightPos.y = 0.0f;
-          lightPos.z = 1.0f;
-
-          auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
-          if(light_transfrom != nullptr) {
-            light_transfrom->position = lightPos * 100.0f;
+          calculate_sun(cm, shader, cam, tick);
+          auto texture = cm.get_component<Texture>(entity);
+          if(texture != nullptr) {
+            texture->render();
           }
-
-          glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), sin(angle) * 0.5f + 0.6f);
-          // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 1.0f);
-          glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                      glm::value_ptr(glm::vec3(1.0f)));
-          glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
-                      glm::value_ptr(lightPos));
-          glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
-                      glm::value_ptr(cam->get_position()));
-          model->render();
+          model->render(transform->model, delta_time);
         }
       }
     }

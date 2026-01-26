@@ -89,8 +89,8 @@ void Texture::render()
         std::cout << "OpenGL error: " << err << " when binding texture " << texture << std::endl;
     }
 
-    GLint dwidth = 0;
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
-    if (dwidth == 0) std::cout << "Texture not valid! texture: " << texture << " filename: " << filename << std::endl;
+    // GLint dwidth = 0;
+    // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
+    // if (dwidth == 0) std::cout << "Texture not valid! texture: " << texture << " filename: " << filename << std::endl;
 }
 

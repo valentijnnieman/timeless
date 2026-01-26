@@ -36,8 +36,8 @@ public:
   std::optional<glm::vec3> focus_point;
 
   Camera(glm::vec3 p, bool perspective = false,
-         glm::vec3 forward = glm::vec3(0, -1, 0),
-         glm::vec3 up = glm::vec3(0, 0, 1))
+         glm::vec3 forward = glm::vec3(0.0f, -1.0f, 0.0f),
+         glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f))
       : position(p), perspective(perspective), rotation(glm::quat()),
         forward(forward), up(up), view(glm::mat4(1.0f)) {}
 
@@ -103,8 +103,8 @@ public:
       } else {
         projection = glm::ortho(-(static_cast<float>(x * 0.5) * zoom),
                                 static_cast<float>(x * 0.5) * zoom,
-                                (static_cast<float>(y * 0.5) * zoom),
-                                -static_cast<float>(y * 0.5) * zoom, -10000.0f,
+                                -(static_cast<float>(y * 0.5) * zoom),
+                                static_cast<float>(y * 0.5) * zoom, -10000.0f,
                                 10000.0f);
       }
 

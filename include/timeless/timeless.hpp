@@ -247,6 +247,10 @@ namespace TE
     inline bool clicked_on_perspective(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
     auto transform = TE::get_component<Transform>(entity);
+    auto animation = TE::get_component<Animation>(entity);
+    if(animation != nullptr && animation->playing) {
+      transform = animation->root->transform;
+    }
     if(transform != nullptr) {
         // Get camera matrices and viewport
         auto camera = transform->camera;
@@ -290,6 +294,10 @@ namespace TE
     inline bool hovered_over(MouseMoveEvent *event, Entity entity,
                              float zoom = 1.0f) {
       auto transform = TE::get_component<Transform>(entity);
+      auto animation = TE::get_component<Animation>(entity);
+      if(animation != nullptr && animation->playing) {
+        transform = animation->root->transform;
+      }
       if (transform != nullptr) {
         float w = transform->width / zoom;
         float h = transform->height / zoom;

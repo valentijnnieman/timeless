@@ -18,9 +18,10 @@ public:
       : shader(shader) {
     loadModel(path);
   }
-  void render();
+  void render(glm::mat4 global_model_matrix, float delta_time = 0.016f);
   std::vector<std::shared_ptr<Mesh>> meshes;
 
+  bool hidden = false;
 private:
   std::shared_ptr<Texture> texture;
   std::shared_ptr<Shader> shader;

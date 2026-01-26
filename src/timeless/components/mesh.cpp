@@ -1,7 +1,11 @@
 #include "timeless/components/mesh.hpp"
 #include <memory>
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Shader> shader, glm::vec3 diffuseColor, glm::vec3 specularColor) {
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+           std::shared_ptr<Shader> shader, glm::vec3 diffuseColor,
+           glm::vec3 specularColor)
+    : position(0.0f, 0.0f, 0.0f), rotation(0.0f, 0.0f, 0.0f),
+      scale(1.0f, 1.0f, 1.0f) {
   this->vertices = vertices;
   this->indices = indices;
   this->diffuseColor = diffuseColor;
@@ -41,18 +45,19 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   //           << ", Norm: " << normLoc
   //           << ", TexCoord: " << texLoc << std::endl;
   // vertex positions
-  if(posLoc>= 0) {
+  if (posLoc >= 0) {
     glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)0);
   }
   // vertex normals
-  if(normLoc >= 0) {
+  if (normLoc >= 0) {
     glEnableVertexAttribArray(normLoc);
     glVertexAttribPointer(normLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void *)offsetof(Vertex, Normal));
   }
   // vertex texture coords
-  if(texLoc >= 0) {
+  if (texLoc >= 0) {
     glEnableVertexAttribArray(texLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void *)offsetof(Vertex, TexCoords));

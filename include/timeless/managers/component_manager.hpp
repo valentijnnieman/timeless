@@ -146,6 +146,9 @@ public:
   void add_component(Entity entity, Animation *animation) {
     animations.insert({entity, std::shared_ptr<Animation>(animation)});
   }
+  void add_component(Entity entity, std::shared_ptr<Animation> animation) {
+    animations.insert({entity, animation});
+  }
 
   template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
     return nullptr;

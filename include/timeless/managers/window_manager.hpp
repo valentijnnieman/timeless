@@ -199,9 +199,9 @@ public:
 
     set_shader_time(screen_shaders[idx]);
 
-    GLint width = 0;
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-    if (width == 0) std::cout << "Framebuffer Texture not valid!" << std::endl;
+    // GLint width = 0;
+    // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    // if (width == 0) std::cout << "Framebuffer Texture not valid!" << std::endl;
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);

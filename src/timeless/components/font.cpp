@@ -64,9 +64,9 @@ Font::Font(int fontSize, const std::string& filepath)
                 (unsigned int)face->glyph->advance.x};
             gen_glyphs.insert(std::pair<char, Glyph>(c, glyph));
 
-            GLint dwidth = 0;
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
-            if (dwidth == 0) std::cout << "Font texture not valid! texture: " << texture << std::endl;
+            // GLint dwidth = 0;
+            // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
+            // if (dwidth == 0) std::cout << "Font texture not valid! texture: " << texture << std::endl;
         }
         glBindTexture(GL_TEXTURE_2D, 0);
         FT_Done_Face(face);
