@@ -47,6 +47,45 @@ public:
     camera = c; 
   }
 
+  void update_transform(std::shared_ptr<Transform> transform, glm::vec3 o = glm::vec3(0.0f))
+  {
+      transform->model = glm::mat4(1.0f);
+
+      transform->model = glm::translate(transform->model, transform->get_position_minus_offset());
+
+      if(!transform->isometric){
+        if (transform->center) {
+          transform->model =
+              glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.5 * transform->height, 0.0));
+        } else {
+          transform->model = glm::translate(transform->model, glm::vec3(0.5 * transform->width, 0.0, 0.0));
+        }
+      }
+      transform->model = glm::translate(transform->model, o);
+
+      if (transform->flip) {
+        transform->model = glm::rotate(transform->model, glm::radians(180.0f),
+                            glm::vec3(0.0f, 1.0f, 0.0f));
+      }
+
+      if(transform->isometric){
+        // model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1, 0, 0));
+        // model = glm::rotate(model, glm::radians(63.559f), glm::vec3(0, 0, 1));
+        transform->model = glm::rotate(transform->model, glm::radians(45.0f), glm::vec3(0, 0, 1));
+      }
+
+      glm::mat4 rotation_matrix = transform->getRotationMatrix();
+
+      transform->model = transform->model * rotation_matrix;
+
+      if(transform->isometric){
+      } else {
+        transform->model = glm::scale(transform->model, glm::vec3(transform->width, transform->height, transform->width));
+      }
+      glm::vec3 s = transform->get_scale();
+      transform->model = glm::scale(transform->model, s);
+    }
+
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
                                      std::shared_ptr<Transform> transform,
                                      std::shared_ptr<Camera> camera,
@@ -185,19 +224,21 @@ public:
     for (auto &entity : registered_entities) {
       auto sprite = cm.get_component<Sprite>(entity);
       auto shader = cm.get_component<Shader>(entity);
-      shader->use();
+      if(shader != nullptr) {
+        shader->use();
+      }
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         if (cam != nullptr) {
           transform->update_camera(cam);
         }
-        transform->update(glm::vec3(0.0f));
+        update_transform(transform);
       }
 
       auto animation = cm.get_component<Animation>(entity);
       if (animation != nullptr) {
         animation->root.transform->update_camera(cam);
-        animation->root.transform->update(glm::vec3(0.0f));
+        update_transform(animation->root.transform);
         auto root_shader = cm.get_component<Shader>(animation->root.entity);
         set_shader_transform_uniforms(root_shader, animation->root.transform, cam, x, y, zoom,
                                       tick);
@@ -223,7 +264,7 @@ public:
             bone_shader->use();
           if (bone.transform) {
             bone.transform->update_camera(cam);
-            bone.transform->update(glm::vec3(0.0f));
+            update_transform(bone.transform);
             set_shader_transform_uniforms(bone_shader, bone.transform, cam, x, y, zoom, tick);
           }
           if (bone.sprite) {
@@ -248,7 +289,7 @@ public:
         auto text = cm.get_component<Text>(entity);
         if (text != nullptr) {
           if (text->center) {
-            transform->update(glm::vec3(-get_text_width(entity, cm) * 0.5f,
+            update_transform(transform, glm::vec3(-get_text_width(entity, cm) * 0.5f,
                                         -get_text_height(entity, cm) * 0.5f,
                                         0.0f));
           }
@@ -292,7 +333,7 @@ public:
 
         auto model = cm.get_component<Model>(entity);
         if (model != nullptr) {
-          transform->update(glm::vec3(0.0f));
+          // update_transform(transform);
           set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
           // Angle goes from -π/2 (sunrise) to π/2 (sunset)
           float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(), (float)tick / (TESettings::MAX_TICKS / 2.0) ); // dayProgress: 0.0 to 1.0
@@ -317,7 +358,6 @@ public:
                       glm::value_ptr(cam->get_position()));
           model->render();
         }
-
       }
     }
   }
@@ -380,7 +420,7 @@ public:
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
         transform->update_camera(cam);
-        transform->update(glm::vec3(0.0f));
+        update_transform(transform);
         models.push_back(transform->model);
       }
 

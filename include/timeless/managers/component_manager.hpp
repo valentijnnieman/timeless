@@ -160,6 +160,7 @@ public:
       keyboard_input_listeners.erase(entity);
       animations.erase(entity);
       quads.erase(entity);
+      models.erase(entity);
       textures.erase(entity);
       shaders.erase(entity);
       sprites.erase(entity);

@@ -251,12 +251,11 @@ namespace TE
         // Get camera matrices and viewport
         auto camera = transform->camera;
         glm::mat4 view = camera->get_view_matrix();
-        glm::mat4 proj = camera->get_projection_matrix();
+        glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
+        // glm::mat4 proj = camera->get_projection_matrix();
 
         // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
         glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-
-        std::cout << "Viewport: " << viewport.x << ", " << viewport.y << ", " << viewport.z << ", " << viewport.w << std::endl;
 
         // Mouse position to NDC
         float mouse_x = event->raw_position.x;
@@ -272,10 +271,14 @@ namespace TE
         // Ray from camera position to far_point
         glm::vec3 ray_dir = glm::normalize(far_point - near_point);
 
+        if(!camera->perspective) {
+          ray_dir = -glm::normalize(camera->get_forward());
+        }
+
         // Entity bounding box (centered position, width, height)
         glm::vec3 box_center = transform->get_position();
-        float w = transform->width / zoom;
-        float h = transform->height / zoom;
+        float w = transform->width;
+        float h = transform->height;
         glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
         glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
 
@@ -310,7 +313,8 @@ namespace TE
         auto camera = transform->camera;
         if (camera != nullptr) {
           glm::mat4 view = camera->get_view_matrix();
-          glm::mat4 proj = camera->get_projection_matrix();
+          glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
+          // glm::mat4 proj = camera->get_projection_matrix();
           glm::vec4 viewport =
               glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
@@ -329,10 +333,14 @@ namespace TE
           // Ray from camera position to far_point
           glm::vec3 ray_dir = glm::normalize(far_point - near_point);
 
+          if(!camera->perspective) {
+            ray_dir = -glm::normalize(camera->get_forward());
+          }
+
           // Entity bounding box (centered position, width, height)
           glm::vec3 box_center = transform->get_position();
-          float w = transform->width / zoom;
-          float h = transform->height / zoom;
+          float w = transform->width;
+          float h = transform->height;
           glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
           glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
 

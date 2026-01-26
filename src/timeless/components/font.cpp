@@ -149,10 +149,6 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
         while ((err = glGetError()) != GL_NO_ERROR) {
             std::cerr << "OpenGL error during glyphs: 0x" << std::hex << err << std::endl;
     }
-
-        GLint dwidth = 0;
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
-        if (dwidth == 0) std::cout << "Font texture not valid! texture: " << texture << std::endl;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     FT_Done_Face(face);

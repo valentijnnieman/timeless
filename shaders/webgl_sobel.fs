@@ -54,15 +54,15 @@ void main(void)
 
      float noise = fract(sin(time * PI) + sin(dot(TexCoords.xy ,vec2(12.9898,78.233))) * 43758.5453);
      // float thickness = 0.2 + 0.1 * noise; // randomize thickness
-     float thickness = 0.3;
+     float thickness = 0.1;
 
      float edge = length(vec2(gx, gy));
      vec3 origColor = texture2D(screenTexture, TexCoords).rgb;
      float isEdge = edge > thickness ? 0.0 : 1.0;
 
     // Use black for edges, black elsewhere
-    // gl_FragColor = vec4(mix(vec3(1.0), vec3(0.0), 1.0 - isEdge), 1.0);
+    gl_FragColor = vec4(mix(vec3(0.0), vec3(1.0), 1.0 - isEdge), 1.0);
 
     // Use original color for edges, black elsewhere
-    gl_FragColor = vec4(mix(origColor, vec3(0.0), 1.0 - isEdge), 1.0);
+    //gl_FragColor = vec4(mix(origColor, vec3(0.0), 1.0 - isEdge), 1.0);
 }

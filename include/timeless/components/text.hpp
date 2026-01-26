@@ -106,6 +106,11 @@ public:
             {
                 set_default_color_vector();
             }
+            auto it = font->glyphs.find(*c);
+            if (it == font->glyphs.end()) {
+              std::cout << "Character " << *c << " not found in font glyphs!" << std::endl;
+              continue;
+            }
             Glyph glyph = font->glyphs.at(*c);
 
             float w = glyph.size.x;

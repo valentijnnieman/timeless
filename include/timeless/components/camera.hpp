@@ -3,6 +3,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include "glm/gtx/string_cast.hpp"
 #include "timeless/components/component.hpp"
+#include <memory>
 #include <queue>
 #include <optional>
 
@@ -108,6 +109,19 @@ public:
       }
 
     return projection;
+  }
+
+  void focus_on_position(const glm::vec3& pos) {
+    glm::vec3 forward = this->get_forward();
+
+    // Project the vector from camera to tile onto the forward vector
+    float forward_offset = glm::dot(this->get_position() - pos, forward);
+
+    // Set new camera position so tile is centered in view
+    glm::vec3 new_camera_position = pos + forward * forward_offset;
+
+    // this->set_positions_from_to(this->get_position(), new_camera_position, 0.5);
+    this->animate_to(new_camera_position, rotation, 0.1);
   }
 
   // Start animation for position and rotation

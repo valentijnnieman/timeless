@@ -84,6 +84,7 @@ public:
 	std::set<int> extra_data; // extra data located on this node
 
 	LocationType location = none;
+  bool shrouded = false;
 
 	Collider collider;
 
