@@ -54,6 +54,7 @@ public:
 
     std::string et = event->eventType;
     event->eventType = "Global" + et;
+
     for (const auto &entity : registered_entities) {
       notify_listener(cm, event, entity);
     }

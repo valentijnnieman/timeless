@@ -112,8 +112,10 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time) {
 
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                   glm::value_ptr(meshes[i]->diffuseColor));
-    glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
-                 glm::value_ptr(meshes[i]->diffuseColor));
+      glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+                  glm::value_ptr(meshes[i]->diffuseColor));
+      glUniform1f(glGetUniformLocation(shader->ID, "metallic"), metallic);
+      glUniform1f(glGetUniformLocation(shader->ID, "roughness"), roughness);
       glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                   glm::value_ptr(meshes[i]->specularColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,

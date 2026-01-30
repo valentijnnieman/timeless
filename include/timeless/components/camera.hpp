@@ -7,6 +7,10 @@
 #include <queue>
 #include <optional>
 
+struct Frustum {
+    glm::vec4 planes[6]; // (a, b, c, d) for ax + by + cz + d = 0
+};
+
 class Camera : public Component {
 private:
   std::queue<glm::vec3> positions;
@@ -42,11 +46,11 @@ public:
         forward(forward), up(up), view(glm::mat4(1.0f)) {}
 
   glm::vec3 get_position() {
-    if (positions.size() > 0) {
-      glm::vec3 p = positions.front();
-      positions.pop();
-      return p;
-    }
+    // if (positions.size() > 0) {
+    //   glm::vec3 p = positions.front();
+    //   positions.pop();
+    //   return p;
+    // }
     return position;
   }
   void set_position(glm::vec3 pos) { 
@@ -101,14 +105,70 @@ public:
         // Flip Y axis to match ortho orientation
         // projection[1][1] *= -1;
       } else {
-        projection = glm::ortho(-(static_cast<float>(x * 0.5) * zoom),
-                                static_cast<float>(x * 0.5) * zoom,
-                                -(static_cast<float>(y * 0.5) * zoom),
-                                static_cast<float>(y * 0.5) * zoom, -10000.0f,
-                                10000.0f);
+        projection =
+            glm::ortho(static_cast<float>(x * 0.5) * zoom,
+                       -(static_cast<float>(x * 0.5) * zoom),
+                       -(static_cast<float>(y * 0.5) * zoom),
+                       static_cast<float>(y * 0.5) * zoom, -10000.0f, 10000.0f);
       }
 
     return projection;
+  }
+
+  Frustum get_frustum(int x, int y, float zoom = 1.0f) {
+      glm::mat4 vp = get_projection_matrix(x, y, zoom) * get_view_matrix();
+      Frustum frustum;
+
+      // Left
+      frustum.planes[0] = glm::vec4(
+          vp[0][3] + vp[0][0],
+          vp[1][3] + vp[1][0],
+          vp[2][3] + vp[2][0],
+          vp[3][3] + vp[3][0]
+      );
+      // Right
+      frustum.planes[1] = glm::vec4(
+          vp[0][3] - vp[0][0],
+          vp[1][3] - vp[1][0],
+          vp[2][3] - vp[2][0],
+          vp[3][3] - vp[3][0]
+      );
+      // Bottom
+      frustum.planes[2] = glm::vec4(
+          vp[0][3] + vp[0][1],
+          vp[1][3] + vp[1][1],
+          vp[2][3] + vp[2][1],
+          vp[3][3] + vp[3][1]
+      );
+      // Top
+      frustum.planes[3] = glm::vec4(
+          vp[0][3] - vp[0][1],
+          vp[1][3] - vp[1][1],
+          vp[2][3] - vp[2][1],
+          vp[3][3] - vp[3][1]
+      );
+      // Near
+      frustum.planes[4] = glm::vec4(
+          vp[0][3] + vp[0][2],
+          vp[1][3] + vp[1][2],
+          vp[2][3] + vp[2][2],
+          vp[3][3] + vp[3][2]
+      );
+      // Far
+      frustum.planes[5] = glm::vec4(
+          vp[0][3] - vp[0][2],
+          vp[1][3] - vp[1][2],
+          vp[2][3] - vp[2][2],
+          vp[3][3] - vp[3][2]
+      );
+
+      // Normalize planes
+      for (int i = 0; i < 6; ++i) {
+          float length = glm::length(glm::vec3(frustum.planes[i]));
+          frustum.planes[i] /= length;
+      }
+
+      return frustum;
   }
 
   void focus_on_position(const glm::vec3& pos) {

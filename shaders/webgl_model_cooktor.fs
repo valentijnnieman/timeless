@@ -59,8 +59,7 @@ void main()
     vec3 H = normalize(V + L);
 
     // Cook-Torrance BRDF
-    // float NDF = DistributionGGX(N, H, roughness);
-    float NDF = 1.0; // For testing only
+    float NDF = DistributionGGX(N, H, roughness);
     float G   = GeometrySmith(N, V, L, roughness);
 
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
@@ -88,6 +87,7 @@ void main()
     // Gamma correction
     color = pow(color, vec3(1.0/2.2));
     gl_FragColor = vec4(color, 1.0);
-    // gl_FragColor = vec4(vec3(NDF), 1.0);
+    // gl_FragColor = vec4(N * 0.5 + 0.5, 1.0);
+    // gl_FragColor = vec4(vec3(NdotL), 1.0);
     // gl_FragColor = vec4(vec3(denominator), 1.0);
 }

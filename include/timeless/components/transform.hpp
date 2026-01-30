@@ -13,12 +13,20 @@
 #include "timeless/components/component.hpp"
 #include "timeless/components/camera.hpp"
 
+struct BoundingSphere {
+    glm::vec3 center;
+    float radius;
+};
+
 class Transform : public Component
 {
 private:
   std::queue<glm::vec3> positions;
   std::queue<glm::vec3> scales;
   std::queue<glm::vec3> rotations;
+
+  glm::vec3 local_bounding_center = glm::vec3(0.0f); // Local-space center
+  float local_bounding_radius = 1.0f;                // Local-space radius
 
 public:
     std::shared_ptr<Camera> camera;
@@ -244,5 +252,14 @@ public:
         double z_l = std::lerp(from.z, to.z, i);
         scales.push(glm::vec3(x_l, y_l, z_l));
       }
+    }
+
+    BoundingSphere get_bounding_sphere() const {
+        // Transform local center to world space
+        glm::vec3 world_center = glm::vec3(model * glm::vec4(local_bounding_center, 1.0f));
+        // Scale radius by the largest scale component
+        float max_scale = glm::compMax(glm::abs(scale));
+        float world_radius = local_bounding_radius * max_scale;
+        return {world_center, world_radius};
     }
 };

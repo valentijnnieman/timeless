@@ -22,6 +22,9 @@ public:
   std::vector<std::shared_ptr<Mesh>> meshes;
 
   bool hidden = false;
+
+  float metallic = 0.1f;
+  float roughness = 0.1f;
 private:
   std::shared_ptr<Texture> texture;
   std::shared_ptr<Shader> shader;

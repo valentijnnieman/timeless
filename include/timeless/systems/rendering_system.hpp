@@ -137,9 +137,6 @@ public:
       glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
                   ui_jitter_speed);
       glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
-
-      glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
-                   glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
       // glUniform1f(glGetUniformLocation(shader->ID, "cutoffDistance"),
       // 100.0f);
     }
@@ -227,23 +224,20 @@ public:
         (float)tick / (TESettings::MAX_TICKS / 2.0)); // dayProgress: 0.0 to 1.0
     //
     glm::vec3 lightPos;
-    lightPos.x = 0.0f;
+    lightPos.x = 1.0f;
     lightPos.y = 0.0f;
-    lightPos.z = -1.0f;
+    lightPos.z = 1.0f;
 
-    auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
-    if (light_transfrom != nullptr) {
-      light_transfrom->position = lightPos * 100.0f;
-    }
+    // auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
+    // if (light_transfrom != nullptr) {
+    //   light_transfrom->position = lightPos * 100.0f;
+    // }
 
     // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
     // sin(angle) * 0.5f + 0.6f);
-    glUniform1f(glGetUniformLocation(shader->ID, "metallic"), 0.9f);
-    glUniform1f(glGetUniformLocation(shader->ID, "roughness"), 0.1f);
     glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 0.3f);
 
-    glm::vec3 lightDir = glm::normalize(lightPos);
-    glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1, glm::value_ptr(lightDir));
+    glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                  glm::value_ptr(cam->get_position()));
   }
@@ -386,17 +380,34 @@ public:
 
         auto model = cm.get_component<Model>(entity);
         if (model != nullptr) {
-          // update_transform(transform);
-          set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
-          calculate_sun(cm, shader, cam, tick);
-          auto texture = cm.get_component<Texture>(entity);
-          if(texture != nullptr) {
-            texture->render();
+          BoundingSphere sphere = transform->get_bounding_sphere();
+          if (is_in_frustum(cam->get_frustum(x, y, zoom), sphere)) {
+            // update_transform(transform);
+            set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
+            calculate_sun(cm, shader, cam, tick);
+            auto texture = cm.get_component<Texture>(entity);
+            if(texture != nullptr) {
+              texture->render();
+            }
+            model->render(transform->model, delta_time);
           }
-          model->render(transform->model, delta_time);
         }
       }
     }
+  }
+
+  bool is_in_frustum(const Frustum& frustum, const BoundingSphere& sphere) {
+      for (int i = 0; i < 6; ++i) {
+          const glm::vec4& plane = frustum.planes[i];
+          // Plane equation: ax + by + cz + d = 0
+          float distance = glm::dot(glm::vec3(plane), sphere.center) + plane.w;
+          if (distance < -(sphere.radius * 6.0f)) {
+              // Sphere is completely outside this plane
+              return false;
+          }
+      }
+      // Sphere is inside or intersects all planes
+      return true;
   }
 
   void init_instanced_buffers(std::shared_ptr<Quad> quad,

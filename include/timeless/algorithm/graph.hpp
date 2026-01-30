@@ -98,7 +98,7 @@ public:
     }
     for (const glm::vec2 &dir : node_dirs) {
       glm::vec2 next = {node->x + dir.x, node->y + dir.y};
-      if (isInBounds(next)) {
+      // if (isInBounds(next)) {
         auto it = nodes.find({next.x, next.y});
         if (it != nodes.end()) {
           const auto n = it->second;
@@ -113,7 +113,7 @@ public:
               results.push_back(n);
             }
           }
-        }
+        // }
       }
     }
 
@@ -147,6 +147,9 @@ public:
                            [x = x, y = y](map_value_type node) {
                              return node.first->x == x && node.first->y == y;
                            });
+    if (it == vertices.end()) {
+        return nullptr;
+    }
     return it->first;
   }
 

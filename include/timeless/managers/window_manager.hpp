@@ -217,10 +217,10 @@ public:
       glUniform1f(timeLoc, glfwGetTime());
 
     if (screen_shaders.size() > 0) {
-      GLint lightPosLoc =
-          glGetUniformLocation(screen_shaders[0]->ID, "lightPosition");
-      if (lightPosLoc != -1)
-        glUniform2fv(lightPosLoc, 1, glm::value_ptr(glm::vec2(0.0f, 0.0f)));
+      // GLint lightPosLoc =
+      //     glGetUniformLocation(screen_shaders[0]->ID, "lightPosition");
+      // if (lightPosLoc != -1)
+      //   glUniform2fv(lightPosLoc, 1, glm::value_ptr(glm::vec2(0.0f, 0.0f)));
 
       GLint resLoc = glGetUniformLocation(screen_shaders[0]->ID, "resolution");
       if (resLoc != -1)

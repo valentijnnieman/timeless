@@ -58,6 +58,7 @@ public:
   virtual void remove() {
     for (auto entity : entities) {
       TE::remove_entity(entity);
+      destroy_entity(entity);
     }
   }
 
@@ -66,7 +67,7 @@ public:
         entity, new EventListener<Event>([&](Event *event, Entity entity,
                                              void *data) mutable {
           if (event->eventType == "CloseUI") {
-            remove();                        
+            remove();
           }
         }));
     TE::get_system<EventSystem>("EventSystem")->register_entity(entity);
