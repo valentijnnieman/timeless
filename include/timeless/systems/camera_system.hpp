@@ -8,8 +8,7 @@ public:
   void update(ComponentManager &cm, float delta_time) {
     for (auto entity : registered_entities) {
       auto camera = cm.get_component<Camera>(entity);
-      camera->update(delta_time); // Assuming a fixed timestep for simplicity
-      camera->update_orbit(delta_time); // Assuming a fixed timestep for simplicity
+      camera->update(delta_time); 
     }
   }
 };

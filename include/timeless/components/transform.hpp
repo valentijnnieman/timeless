@@ -175,8 +175,8 @@ public:
       glm::vec3 p = get_position();
       glm::vec3 relative = p - camera->get_position();
       // Apply inverse camera rotation to get position in camera space
-      glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * relative;
-      return camera_space;
+      // glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * relative;
+      return relative;
     }
 
     glm::vec3 get_centered_position_from_camera()
@@ -186,9 +186,9 @@ public:
 
       p_centered /= TESettings::VIEWPORT_SCALE;
       // Apply inverse camera rotation to get position in camera space
-      glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * p_centered;
+      // glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * p_centered;
 
-      return camera_space;
+      return p_centered;
     }
 
     void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {

@@ -52,7 +52,7 @@ void main(void)
         gy += kernelY[i] * lum;
     }
 
-     float noise = fract(sin(time * PI) + sin(dot(TexCoords.xy ,vec2(12.9898,78.233))) * 43758.5453);
+     // float noise = fract(sin(time * PI) + sin(dot(TexCoords.xy ,vec2(12.9898,78.233))) * 43758.5453);
      // float thickness = 0.2 + 0.1 * noise; // randomize thickness
      float thickness = 0.5;
 
