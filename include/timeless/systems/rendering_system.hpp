@@ -19,6 +19,7 @@ private:
   unsigned int attrLoc2;
   unsigned int attrLoc3;
 
+
   std::vector<glm::mat4> models;
   std::vector<float> sprite_indices;
   std::vector<glm::vec2> sprite_sizes;
@@ -28,6 +29,8 @@ public:
 
   Entity debug_ligth_ent;
 
+  std::vector<glm::vec3> lightPositions;
+  std::vector<glm::vec3> lightColors;
   float inst_jitter = 0.0f;
   float inst_jitter_speed = 0.0f;
 
@@ -235,11 +238,28 @@ public:
 
     // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
     // sin(angle) * 0.5f + 0.6f);
-    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), 0.3f);
+    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), cos(angle) * 0.5f);
 
     glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                  glm::value_ptr(cam->get_position()));
+
+    if (!lightPositions.empty()) {
+      std::cout << lightPositions.size() << " lights" << std::endl;
+      int numPointLights = lightPositions.size();
+      glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
+      glUniform3fv(
+          glGetUniformLocation(shader->ID, "pointLightPositions"),
+          numPointLights,
+          glm::value_ptr(lightPositions[0])
+      );
+      glUniform3fv(
+          glGetUniformLocation(shader->ID, "pointLightColors"),
+          numPointLights,
+          glm::value_ptr(lightColors[0])
+      );
+    }
+
   }
 
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,

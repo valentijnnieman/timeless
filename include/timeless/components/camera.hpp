@@ -59,6 +59,7 @@ public:
 
   glm::quat get_rotation() { return rotation; }
   void set_rotation(glm::quat rot) { 
+    std::cout << "Setting camera rotation to: " << glm::to_string(rot) << std::endl;
     rotation = rot; 
   }
 
@@ -216,45 +217,4 @@ public:
     }
     position = to;
   }
-
-  void animate_circle_around_center(const glm::vec3& center, float radius, float start_angle, float end_angle, float duration) {
-    // Store orbit parameters as member variables if needed
-    orbit_center = center;
-    orbit_radius = radius;
-    orbit_angle = start_angle;
-    orbit_end_angle = end_angle;
-    orbit_duration = duration;
-    orbit_elapsed = 0.0f;
-    orbit_angular_speed = (end_angle - start_angle) / duration;
-    orbit_active = true;
-  }
-
-void update_orbit(float dt) {
-  if (!orbit_active) return;
-  orbit_elapsed += dt;
-  if (orbit_elapsed > orbit_duration) {
-    orbit_angle = orbit_end_angle;
-    orbit_active = false;
-  } else {
-    orbit_angle += orbit_angular_speed * dt;
-  }
-  glm::vec3 offset = glm::vec3(
-    orbit_radius * cos(orbit_angle),
-    orbit_radius * sin(orbit_angle),
-    1000.0f
-  );
-  position = orbit_center + offset;
-
-  // Compute yaw to face the center (Z up)
-  glm::vec3 to_center = glm::normalize(orbit_center - position);
-  float yaw = atan2(to_center.y, to_center.x);
-
-  // Use stored original downward pitch
-  float pitch = 45.0f; // Store this when starting the orbit
-
-  // Compose rotation: yaw (Z axis), then pitch (X axis)
-  glm::quat q_yaw = glm::angleAxis(yaw, glm::vec3(0, 0, 1));
-  glm::quat q_pitch = glm::angleAxis(pitch, glm::vec3(1, 0, 0));
-  rotation = q_yaw * q_pitch;
-}
 };

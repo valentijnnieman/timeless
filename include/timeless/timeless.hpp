@@ -206,7 +206,8 @@ namespace TE
           glm::quat inv_rot = glm::inverse(glm::normalize(transform->camera_rotation));
 
           // Rotate mouse position
-          glm::vec3 rotated_mouse = inv_rot * mouse_pos;
+          // glm::vec3 rotated_mouse = inv_rot * mouse_pos;
+          glm::vec3 rotated_mouse = mouse_pos;
 
           return ((rotated_mouse.x > pos.x - w && 
                   rotated_mouse.x < pos.x + w) &&
