@@ -11,6 +11,7 @@
 #include "timeless/components/mouse_input_listener.hpp"
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/components/node.hpp"
+#include "timeless/components/particle.hpp"
 #include "timeless/components/shader.hpp"
 #include "timeless/components/sprite.hpp"
 #include "timeless/components/text.hpp"
@@ -52,6 +53,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Behaviour>> behaviours;
   std::unordered_map<Entity, std::shared_ptr<Line>> geometry;
   std::unordered_map<Entity, std::shared_ptr<Animation>> animations;
+  std::unordered_map<Entity, std::shared_ptr<ParticleEmitter>> particleemitters;
 
   ComponentManager(){};
 
@@ -149,6 +151,12 @@ public:
   void add_component(Entity entity, std::shared_ptr<Animation> animation) {
     animations.insert({entity, animation});
   }
+  void add_component(Entity entity, ParticleEmitter *pe) {
+    particleemitters.insert({entity, std::shared_ptr<ParticleEmitter>(pe)});
+  }
+  void add_component(Entity entity, std::shared_ptr<ParticleEmitter> pe) {
+    particleemitters.insert({entity, pe});
+  }
 
   template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
     return nullptr;
@@ -178,6 +186,7 @@ public:
       behaviours.erase(entity);
       event_listeners.erase(entity);
       position_event_listeners.erase(entity);
+      particleemitters.erase(entity);
     } catch (std::exception e) {
       throw e;
     }
@@ -203,6 +212,7 @@ public:
     behaviours.clear();
     geometry.clear();
     animations.clear();
+    particleemitters.clear();
   }
 };
 template <>
@@ -321,5 +331,12 @@ const inline std::shared_ptr<Animation>
 ComponentManager::get_component<Animation>(Entity entity) {
   if (animations.contains(entity))
     return animations.at(entity);
+  return nullptr;
+}
+template <>
+const inline std::shared_ptr<ParticleEmitter>
+ComponentManager::get_component<ParticleEmitter>(Entity entity) {
+  if (particleemitters.contains(entity))
+    return particleemitters.at(entity);
   return nullptr;
 }

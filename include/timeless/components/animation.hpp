@@ -117,12 +117,24 @@ public:
       reset();
       current_animation = name;
       current_time = 0.0f; // Reset time when changing animation
+      playing = true;
     }
   }
 
   void stop_playing() {
-    playing = false;
-    root->parent_transform->position = root->transform->position;
+    if(playing) {
+      playing = false;
+      // Copy all transform properties for root
+      root->parent_transform->position = root->transform->position;
+      root->parent_transform->rotation = root->transform->rotation;
+      root->parent_transform->scale = root->transform->scale;
+      // Do the same for all bones
+      for (auto &bone : bones) {
+        bone->parent_transform->position = bone->transform->position;
+        bone->parent_transform->rotation = bone->transform->rotation;
+        bone->parent_transform->scale = bone->transform->scale;
+      }
+    }
   }
 
   void set_sprites_color(glm::vec4 color) {

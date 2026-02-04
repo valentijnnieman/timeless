@@ -248,6 +248,7 @@ public:
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     for (auto &entity : registered_entities) {
+
       auto sprite = cm.get_component<Sprite>(entity);
       auto shader = cm.get_component<Shader>(entity);
       if(shader != nullptr) {
@@ -259,6 +260,20 @@ public:
           transform->update_camera(cam);
         }
         update_transform(transform);
+      }
+
+      auto particle_emitter = cm.get_component<ParticleEmitter>(entity);
+      if(particle_emitter != nullptr) {
+        auto shader = cm.get_component<Shader>(entity);
+        auto quad = cm.get_component<Quad>(entity);
+        if(quad != nullptr) {
+          set_shader_transform_uniforms(shader, transform,
+                                        cam, x, y, zoom, tick);
+          particle_emitter->update(delta_time);
+
+          particle_emitter->render(quad, shader);
+        }
+        continue;
       }
 
       auto animation = cm.get_component<Animation>(entity);

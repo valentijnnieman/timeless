@@ -9,6 +9,7 @@
 #include "timeless/components/movement_controller.hpp"
 #include "timeless/components/keyboard_input_listener.hpp"
 #include "timeless/components/font.hpp"
+#include "timeless/components/particle.hpp"
 #include "timeless/event.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/managers/window_manager.hpp"
