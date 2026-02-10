@@ -151,20 +151,14 @@ public:
 			}
 		}
 	}
-	int get_entity_index(Entity entity)
-	{
-		if (!entities.empty())
-		{
-			auto found = std::find_if(entities.begin(), entities.end(), [&](auto& e)
-				{ return e == entity; });
-			if (found != entities.end())
-			{
-        return std::distance(entities.begin(), found);
-				// return found - entities.begin();
-			}
-		}
-		return -1;
-	}
+int get_entity_index(const Entity& entity) const
+{
+    auto found = std::find(entities.begin(), entities.end(), entity);
+    if (found != entities.end()) {
+      return static_cast<int>(std::distance(entities.begin(), found));
+    }
+    return -1;
+}
 	bool includes_entity(Entity entity)
 	{
 		if (!entities.empty())

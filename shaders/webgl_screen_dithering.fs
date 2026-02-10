@@ -32,10 +32,11 @@ void main() {
     vec2 pixelPos = gl_FragCoord.xy;
     vec4 color = texture2D(screenTexture, TexCoords);
 
-    float levels = 4.0;
+    float levels = 4.0; // Number of quantization levels per channel
     float threshold = bayer(pixelPos);
 
-    vec3 dithered = floor(color.rgb* (levels - 1.0) + threshold) / (levels - 1.0);
+    // Dithered quantization
+    vec3 dithered = floor(color.rgb * (levels - 1.0) + threshold) / (levels - 1.0);
 
-    gl_FragColor = vec4(noisyColor, color.a);
+    gl_FragColor = vec4(dithered, color.a);
 }

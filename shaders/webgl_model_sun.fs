@@ -28,7 +28,8 @@ void main()
 
     // Point lights
     vec3 pointDiffuse = vec3(0.0);
-    for (int i = 0; i < numPointLights; ++i) {
+    for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
+        if(i >= numPointLights) break;
         vec3 plDir = normalize(pointLightPositions[i] - FragPos);
         float plDiff = max(dot(norm, plDir), 0.0);
         pointDiffuse += plDiff * materialDiffuse * pointLightColors[i];

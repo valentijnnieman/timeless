@@ -23,7 +23,6 @@ public:
     Texture(const std::vector<uint8_t>& buffer, int width, int height);
     ~Texture()
     {
-        std::cout << "Deleting texture: " << filename << std::endl;
         glDeleteTextures(1, &texture);
     }
     

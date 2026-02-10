@@ -219,22 +219,21 @@ public:
     }
   }
 
-  void calculate_sun(ComponentManager &cm, std::shared_ptr<Shader> shader,
+  void calculate_lighting(Entity ent, ComponentManager &cm, std::shared_ptr<Shader> shader,
                      std::shared_ptr<Camera> cam, int tick) {
+    int dayTick = 0;
+    if(tick >= 16) {
+      dayTick = tick - 16;
+    }
     // Angle goes from -π/2 (sunrise) to π/2 (sunset)
     float angle = glm::mix(
         -glm::half_pi<float>(), glm::half_pi<float>(),
-        (float)tick / (TESettings::MAX_TICKS / 2.0)); // dayProgress: 0.0 to 1.0
+        (float)dayTick / (TESettings::MAX_TICKS / 2.0)); // dayProgress: 0.0 to 1.0
     //
     glm::vec3 lightPos;
     lightPos.x = 1.0f;
     lightPos.y = 0.0f;
     lightPos.z = 1.0f;
-
-    // auto light_transfrom = cm.get_component<Transform>(debug_ligth_ent);
-    // if (light_transfrom != nullptr) {
-    //   light_transfrom->position = lightPos * 100.0f;
-    // }
 
     // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
     // sin(angle) * 0.5f + 0.6f);
@@ -245,19 +244,31 @@ public:
                  glm::value_ptr(cam->get_position()));
 
     if (!lightPositions.empty()) {
-      std::cout << lightPositions.size() << " lights" << std::endl;
-      int numPointLights = lightPositions.size();
-      glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
-      glUniform3fv(
-          glGetUniformLocation(shader->ID, "pointLightPositions"),
-          numPointLights,
-          glm::value_ptr(lightPositions[0])
-      );
-      glUniform3fv(
-          glGetUniformLocation(shader->ID, "pointLightColors"),
-          numPointLights,
-          glm::value_ptr(lightColors[0])
-      );
+      const float maxDistance = 400.0f;
+      std::vector<glm::vec3> filteredLightPositions;
+      std::vector<glm::vec3> filteredLightColors;
+      auto transform = cm.get_component<Transform>(ent);
+      for (size_t i = 0; i < lightPositions.size(); ++i) {
+        float dist = glm::distance(lightPositions[i], transform->get_position());
+        if (dist <= maxDistance) {
+          filteredLightPositions.push_back(lightPositions[i]);
+          filteredLightColors.push_back(lightColors[i]);
+        }
+      }
+      if(!filteredLightPositions.empty()) {
+        int numPointLights = filteredLightPositions.size();
+        glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
+        glUniform3fv(
+            glGetUniformLocation(shader->ID, "pointLightPositions"),
+            numPointLights,
+            glm::value_ptr(filteredLightPositions[0])
+        );
+        glUniform3fv(
+            glGetUniformLocation(shader->ID, "pointLightColors"),
+            numPointLights,
+            glm::value_ptr(filteredLightColors[0])
+        );
+      }
     }
 
   }
@@ -268,11 +279,11 @@ public:
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     for (auto &entity : registered_entities) {
-
-      auto sprite = cm.get_component<Sprite>(entity);
       auto shader = cm.get_component<Shader>(entity);
       if(shader != nullptr) {
         shader->use();
+      } else {
+        continue; // If no shader, skip rendering this entity
       }
       auto transform = cm.get_component<Transform>(entity);
       if (transform != nullptr) {
@@ -308,7 +319,7 @@ public:
                 std::dynamic_pointer_cast<ModelBone>(animation->root)) {
           auto model = rootModelBone->model;
           if (model != nullptr) {
-            calculate_sun(cm, root_shader, cam, tick);
+            calculate_lighting(entity, cm, root_shader, cam, tick);
             auto texture = cm.get_component<Texture>(entity);
             if(texture != nullptr) {
               texture->render();
@@ -391,6 +402,7 @@ public:
         if (quad != nullptr) {
           quad->render();
         }
+        auto sprite = cm.get_component<Sprite>(entity);
         if (sprite != nullptr) {
           if (!sprite->hidden) {
             sprite->update();
@@ -419,7 +431,7 @@ public:
           if (is_in_frustum(cam->get_frustum(x, y, zoom), sphere)) {
             // update_transform(transform);
             set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
-            calculate_sun(cm, shader, cam, tick);
+            calculate_lighting(entity, cm, shader, cam, tick);
             auto texture = cm.get_component<Texture>(entity);
             if(texture != nullptr) {
               texture->render();

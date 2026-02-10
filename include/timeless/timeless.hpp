@@ -124,15 +124,15 @@ namespace TE
         cm->add_component(entity, comp);
     }
 
-    inline void remove_entity(Entity entity)
+    inline void remove_entity(Entity entity, bool destroy = true)
     {
-        cm->remove_entity(entity);
         mis->remove_entity(entity);
         mis->remove_move_entity(entity);
         for (const auto& [key, system] : systems)
         {
             system->remove_entity(entity);
         }
+        cm->remove_entity(entity, destroy);
     }
 
 
@@ -152,12 +152,12 @@ namespace TE
     template<> inline void add_component<Node>(Entity entity, Node *node)
     {
         cm->add_component(entity, node);
-        grid->register_entity(entity);
+        // grid->register_entity(entity);
     }
     template<> inline void add_component<Node>(Entity entity, std::shared_ptr<Node> node)
     {
         cm->add_component(entity, node);
-        grid->register_entity(entity);
+        // grid->register_entity(entity);
     }
 
     /** TODO: return shared_ptr instead of ref to unique_ptr? refs to smart pointers

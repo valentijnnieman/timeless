@@ -4,11 +4,7 @@
 #include "timeless/entity.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/timeless.hpp"
-#include <algorithm>
 #include <glm/glm.hpp>
-#include <queue>
-#include <set>
-#include <unordered_map>
 
 namespace std {
 template <> struct hash<Node> {
@@ -51,17 +47,15 @@ private:
 public:
   map_type vertices;
   std::map<std::pair<int, int>, std::shared_ptr<Node>> nodes_by_pos;
-  std::vector<Entity> registered_entities;
 
   Grid() {}
 
   void purge() {
-    registered_entities.clear();
     vertices.clear();
     nodes_by_pos.clear();
   }
 
-  void register_entity(Entity entity) { registered_entities.push_back(entity); }
+  // void register_entity(Entity entity) { registered_entities.push_back(entity); }
   bool isInBounds(glm::vec2 p) const {
     return 0 <= p.x && p.x < x_bounds && 0 <= p.y && p.y < y_bounds;
   }

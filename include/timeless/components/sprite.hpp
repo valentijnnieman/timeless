@@ -42,6 +42,72 @@ public:
 
   std::shared_ptr<Shader> slice_shader;
 
+  // Rule of 5
+  Sprite(const Sprite&) = delete;
+  Sprite& operator=(const Sprite&) = delete;
+
+  Sprite(Sprite&& other) noexcept
+      : animationSpeed(std::move(other.animationSpeed)),
+        isStatic(other.isStatic),
+        frames(other.frames),
+        og_index(other.og_index),
+        opacities(std::move(other.opacities)),
+        framebuffer(other.framebuffer),
+        tex(other.tex),
+        slice_quad(std::move(other.slice_quad)),
+        slice_texture(std::move(other.slice_texture)),
+        animating(other.animating),
+        flip(other.flip),
+        hidden(other.hidden),
+        color(other.color),
+        og_color(other.og_color),
+        index(other.index),
+        spriteSheetSize(other.spriteSheetSize),
+        spriteSize(other.spriteSize),
+        slice_shader(std::move(other.slice_shader))
+  {
+      other.framebuffer = 0;
+      other.tex = 0;
+      other.slice_quad = nullptr;
+      other.slice_texture = nullptr;
+      other.slice_shader = nullptr;
+  }
+
+  Sprite& operator=(Sprite&& other) noexcept {
+      if (this != &other) {
+          // Clean up current resources
+          if (slice_shader) {
+              glDeleteFramebuffers(1, &framebuffer);
+              glDeleteTextures(1, &tex);
+          }
+          animationSpeed = std::move(other.animationSpeed);
+          isStatic = other.isStatic;
+          frames = other.frames;
+          og_index = other.og_index;
+          opacities = std::move(other.opacities);
+          framebuffer = other.framebuffer;
+          tex = other.tex;
+          slice_quad = std::move(other.slice_quad);
+          slice_texture = std::move(other.slice_texture);
+          animating = other.animating;
+          flip = other.flip;
+          hidden = other.hidden;
+          color = other.color;
+          og_color = other.og_color;
+          index = other.index;
+          spriteSheetSize = other.spriteSheetSize;
+          spriteSize = other.spriteSize;
+          slice_shader = std::move(other.slice_shader);
+
+          other.framebuffer = 0;
+          other.tex = 0;
+          other.slice_quad = nullptr;
+          other.slice_texture = nullptr;
+          other.slice_shader = nullptr;
+      }
+      return *this;
+  }
+
   Sprite(int index, glm::vec4 color, glm::vec2 spriteSheetSize,
          glm::vec2 spriteSize, bool isStatic = true, bool animating = false,
          int frames = 6)
@@ -50,7 +116,6 @@ public:
         spriteSheetSize(spriteSheetSize), spriteSize(spriteSize) {}
   ~Sprite() {
     if (slice_shader) {
-      std::cout << "Deleting sprite framebuffer and texture..." << std::endl;
       glDeleteFramebuffers(1, &framebuffer);
       glDeleteTextures(1, &tex);
     }
@@ -94,10 +159,10 @@ public:
       std::cerr << "FBO incomplete!" << std::endl;
     }
 
-    GLint width = 0;
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-    if (width == 0) std::cerr << "Sprite framebuffer texture not valid!" << std::endl;
+    // GLint width = 0;
+    // glBindTexture(GL_TEXTURE_2D, tex);
+    // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    // if (width == 0) std::cerr << "Sprite framebuffer texture not valid!" << std::endl;
 
     // 4. Render the sliced sprite to the framebuffer
     render_sliced_to_texture();
@@ -216,5 +281,12 @@ public:
       opacities.pop();
     }
   }
-  void render() { glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); }
+  void render() { 
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
+
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "OpenGL error in sprite.render(): " << err << std::endl;
+    }
+  }
 };

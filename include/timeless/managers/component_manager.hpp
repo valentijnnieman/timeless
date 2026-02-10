@@ -164,8 +164,35 @@ public:
 
   template <class T> const inline void remove_component(Entity entity) {
   }
+  void does_component_exist(Entity entity) {
+    if (
+        quads.contains(entity) ||
+        models.contains(entity) ||
+        textures.contains(entity) ||
+        shaders.contains(entity) ||
+        sprites.contains(entity) ||
+        transforms.contains(entity) ||
+        mouse_input_listeners.contains(entity) ||
+        mouse_move_listeners.contains(entity) ||
+        event_listeners.contains(entity) ||
+        position_event_listeners.contains(entity) ||
+        keyboard_input_listeners.contains(entity) ||
+        cameras.contains(entity) ||
+        colliders.contains(entity) ||
+        movements.contains(entity) ||
+        nodes.contains(entity) ||
+        fonts.contains(entity) ||
+        texts.contains(entity) ||
+        behaviours.contains(entity) ||
+        geometry.contains(entity) ||
+        animations.contains(entity)
+    ) {
+        // Entity exists in at least one map
+        std::cout << "Entity " << entity << " already has components!" << std::endl;
+    }
+  }
   /** this method completely removes all components for an entity */
-  void remove_entity(Entity entity) {
+  void remove_entity(Entity entity, bool destroy = true) {
     try {
       mouse_input_listeners.erase(entity);
       keyboard_input_listeners.erase(entity);
@@ -187,6 +214,9 @@ public:
       event_listeners.erase(entity);
       position_event_listeners.erase(entity);
       particleemitters.erase(entity);
+      if(destroy) {
+        destroy_entity(entity);
+      }
     } catch (std::exception e) {
       throw e;
     }

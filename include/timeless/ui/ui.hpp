@@ -13,8 +13,8 @@ public:
   bool hovering = false;
 
   UIComponent() {
-    main_ent = create_entity(); 
-    bg_ent = create_entity(); 
+    main_ent = create_entity("uicomponent_main"); 
+    bg_ent = create_entity("uicomponent_bg");
 
     add_entity(main_ent);
     add_entity(bg_ent);
@@ -58,7 +58,6 @@ public:
   virtual void remove() {
     for (auto entity : entities) {
       TE::remove_entity(entity);
-      destroy_entity(entity);
     }
   }
 

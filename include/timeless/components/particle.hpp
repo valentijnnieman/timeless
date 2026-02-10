@@ -23,6 +23,7 @@ struct Particle {
 class ParticleEmitter {
 public:
     ParticleEmitter();
+    glm::vec3 position;
     std::vector<Particle> particles;
     float emissionRate; // particles per second
 
