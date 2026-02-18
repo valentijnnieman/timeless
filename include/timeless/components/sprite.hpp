@@ -284,9 +284,9 @@ public:
   void render() { 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
 
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "OpenGL error in sprite.render(): " << err << std::endl;
-    }
+    // GLenum err;
+    // while ((err = glGetError()) != GL_NO_ERROR) {
+    //     std::cerr << "OpenGL error in sprite.render(): " << err << std::endl;
+    // }
   }
 };

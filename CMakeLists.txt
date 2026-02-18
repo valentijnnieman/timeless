@@ -65,7 +65,7 @@ if(EMSCRIPTEN)
   target_link_options(${PROJECT_NAME} PUBLIC -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] -sUSE_FREETYPE=1 -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sSTB_IMAGE=1 --embed-file Assets)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --use-port=contrib.glfw3")
 
-  target_link_libraries(${PROJECT_NAME} glm freetype fmod fmod_studio assimp)
+  target_link_libraries(${PROJECT_NAME} glm fmod fmod_studio assimp)
 
   # add_subdirectory(example example)
 

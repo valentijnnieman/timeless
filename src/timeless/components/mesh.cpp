@@ -18,10 +18,10 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
   glGenBuffers(1, &EBO);
-  GLenum err = glGetError();
-  if (err != GL_NO_ERROR) {
-    printf("generating buffers caused an OpenGL error: %x\n", err);
-  }
+  // GLenum err = glGetError();
+  // if (err != GL_NO_ERROR) {
+  //   printf("generating buffers caused an OpenGL error: %x\n", err);
+  // }
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -33,10 +33,10 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                &indices[0], GL_STATIC_DRAW);
 
-  err = glGetError();
-  if (err != GL_NO_ERROR) {
-    printf("glBufferData caused an OpenGL error: %x\n", err);
-  }
+  // err = glGetError();
+  // if (err != GL_NO_ERROR) {
+  //   printf("glBufferData caused an OpenGL error: %x\n", err);
+  // }
 
   GLint posLoc = glGetAttribLocation(shader->ID, "aPos");
   GLint normLoc = glGetAttribLocation(shader->ID, "aNormal");
@@ -63,10 +63,10 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
                           (void *)offsetof(Vertex, TexCoords));
   }
 
-  err = glGetError();
-  if (err != GL_NO_ERROR) {
-    printf("OpenGL error: %x\n", err);
-  }
+  // err = glGetError();
+  // if (err != GL_NO_ERROR) {
+  //   printf("OpenGL error: %x\n", err);
+  // }
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);

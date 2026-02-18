@@ -87,10 +87,10 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
-    }
+    // GLenum err;
+    // while ((err = glGetError()) != GL_NO_ERROR) {
+    //     std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
+    // }
 
     std::map<char, Glyph> gen_glyphs;
     FT_Library ft;
@@ -128,10 +128,10 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
             GL_RED,
             GL_UNSIGNED_BYTE,
             face->glyph->bitmap.buffer);
-          GLenum err;
-          while ((err = glGetError()) != GL_NO_ERROR) {
-              std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
-          }
+          // GLenum err;
+          // while ((err = glGetError()) != GL_NO_ERROR) {
+          //     std::cerr << "OpenGL error: 0x" << std::hex << err << std::endl;
+          // }
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -146,9 +146,6 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
         };
         gen_glyphs.insert(std::pair<char, Glyph>(c, glyph));
 
-        while ((err = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "OpenGL error during glyphs: 0x" << std::hex << err << std::endl;
-    }
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     FT_Done_Face(face);

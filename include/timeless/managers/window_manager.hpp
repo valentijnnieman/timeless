@@ -130,14 +130,14 @@ public:
   //   for (auto rbo : rbos) glDeleteRenderbuffers(1, &rbo);
   // }
 
-  void add_framebuffer(std::shared_ptr<Shader> shader) {
+  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true) {
     unsigned int fbo, tex, rbo;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TESettings::SCREEN_X, TESettings::SCREEN_Y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -148,7 +148,7 @@ public:
 
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, TESettings::SCREEN_X, TESettings::SCREEN_Y);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -158,7 +158,8 @@ public:
     framebuffers.push_back(fbo);
     textures.push_back(tex);
     rbos.push_back(rbo);
-    screen_shaders.push_back(shader);
+    if(add_screen_shader)
+      screen_shaders.push_back(shader);
   }
 
   void select_framebuffer(size_t idx, bool clear = true) {
@@ -170,6 +171,23 @@ public:
                      TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       }
+    }
+  }
+
+  void resize_framebuffers(int new_width, int new_height) {
+    for (size_t i = 0; i < framebuffers.size(); ++i) {
+      // Delete old resources
+      glDeleteFramebuffers(1, &framebuffers[i]);
+      glDeleteTextures(1, &textures[i]);
+      glDeleteRenderbuffers(1, &rbos[i]);
+    }
+    framebuffers.clear();
+    textures.clear();
+    rbos.clear();
+
+    // Recreate framebuffers with new size
+    for (size_t i = 0; i < screen_shaders.size(); ++i) {
+      add_framebuffer(screen_shaders[i], new_width, new_height, false);
     }
   }
 
@@ -236,6 +254,12 @@ public:
 
   static void framebuffer_size_callback(GLFWwindow *window, int width,
                                         int height) {
+    TESettings::rescale_window(width, height);
+    WindowManager *wm =
+        static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+    wm->resize_framebuffers(width, height);
+  }
+  static void window_size_callback(GLFWwindow *window, int width, int height) {
     TESettings::rescale_window(width, height);
   }
   void mouse_move_handler(MouseMoveEvent *event) {

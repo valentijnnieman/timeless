@@ -73,10 +73,10 @@ Texture::Texture(const std::vector<uint8_t>& buffer, int width, int height)
 
     stbi_image_free(data);
 
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        std::cout << "OpenGL error: " << err << std::endl;
-    }
+    // GLenum err = glGetError();
+    // if (err != GL_NO_ERROR) {
+    //     std::cout << "OpenGL error: " << err << std::endl;
+    // }
 }
 
 void Texture::render()
@@ -84,10 +84,10 @@ void Texture::render()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        std::cout << "OpenGL error: " << err << " when binding texture " << texture << std::endl;
-    }
+    // GLenum err = glGetError();
+    // if (err != GL_NO_ERROR) {
+    //     std::cout << "OpenGL error: " << err << " when binding texture " << texture << std::endl;
+    // }
 
     // GLint dwidth = 0;
     // glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &dwidth);
