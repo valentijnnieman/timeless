@@ -14,6 +14,7 @@ namespace TESettings
     static unsigned int SHADOW_HEIGHT = 1024;
 
     static bool FULLSCREEN = false;
+    static bool NATIVE_RESOLUTION = false;
 
     static int MAX_THREADS = std::thread::hardware_concurrency();
 

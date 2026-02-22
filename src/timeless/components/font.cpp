@@ -28,6 +28,7 @@ Font::Font(int fontSize, const std::string& filepath)
     else
     {
         FT_Set_Pixel_Sizes(face, 0, fontSize);
+        this->line_height = (face->size->metrics.height >> 6);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         for (unsigned char c = 0; c < 128; c++)
@@ -107,6 +108,7 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
     }
 
     FT_Set_Pixel_Sizes(face, 0, fontSize);
+    this->line_height = (face->size->metrics.height >> 6);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     for (unsigned char c = 0; c < 128; c++) {

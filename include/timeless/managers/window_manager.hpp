@@ -58,11 +58,21 @@ public:
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
+    int width = TESettings::SCREEN_X;
+    int height = TESettings::SCREEN_Y;
+
+    if(TESettings::NATIVE_RESOLUTION) {
+      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+      width = mode->width;
+      height = mode->height;
+    }
+
     if (TESettings::FULLSCREEN)
-      window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y,
+      window = glfwCreateWindow(width, height,
                                 "Timeless", glfwGetPrimaryMonitor(), NULL);
     else
-      window = glfwCreateWindow(TESettings::SCREEN_X, TESettings::SCREEN_Y,
+      window = glfwCreateWindow(width, height,
                                 "Timeless", NULL, NULL);
 
     if (window == NULL) {

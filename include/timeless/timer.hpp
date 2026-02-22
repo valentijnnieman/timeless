@@ -33,3 +33,31 @@ public:
         return false;
     }
 };
+
+class TimerManager {
+public:
+    struct TimerEntry {
+        Timer timer;
+        std::function<void()> callback;
+    };
+    std::vector<TimerEntry> timers;
+
+    void addTimer(double seconds, std::function<void()> callback) {
+        timers.push_back({Timer(seconds), callback});
+    }
+
+    void clearTimers() {
+        timers.clear();
+    }
+
+    void update() {
+        for (auto it = timers.begin(); it != timers.end(); ) {
+            if (it->timer.pollTime()) {
+                it->callback();
+                it = timers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+};

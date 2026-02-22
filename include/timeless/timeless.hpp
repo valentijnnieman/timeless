@@ -12,6 +12,7 @@
 #include "timeless/components/particle.hpp"
 #include "timeless/event.hpp"
 #include "timeless/managers/component_manager.hpp"
+#include "timeless/timer.hpp"
 #include "timeless/managers/window_manager.hpp"
 #include "timeless/systems/rendering_system.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
@@ -31,6 +32,7 @@ namespace TE
     inline std::map<std::string, std::shared_ptr<System>> systems;
 
     inline std::shared_ptr<ComponentManager> cm;
+    inline std::shared_ptr<TimerManager> tm;
     inline std::shared_ptr<MouseInputSystem> mis;
     inline std::shared_ptr<WindowManager> wm;
     inline std::shared_ptr<Grid> grid;
@@ -38,6 +40,7 @@ namespace TE
     inline void init()
     {
         cm = std::make_shared<ComponentManager>();
+        tm = std::make_shared<TimerManager>();
         mis = std::make_shared<MouseInputSystem>();
         wm = std::make_shared<WindowManager>(cm, mis);
 
@@ -160,14 +163,13 @@ namespace TE
         // grid->register_entity(entity);
     }
 
-    /** TODO: return shared_ptr instead of ref to unique_ptr? refs to smart pointers
-     * defeat the purpose of smart pointers - although it's not likely our system
-     * and manager pointers go out of scope before the program finishes, probably
-     * better to do something else here.
-     */
     inline std::shared_ptr<ComponentManager> get_component_manager()
     {
         return cm;
+    }
+    inline std::shared_ptr<TimerManager> get_timer_manager()
+    {
+        return tm;
     }
     inline std::shared_ptr<Grid> get_grid()
     {

@@ -27,6 +27,7 @@ class Font : public Component
 public:
     unsigned int VAO, VBO;
     std::map<char, Glyph> glyphs;
+    int line_height;
 
     Font(int fontSize, const std::string& filepath = "Assets/fonts/8bit.ttf");
     Font(int fontSize, const std::vector<uint8_t>& buffer);

@@ -178,9 +178,21 @@ public:
       //   continue;
       // }
       Glyph glyph = glyphIt->second;
-      height = glyph.size.y;
+      if(glyph.size.y > height)
+        height = glyph.size.y;
     }
     return height;
+  }
+
+  float get_text_font_height(Entity entity, ComponentManager &cm) {
+    auto font = cm.get_component<Font>(entity);
+    auto text = cm.get_component<Text>(entity);
+
+    if (!font || !text)
+      return 0.0f;
+
+    // Use font's line height for consistent text height
+    return font->line_height;
   }
 
   void sort(ComponentManager &cm) {
@@ -237,7 +249,7 @@ public:
 
     // glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
     // sin(angle) * 0.5f + 0.6f);
-    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), cos(angle) * 0.5f);
+    glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), cos(angle) * 0.5f + 0.1f);
 
     glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
@@ -383,7 +395,7 @@ public:
         if (text != nullptr) {
           if (text->center) {
             update_transform(transform, glm::vec3(-get_text_width(entity, cm) * 0.5f,
-                                        -get_text_height(entity, cm) * 0.5f,
+                                        -get_text_font_height(entity, cm) * 0.5f,
                                         0.0f));
           }
         }
@@ -392,7 +404,7 @@ public:
           if(font != nullptr) {
             if (!text->hidden) {
               set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
-              text->render(font, 0.0f, 0.0f, get_text_height(entity, cm),
+              text->render(font, 0.0f, 0.0f, get_text_font_height(entity, cm),
                           shader);
             }
           }
