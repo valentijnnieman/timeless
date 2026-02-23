@@ -13,8 +13,6 @@ set(BUILD_DOC OFF)
 set(BUILD_SANDBOX OFF)
 # set(GLFW_INSTALL ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-set(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_BINARY_DIR})
-set(CMAKE_BUILD_RPATH ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(ASSIMP_BUILD_TESTS OFF)
@@ -169,13 +167,14 @@ else()
           COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/studio/lib/x86_64/libfmodstudio.so.13
           ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.13)
-
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INSTALL_RPATH "$ORIGIN"
-    )
   endif()
 
   add_subdirectory(example example)
   add_executable(${PROJECT_NAME}ResourcePacker src/timeless/resource_packer.cpp)
+
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+      BUILD_RPATH "$ORIGIN"
+      INSTALL_RPATH "$ORIGIN"
+  )
 
 endif()

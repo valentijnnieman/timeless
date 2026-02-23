@@ -57,209 +57,45 @@ public:
 
     bool isometric = false;
 
-    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
-        : position(p), start_position(p),
-          width(w), height(h), offset(o), center(center), scale(glm::vec3(1.0f)), zoomable(zoomable)
-    {
-        rotation = glm::quat(glm::vec3(0, 0, 0));
-        model = glm::mat4(1.0f);
-    }
-    Transform(glm::vec3 p, glm::vec3 rot, glm::vec3 s, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true)
-        : position(p), start_position(p), width(0.0f), height(0.0f),
-          offset(o), center(center), scale(s), zoomable(zoomable)
-    {
-        rotation = glm::quat(rot);
-        model = glm::mat4(1.0f);
-    }
-    void translate(glm::vec3 p)
-    {
-        position += p;
-    }
-    void setRotation(const glm::quat& q) {
-        rotation = q;
-    }
+    Transform(glm::vec3 p, float r, float w, float h, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true);
+    Transform(glm::vec3 p, glm::vec3 rot, glm::vec3 s, glm::vec3 o = glm::vec3(0.0f), bool center = true, bool zoomable = true);
+    void translate(glm::vec3 p);
+    void setRotation(const glm::quat& q);
+    void setRotationEuler(const glm::vec3& eulerDegrees);
 
-    void setRotationEuler(const glm::vec3& eulerDegrees) {
-        glm::vec3 radians = glm::radians(eulerDegrees);
-        rotation = glm::quat(radians);
-    }
+    void setRotationAngleAxis(float angleDegrees, const glm::vec3& axis);
 
-    void setRotationAngleAxis(float angleDegrees, const glm::vec3& axis) {
-        float angleRadians = glm::radians(angleDegrees);
-        rotation = glm::angleAxis(angleRadians, glm::normalize(axis));
-    }
+    glm::quat getRotationQuat() const;
 
-    glm::quat getRotationQuat() const {
-        return rotation;
-    }
+    glm::vec3 getRotationEuler() const;
 
-    glm::vec3 getRotationEuler() const {
-        glm::vec3 radians = glm::eulerAngles(rotation);
-        return glm::degrees(radians);
-    }
+    glm::mat4 getRotationMatrix();
+    void set_position(glm::vec3 p);
+    void set_offset(glm::vec3 o);
+    void set_scale(glm::vec3 s);
+    glm::vec3 get_scale();
 
-    glm::mat4 getRotationMatrix() {
-      glm::mat4 rotation_matrix = glm::toMat4(rotation);
-      if (!rotations.empty()) {
-        glm::vec3 new_r = rotations.front();
-        auto eulers = glm::quat(new_r);
-        glm::quat rot = eulers;
-        rotation_matrix = glm::toMat4(eulers);
-        rotations.pop();
-        if (loop) {
-          rotations.push(new_r);
-        }
-      }
-      return rotation_matrix;
-    }
+    void update_camera(std::shared_ptr<Camera> camera);
 
-    void set_position(glm::vec3 p)
-    {
-        position = p;
-    }
-    void set_offset(glm::vec3 o)
-    {
-        offset = o;
-    }
-    void set_scale(glm::vec3 s)
-    {
-        scale = s;
-        // width = s.x;
-        // height = s.y;
-    }
-    glm::vec3 get_scale() {
-      glm::vec3 s = scale;
-      if(!scales.empty()) {
-        s = scales.front();
-        scales.pop();
-        if(!reset) {
-          scale = s;
-        }
-        if (loop) {
-          scales.push(scale);
-        }
-      }
-    return s;
-  }
+    glm::vec3 get_position();
 
-    void update_camera(std::shared_ptr<Camera> camera) {
-      this->camera = camera;
-      camera_position = camera->get_position();
-      camera_rotation = camera->get_rotation();
-    }
-
-    glm::vec3 get_position()
-    {
-      glm::vec3 p = position;
-      if(!positions.empty()){
-        p = positions.front();
-        position = p;
-        positions.pop();
-        if (loop) {
-          positions.push(p);
-        }
-      }
-    return p;
-    }
-
-    glm::vec3 get_position_minus_offset()
-    {
-      glm::vec3 p = get_position();
-      return glm::vec3((p.x - offset.x), (p.y - offset.y), p.z);
-    }
+    glm::vec3 get_position_minus_offset();
 
     /* returns position minus camera - i.e. position as if looking from
     camera's perspective */
-    glm::vec3 get_position_from_camera()
-    {
-      glm::vec3 p = get_position();
-      glm::vec3 relative = p - camera->get_position();
-      // Apply inverse camera rotation to get position in camera space
-      // glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * relative;
-      return relative;
-    }
+    glm::vec3 get_position_from_camera();
 
-    glm::vec3 get_centered_position_from_camera()
-    {
-      glm::vec3 p = get_position();
-      glm::vec3 p_centered = glm::vec3((p.x - offset.x) - camera_position.x, (p.y - offset.y) - camera_position.y, p.z - camera_position.z) + glm::vec3(0.5 * width, 0.5 * height, 0.0);
+    glm::vec3 get_centered_position_from_camera();
 
-      p_centered /= TESettings::VIEWPORT_SCALE;
-      // Apply inverse camera rotation to get position in camera space
-      // glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) * p_centered;
+    void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 
-      return p_centered;
-    }
+    void append_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 
-    void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      while (!positions.empty())
-        positions.pop();
+    void set_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        positions.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
+    void append_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 
-    void append_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        positions.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
-
-
-    void set_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      while (!rotations.empty())
-        rotations.pop();
-
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        rotations.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
-
-    void append_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        rotations.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
-
-    void set_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      while (!scales.empty())
-        scales.pop();
-
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        scales.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
-    void append_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0) {
-      for (double i = 0.0; i <= 1.0; i += speed / 60.0) {
-        double x_l = std::lerp(from.x, to.x, i);
-        double y_l = std::lerp(from.y, to.y, i);
-        double z_l = std::lerp(from.z, to.z, i);
-        scales.push(glm::vec3(x_l, y_l, z_l));
-      }
-    }
-
-    BoundingSphere get_bounding_sphere() const {
-        // Transform local center to world space
-        glm::vec3 world_center = glm::vec3(model * glm::vec4(local_bounding_center, 1.0f));
-        // Scale radius by the largest scale component
-        float max_scale = glm::compMax(glm::abs(scale));
-        float world_radius = local_bounding_radius * max_scale;
-        return {world_center, world_radius};
-    }
+    void set_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
+    void append_scale_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
+    BoundingSphere get_bounding_sphere() const;
 };
