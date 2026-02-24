@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include "timeless/components/quad.hpp"
+#include "timeless/components/transform.hpp"
 #include "timeless/components/shader.hpp"
 
 struct Particle {
@@ -22,8 +23,10 @@ struct Particle {
 
 class ParticleEmitter {
 public:
-    ParticleEmitter();
+    ParticleEmitter(std::shared_ptr<Transform> transform);
     glm::vec3 position;
+    glm::quat rotation;
+
     std::vector<Particle> particles;
     float emissionRate; // particles per second
 

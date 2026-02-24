@@ -448,6 +448,24 @@ public:
             if(texture != nullptr) {
               texture->render();
             }
+
+            GLint boneMatrixLoc =
+                glGetUniformLocation(shader->ID, "boneMatrices");
+            if (boneMatrixLoc >= 0) {
+              auto skeletal_animation =
+                  cm.get_component<SkeletalAnimation>(entity);
+              if (skeletal_animation != nullptr) {
+                glUniformMatrix4fv(
+                    boneMatrixLoc, skeletal_animation->poseMatrices.size(),
+                    GL_FALSE,
+                    glm::value_ptr(skeletal_animation->poseMatrices[0]));
+                GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
+                glUniform1i(useSkinningLoc, 1);
+              } else {
+                GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
+                glUniform1i(useSkinningLoc, 0);
+              }
+            }
             model->render(transform->model, delta_time);
           }
         }

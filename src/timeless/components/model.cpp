@@ -2,8 +2,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 void Model::loadModel(const std::string &path) {
-  Assimp::Importer import;
-  const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);  
+  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);  
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
     std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -12,9 +11,32 @@ void Model::loadModel(const std::string &path) {
   directory = path.substr(0, path.find_last_of('/'));
 
   processNode(scene->mRootNode, scene);
+  // Fill childrenIndices for each bone
+  std::map<std::string, int> nameToIndex;
+  for (int i = 0; i < skeletonBones.size(); ++i) {
+      nameToIndex[skeletonBones[i].name] = i;
+  }
+  for (int i = 0; i < skeletonBones.size(); ++i) {
+      int parentIdx = skeletonBones[i].parentIndex;
+      if (parentIdx != -1 && parentIdx < skeletonBones.size()) {
+          skeletonBones[parentIdx].childrenIndices.push_back(i);
+      }
+  }
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene) {
+void Model::processNode(aiNode *node, const aiScene *scene, int parentBoneIndex) {
+    // If this node is a bone, record it in the skeleton hierarchy
+    auto it = boneMapping.find(node->mName.C_Str());
+    int currentBoneIndex = -1;
+    if (it != boneMapping.end()) {
+        currentBoneIndex = it->second;
+        SkeletonBone bone;
+        bone.name = node->mName.C_Str();
+        bone.parentIndex = parentBoneIndex;
+        // Children will be filled in below
+        skeletonBones.push_back(bone);
+        // Optionally: store index mapping for quick lookup
+    }
   // process all the node's meshes (if any)
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     aiMesh *aimesh = scene->mMeshes[node->mMeshes[i]];
@@ -42,7 +64,9 @@ void Model::processNode(aiNode *node, const aiScene *scene) {
   }
   // then do the same for each of its children
   for (unsigned int i = 0; i < node->mNumChildren; i++) {
-    processNode(node->mChildren[i], scene);
+        int childBoneIndex = -1;
+        // Recursively process child, passing currentBoneIndex as parent
+        processNode(node->mChildren[i], scene, currentBoneIndex);
   }
 
 }
@@ -50,6 +74,7 @@ void Model::processNode(aiNode *node, const aiScene *scene) {
 std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor) {
   std::vector<Vertex> vertices(mesh->mNumVertices);
   std::vector<unsigned int> indices;
+
 
   // Initialize vertex positions and texcoords
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -98,7 +123,44 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
     vertices[i].Normal = glm::normalize(vertices[i].Normal);
   }
 
-  return std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
+  //process bones
+  for (unsigned int i = 0; i < mesh->mNumBones; i++) {
+      aiBone* bone = mesh->mBones[i];
+      std::string boneName(bone->mName.data);
+
+      int boneIndex = 0;
+      auto it = boneMapping.find(boneName);
+      if (it == boneMapping.end()) {
+          boneIndex = boneInfos.size();
+          boneMapping[boneName] = boneIndex;
+
+          BoneInfo boneInfo;
+          // Convert aiMatrix4x4 to glm::mat4
+          aiMatrix4x4 offset = bone->mOffsetMatrix;
+          boneInfo.offsetMatrix = glm::mat4(
+              offset.a1, offset.b1, offset.c1, offset.d1,
+              offset.a2, offset.b2, offset.c2, offset.d2,
+              offset.a3, offset.b3, offset.c3, offset.d3,
+              offset.a4, offset.b4, offset.c4, offset.d4
+          );
+          boneInfos.push_back(boneInfo);
+      } else {
+          boneIndex = it->second;
+      }
+
+      for (unsigned int j = 0; j < bone->mNumWeights; j++) {
+          unsigned int vertexID = bone->mWeights[j].mVertexId;
+          float weight = bone->mWeights[j].mWeight;
+          for (int i = 0; i < 4; ++i) {
+              if (vertices[vertexID].boneData.weights[i] == 0.0f) {
+                  vertices[vertexID].boneData.ids[i] = static_cast<float>(boneIndex);
+                  vertices[vertexID].boneData.weights[i] = weight;
+              }
+          }
+      }
+  }
+
+  return std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
 }
 
 void Model::render(glm::mat4 global_model_matrix, float delta_time) {

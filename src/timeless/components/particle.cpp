@@ -16,16 +16,23 @@ glm::vec3 randomDirection(float minAngle, float maxAngle) {
 }
 }
 
-ParticleEmitter::ParticleEmitter()
-{}
+ParticleEmitter::ParticleEmitter(std::shared_ptr<Transform> transform) : position(transform->get_position()), rotation(transform->getRotationQuat())  
+{
+}
 
 void ParticleEmitter::emit(int count) {
     for (int i = 0; i < count; ++i) {
         Particle p;
         p.position = position;
-        float speed = randf(100.0f, 250.0f);
+        float speed = randf(1000.0f, 2500.0f);
         float angle = randf(-glm::pi<float>()/4, glm::pi<float>()/4); // spread
-        glm::vec3 dir = randomDirection(angle, angle + 0.01f);
+
+        // Create a base direction vector with spread in local space
+        glm::vec3 baseDir = glm::vec3(cos(angle), sin(angle), 0.0f);
+
+        // Rotate baseDir by the emitter's rotation quaternion
+        glm::vec3 dir = rotation * baseDir;
+
         p.velocity = dir * speed;
         p.color = randomColor();
         p.lifetime = randf(2.8f, 4.5f);
@@ -63,5 +70,9 @@ void ParticleEmitter::render(std::shared_ptr<Quad> quad, std::shared_ptr<Shader>
                           glm::value_ptr(model));
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        GLint err = glGetError();
+        if(err != GL_NO_ERROR) {
+            std::cerr << "OpenGL error: " << err << std::endl;
+        }
     }
 }
