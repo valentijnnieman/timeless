@@ -15,6 +15,7 @@
 
 #include "timeless/components/transform.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
+#include "timeless/systems/event_system.hpp"
 
 class WindowManager {
 private:
@@ -37,6 +38,7 @@ public:
 
   std::shared_ptr<ComponentManager> cm;
   std::shared_ptr<MouseInputSystem> mis;
+  std::shared_ptr<EventSystem> es;
 
   glm::vec2 mouse_position;
   glm::vec2 raw_mouse_position;
@@ -268,6 +270,10 @@ public:
     WindowManager *wm =
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
     wm->resize_framebuffers(width, height);
+    glm::vec2 new_size(width, height);
+    if(wm->es != nullptr) {
+      wm->es->create_event<glm::vec2>(*wm->cm, "ResizeWindow", &new_size);
+    }
   }
   static void window_size_callback(GLFWwindow *window, int width, int height) {
     TESettings::rescale_window(width, height);

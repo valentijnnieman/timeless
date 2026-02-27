@@ -12,12 +12,35 @@ public:
   Entity bg_ent;
   bool hovering = false;
 
+  glm::vec3 position;
+  glm::vec2 anchor;
+  glm::vec2 margin;
+
+  UIComponent(glm::vec2 anchor, glm::vec2 margin) : anchor(anchor), margin(margin) {
+    main_ent = create_entity("uicomponent_main"); 
+    bg_ent = create_entity("uicomponent_bg");
+
+    add_entity(main_ent);
+    add_entity(bg_ent);
+  }
+
   UIComponent() {
     main_ent = create_entity("uicomponent_main"); 
     bg_ent = create_entity("uicomponent_bg");
 
     add_entity(main_ent);
     add_entity(bg_ent);
+  }
+
+  void update_position() {
+    glm::vec2 resolution = glm::vec2(TESettings::SCREEN_X, TESettings::SCREEN_Y);
+    position.x = resolution.x * anchor.x + margin.x;
+    position.y = resolution.y * anchor.y + margin.y;
+
+    auto transform = TE::get_component<Transform>(bg_ent);
+    if(transform != nullptr) {
+      transform->set_position(position);
+    }
   }
 
   void add_entity(Entity entity) { 
