@@ -7,16 +7,29 @@
 #include <memory>
 #include <vector>
 
+struct VertexBoneData {
+  float ids[4] = {0.0f};    // Indices of influencing bones (max 4)
+  float weights[4] = {0.0f};    // Corresponding weights
+};
+
 struct Vertex {
   glm::vec3 Position;
   glm::vec3 Normal;
   glm::vec2 TexCoords;
+  VertexBoneData boneData;
+};
+
+struct BoneInfo {
+  glm::mat4 offsetMatrix; // Inverse bind pose matrix for this bone
 };
 
 class Mesh : public Component {
 public:
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
+  std::vector<BoneInfo> boneInfos;
+  std::unordered_map<std::string, unsigned int> boneMapping; // maps a bone name to its index
+  //
   glm::vec3 diffuseColor;
   glm::vec3 specularColor;
 
@@ -31,6 +44,12 @@ public:
   bool animating = false;
 
   Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+       std::shared_ptr<Shader> shader, glm::vec3 diffuseColor,
+       glm::vec3 specularColor);
+
+  Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+       std::vector<BoneInfo> boneInfos,
+       std::unordered_map<std::string, unsigned int> boneMapping,
        std::shared_ptr<Shader> shader, glm::vec3 diffuseColor,
        glm::vec3 specularColor);
 

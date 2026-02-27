@@ -13,6 +13,22 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 
   setupMesh(shader);
 }
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+           std::vector<BoneInfo> boneInfos,
+           std::unordered_map<std::string, unsigned int> boneMapping,
+           std::shared_ptr<Shader> shader, glm::vec3 diffuseColor,
+           glm::vec3 specularColor)
+    : position(0.0f, 0.0f, 0.0f), rotation(0.0f, 0.0f, 0.0f),
+      scale(1.0f, 1.0f, 1.0f) {
+  this->vertices = vertices;
+  this->indices = indices;
+  this->diffuseColor = diffuseColor;
+  this->specularColor = specularColor;
+  this->boneInfos = boneInfos;
+  this->boneMapping = boneMapping;
+
+  setupMesh(shader);
+}
 
 void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   glGenVertexArrays(1, &VAO);
@@ -41,6 +57,8 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   GLint posLoc = glGetAttribLocation(shader->ID, "aPos");
   GLint normLoc = glGetAttribLocation(shader->ID, "aNormal");
   GLint texLoc = glGetAttribLocation(shader->ID, "aTexCoord");
+  GLint boneIDsLoc = glGetAttribLocation(shader->ID, "aBoneIDs");
+  GLint boneWeightsLoc = glGetAttribLocation(shader->ID, "aBoneWeights");
   // std::cout << "Model Attribute Locations - Pos: " << posLoc
   //           << ", Norm: " << normLoc
   //           << ", TexCoord: " << texLoc << std::endl;
@@ -63,10 +81,17 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
                           (void *)offsetof(Vertex, TexCoords));
   }
 
-  // err = glGetError();
-  // if (err != GL_NO_ERROR) {
-  //   printf("OpenGL error: %x\n", err);
-  // }
+  if(boneInfos.size() > 0) {
+    if (boneIDsLoc >= 0) {
+        glEnableVertexAttribArray(boneIDsLoc);
+        glVertexAttribPointer(boneIDsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.ids));
+    }
+
+    if (boneWeightsLoc >= 0) {
+        glEnableVertexAttribArray(boneWeightsLoc);
+        glVertexAttribPointer(boneWeightsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.weights));
+    }
+  }
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);

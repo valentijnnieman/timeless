@@ -13,6 +13,12 @@ public:
           animation->update(delta_time); // Assuming a fixed timestep for simplicity
         }
       }
+      auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
+      if(skeletal_animation != nullptr) {
+        if(skeletal_animation->playing) {
+          skeletal_animation->update(delta_time); // Assuming a fixed timestep for simplicity
+        }
+      }
     }
   }
 };

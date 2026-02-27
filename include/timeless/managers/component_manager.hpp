@@ -1,6 +1,7 @@
 #pragma once
 #include "timeless/components/component.hpp"
 #include "timeless/components/animation.hpp"
+#include "timeless/components/skeletal_animation.hpp"
 #include "timeless/components/behaviour.hpp"
 #include "timeless/components/camera.hpp"
 #include "timeless/components/collider.hpp"
@@ -53,6 +54,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Behaviour>> behaviours;
   std::unordered_map<Entity, std::shared_ptr<Line>> geometry;
   std::unordered_map<Entity, std::shared_ptr<Animation>> animations;
+  std::unordered_map<Entity, std::shared_ptr<SkeletalAnimation>> skeletal_animations;
   std::unordered_map<Entity, std::shared_ptr<ParticleEmitter>> particleemitters;
 
   ComponentManager(){};
@@ -150,6 +152,12 @@ public:
   }
   void add_component(Entity entity, std::shared_ptr<Animation> animation) {
     animations.insert({entity, animation});
+  }
+  void add_component(Entity entity, SkeletalAnimation *animation) {
+    skeletal_animations.insert({entity, std::shared_ptr<SkeletalAnimation>(animation)});
+  }
+  void add_component(Entity entity, std::shared_ptr<SkeletalAnimation> animation) {
+    skeletal_animations.insert({entity, animation});
   }
   void add_component(Entity entity, ParticleEmitter *pe) {
     particleemitters.insert({entity, std::shared_ptr<ParticleEmitter>(pe)});
@@ -361,6 +369,13 @@ const inline std::shared_ptr<Animation>
 ComponentManager::get_component<Animation>(Entity entity) {
   if (animations.contains(entity))
     return animations.at(entity);
+  return nullptr;
+}
+template <>
+const inline std::shared_ptr<SkeletalAnimation>
+ComponentManager::get_component<SkeletalAnimation>(Entity entity) {
+  if (skeletal_animations.contains(entity))
+    return skeletal_animations.at(entity);
   return nullptr;
 }
 template <>

@@ -1,6 +1,6 @@
 # Timeless Engine
 
-A 2D game engine written in C++ built around an **Entity Component System (ECS)** architecture with a unique time-sequencing system. Supports desktop (Windows, macOS, Linux) and **WebAssembly** builds.
+A game engine written in C++ built around an **Entity Component System (ECS)** architecture with a unique time-sequencing system. Supports desktop (Windows, macOS, Linux) and **WebAssembly** builds.
 
 ![Example gif](https://github.com/valentijnnieman/timeless/blob/main/example.gif)
 
@@ -189,4 +189,5 @@ Contributions, bug reports, and feature requests are welcome. Feel free to open 
 ## License
 
 This project does not currently have an explicit license. Please contact the author before using it in your own projects.
+
 
