@@ -1,8 +1,38 @@
 #include "timeless/components/model.hpp"
+#include "assimp/postprocess.h"
 #include "glm/gtc/type_ptr.hpp"
 
-void Model::loadModel(const std::string &path) {
-  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);  
+void Model::collectBones(const aiScene* scene) {
+  // Traverse all meshes and collect bones into boneMapping and boneInfos
+  for (unsigned int meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx) {
+    aiMesh* mesh = scene->mMeshes[meshIdx];
+    for (unsigned int i = 0; i < mesh->mNumBones; ++i) {
+      aiBone* bone = mesh->mBones[i];
+      std::string boneName(bone->mName.data);
+      if (boneMapping.find(boneName) == boneMapping.end()) {
+        int boneIndex = boneInfos.size();
+        boneMapping[boneName] = boneIndex;
+
+        BoneInfo boneInfo;
+        aiMatrix4x4 offset = bone->mOffsetMatrix;
+        boneInfo.offsetMatrix = glm::mat4(
+          offset.a1, offset.b1, offset.c1, offset.d1,
+          offset.a2, offset.b2, offset.c2, offset.d2,
+          offset.a3, offset.b3, offset.c3, offset.d3,
+          offset.a4, offset.b4, offset.c4, offset.d4
+        );
+        boneInfos.push_back(boneInfo);
+      }
+    }
+  }
+}
+
+void Model::loadModel(const std::string &path, bool from_blender) {
+  if(from_blender) {
+    scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_ConvertToLeftHanded);  
+  } else {
+    scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);  
+  }
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
     std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -10,9 +40,15 @@ void Model::loadModel(const std::string &path) {
   }
   directory = path.substr(0, path.find_last_of('/'));
 
+  // First, collect all bones for the model
+  collectBones(scene);
+
   processNode(scene->mRootNode, scene);
+  processBone(scene->mRootNode, scene, -1); // Start with root node and no parent bone
+
   // Fill childrenIndices for each bone
   std::map<std::string, int> nameToIndex;
+
   for (int i = 0; i < skeletonBones.size(); ++i) {
       nameToIndex[skeletonBones[i].name] = i;
   }
@@ -22,21 +58,27 @@ void Model::loadModel(const std::string &path) {
           skeletonBones[parentIdx].childrenIndices.push_back(i);
       }
   }
+
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene, int parentBoneIndex) {
-    // If this node is a bone, record it in the skeleton hierarchy
-    auto it = boneMapping.find(node->mName.C_Str());
-    int currentBoneIndex = -1;
-    if (it != boneMapping.end()) {
-        currentBoneIndex = it->second;
-        SkeletonBone bone;
-        bone.name = node->mName.C_Str();
-        bone.parentIndex = parentBoneIndex;
-        // Children will be filled in below
-        skeletonBones.push_back(bone);
-        // Optionally: store index mapping for quick lookup
-    }
+void Model::processBone(aiNode *node, const aiScene *scene, int parentBoneIndex) {
+  int currentBoneIndex = -1;
+  auto it = boneMapping.find(node->mName.C_Str());
+  if (it != boneMapping.end()) {
+      currentBoneIndex = it->second;
+      SkeletonBone bone;
+      bone.name = node->mName.C_Str();
+      bone.parentIndex = parentBoneIndex;
+      skeletonBones.push_back(bone);
+  }
+
+  // Recursively process children
+  for (unsigned int i = 0; i < node->mNumChildren; i++) {
+      processBone(node->mChildren[i], scene, currentBoneIndex);
+  }
+}
+
+void Model::processNode(aiNode *node, const aiScene *scene) {
   // process all the node's meshes (if any)
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     aiMesh *aimesh = scene->mMeshes[node->mMeshes[i]];
@@ -66,7 +108,7 @@ void Model::processNode(aiNode *node, const aiScene *scene, int parentBoneIndex)
   for (unsigned int i = 0; i < node->mNumChildren; i++) {
         int childBoneIndex = -1;
         // Recursively process child, passing currentBoneIndex as parent
-        processNode(node->mChildren[i], scene, currentBoneIndex);
+        processNode(node->mChildren[i], scene);
   }
 
 }
@@ -74,7 +116,6 @@ void Model::processNode(aiNode *node, const aiScene *scene, int parentBoneIndex)
 std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor) {
   std::vector<Vertex> vertices(mesh->mNumVertices);
   std::vector<unsigned int> indices;
-
 
   // Initialize vertex positions and texcoords
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -86,6 +127,11 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
       vertex.TexCoords = glm::vec2(0.0f, 0.0f);
     }
     vertex.Normal = glm::vec3(0.0f); // Will accumulate normals
+    // Initialize bone data to zero
+    for (int j = 0; j < 4; ++j) {
+      vertex.boneData.ids[j] = 0.0f;
+      vertex.boneData.weights[j] = 0.0f;
+    }
     vertices[i] = vertex;
   }
 
@@ -123,47 +169,38 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
     vertices[i].Normal = glm::normalize(vertices[i].Normal);
   }
 
-  //process bones
+  // Assign bone indices and weights to vertices using the global boneMapping
   for (unsigned int i = 0; i < mesh->mNumBones; i++) {
       aiBone* bone = mesh->mBones[i];
       std::string boneName(bone->mName.data);
 
-      int boneIndex = 0;
       auto it = boneMapping.find(boneName);
       if (it == boneMapping.end()) {
-          boneIndex = boneInfos.size();
-          boneMapping[boneName] = boneIndex;
-
-          BoneInfo boneInfo;
-          // Convert aiMatrix4x4 to glm::mat4
-          aiMatrix4x4 offset = bone->mOffsetMatrix;
-          boneInfo.offsetMatrix = glm::mat4(
-              offset.a1, offset.b1, offset.c1, offset.d1,
-              offset.a2, offset.b2, offset.c2, offset.d2,
-              offset.a3, offset.b3, offset.c3, offset.d3,
-              offset.a4, offset.b4, offset.c4, offset.d4
-          );
-          boneInfos.push_back(boneInfo);
-      } else {
-          boneIndex = it->second;
+          // Should not happen, boneMapping should be complete
+          continue;
       }
+      int boneIndex = it->second;
 
       for (unsigned int j = 0; j < bone->mNumWeights; j++) {
           unsigned int vertexID = bone->mWeights[j].mVertexId;
           float weight = bone->mWeights[j].mWeight;
-          for (int i = 0; i < 4; ++i) {
-              if (vertices[vertexID].boneData.weights[i] == 0.0f) {
-                  vertices[vertexID].boneData.ids[i] = static_cast<float>(boneIndex);
-                  vertices[vertexID].boneData.weights[i] = weight;
+          for (int k = 0; k < 4; ++k) {
+              if (vertices[vertexID].boneData.weights[k] == 0.0f) {
+                  vertices[vertexID].boneData.ids[k] = static_cast<float>(boneIndex);
+                  vertices[vertexID].boneData.weights[k] = weight;
+                  break;
               }
           }
       }
   }
 
-  return std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
+  if(mesh->mNumBones > 0) {
+    return std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
+  }
+  return std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
 }
 
-void Model::render(glm::mat4 global_model_matrix, float delta_time) {
+void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_skinning) {
   if(!hidden) {
     for (unsigned int i = 0; i < meshes.size(); i++) {
       glBindVertexArray(meshes[i]->VAO);
@@ -171,6 +208,15 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time) {
       meshes[i]->update_animation(delta_time);
       glm::mat4 meshModelMatrix = global_model_matrix * meshes[i]->getModelMatrix();
       glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(meshModelMatrix));
+
+      GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
+
+      // if(meshes[i]->boneInfos.size() > 0) {
+      //   glUniform1i(useSkinningLoc, 1);
+      // }
+      // else {
+        glUniform1i(useSkinningLoc, 0);
+      // }
 
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                   glm::value_ptr(meshes[i]->diffuseColor));

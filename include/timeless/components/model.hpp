@@ -22,9 +22,9 @@ public:
       : texture(texture), shader(shader) {
     loadModel(path);
   }
-  Model(const std::string &path, std::shared_ptr<Shader> shader)
+  Model(const std::string &path, std::shared_ptr<Shader> shader, bool from_blender = false)
       : shader(shader) {
-    loadModel(path);
+    loadModel(path, from_blender);
   }
   ~Model() {
     for (auto &mesh : meshes) {
@@ -33,7 +33,7 @@ public:
       glDeleteBuffers(1, &mesh->EBO);
     }
   }
-  void render(glm::mat4 global_model_matrix, float delta_time = 0.016f);
+  void render(glm::mat4 global_model_matrix, float delta_time = 0.016f, bool use_skinning = false);
   std::vector<std::shared_ptr<Mesh>> meshes;
 
   Assimp::Importer import;
@@ -53,7 +53,9 @@ private:
   std::shared_ptr<Shader> shader;
   std::string directory;
 
-  void loadModel(const std::string &path);
-  void processNode(aiNode *node, const aiScene *scene, int parentBoneIndex = -1);
+  void collectBones(const aiScene* scene);
+  void loadModel(const std::string &path, bool from_blender = false);
+  void processNode(aiNode *node, const aiScene *scene);
+  void processBone(aiNode *node, const aiScene *scene, int parentBoneIndex = -1);
   std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor);
 };

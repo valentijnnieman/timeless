@@ -37,6 +37,8 @@ public:
   float ui_jitter = 0.0f;
   float ui_jitter_speed = 0.0f;
 
+  float maxDistance = 400.0f; // max distance for light calculations, beyond which light contribution is negligible
+
   void purge(ComponentManager &cm) {
     for (auto &ent : registered_entities) {
       cm.remove_entity(ent);
@@ -256,7 +258,6 @@ public:
                  glm::value_ptr(cam->get_position()));
 
     if (!lightPositions.empty()) {
-      const float maxDistance = 400.0f;
       std::vector<glm::vec3> filteredLightPositions;
       std::vector<glm::vec3> filteredLightColors;
       auto transform = cm.get_component<Transform>(ent);
@@ -390,7 +391,6 @@ public:
         }
       }
 
-      if (animation == nullptr || !animation->playing) {
         auto text = cm.get_component<Text>(entity);
         if (text != nullptr) {
           if (text->center) {
@@ -403,13 +403,16 @@ public:
           auto font = cm.get_component<Font>(entity);
           if(font != nullptr) {
             if (!text->hidden) {
-              set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
+              if(!animation || (animation && !animation->playing)) {
+                set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
+              }
               text->render(font, 0.0f, 0.0f, get_text_font_height(entity, cm),
                           shader);
             }
           }
         }
 
+      if (animation == nullptr || !animation->playing) {
         auto quad = cm.get_component<Quad>(entity);
         if (quad != nullptr) {
           quad->render();
@@ -449,24 +452,26 @@ public:
               texture->render();
             }
 
+            bool use_skinning = false;
             GLint boneMatrixLoc =
                 glGetUniformLocation(shader->ID, "boneMatrices");
             if (boneMatrixLoc >= 0) {
               auto skeletal_animation =
                   cm.get_component<SkeletalAnimation>(entity);
               if (skeletal_animation != nullptr) {
-                glUniformMatrix4fv(
-                    boneMatrixLoc, skeletal_animation->poseMatrices.size(),
-                    GL_FALSE,
-                    glm::value_ptr(skeletal_animation->poseMatrices[0]));
-                GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
-                glUniform1i(useSkinningLoc, 1);
-              } else {
-                GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
-                glUniform1i(useSkinningLoc, 0);
+                std::array<glm::mat4, 32> boneMatrices;
+                size_t count = skeletal_animation->poseMatrices.size();
+                for (size_t i = 0; i < 32; ++i) {
+                    if (i < count)
+                        boneMatrices[i] = skeletal_animation->poseMatrices[i];
+                    else
+                        boneMatrices[i] = glm::mat4(1.0f);
+                }
+                glUniformMatrix4fv(boneMatrixLoc, 32, GL_FALSE, glm::value_ptr(boneMatrices[0]));
+                use_skinning = true;
               }
             }
-            model->render(transform->model, delta_time);
+            model->render(transform->model, delta_time, use_skinning);
           }
         }
       }

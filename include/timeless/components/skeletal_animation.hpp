@@ -38,7 +38,7 @@ public:
   // order)
   std::vector<glm::mat4> poseMatrices;
 
-  // Reference to the entity's Model component (not owned)
+  // Reference to the entity's Model component
   std::shared_ptr<Model> model = nullptr;
 
   SkeletalAnimation(std::shared_ptr<Model> model) : model(model) {
@@ -50,6 +50,7 @@ public:
 
   void setAnimation(const std::string &name) {
     if (animations.find(name) != animations.end()) {
+      std::cout << "Switching to animation: " << name << std::endl;
       currentAnimation = name;
       currentTime = 0.0f;
       playing = true;
@@ -121,12 +122,18 @@ public:
 
         // 6. Store keyframes for this bone
         animData.boneKeyframes[boneName] = keyframes;
+           std::cout << "Loaded bone animation for bone: " << boneName
+                    << " with " << keyframes.times.size() << " keyframes"
+                    << std::endl;
       }
 
       // 7. Store the animation by name
       std::string animName = aiAnim->mName.length > 0
                                  ? aiAnim->mName.C_Str()
                                  : "Anim" + std::to_string(animIdx);
+      std::cout << "Loaded animation: " << animName
+                << " with duration: " << animData.duration << " seconds"
+                << std::endl;
       animations[animName] = animData;
     }
   }
@@ -148,6 +155,9 @@ private:
       int mappingIdx = it->second;
       poseMatrices[mappingIdx] =
           globalTransform * boneInfos[mappingIdx].offsetMatrix;
+    } else {
+      std::cout << "Warning: Bone " << bone.name
+                << " not found in model's bone mapping!" << std::endl;
     }
 
     // Recursively process children
