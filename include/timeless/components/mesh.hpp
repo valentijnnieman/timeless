@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 struct VertexBoneData {
   float ids[4] = {0.0f};    // Indices of influencing bones (max 4)
