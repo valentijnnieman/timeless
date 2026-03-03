@@ -62,10 +62,9 @@ if(EMSCRIPTEN)
 
   target_link_options(${PROJECT_NAME} PUBLIC
     -sALLOW_MEMORY_GROWTH=1
-    -sASYNCIFY
     -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
     -sUSE_FREETYPE=1
-    --use-port=contrib.glfw3
+    -sUSE_GLFW=3
     -sMIN_WEBGL_VERSION=2
     -sMAX_WEBGL_VERSION=2
     -sFULL_ES3
