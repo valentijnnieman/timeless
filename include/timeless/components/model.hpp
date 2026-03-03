@@ -1,4 +1,10 @@
 #pragma once
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
+#include <glad/glad.h>
+#endif
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
@@ -17,6 +23,17 @@ struct SkeletonBone {
 
 class Model : public Component {
 public:
+  Assimp::Importer import;
+  const aiScene *scene;  
+
+  bool hidden = false;
+
+  float metallic = 0.1f;
+  float roughness = 0.1f;
+
+  float index = 0.0f;
+  glm::vec4 params = glm::vec4(0.1f, 0.1f, 0.0f, 0.0f); // Example: metallic, roughness, unused, unused
+
   Model(const std::string &path, std::shared_ptr<Texture> texture,
         std::shared_ptr<Shader> shader)
       : texture(texture), shader(shader) {
@@ -24,6 +41,10 @@ public:
   }
   Model(const std::string &path, std::shared_ptr<Shader> shader, bool from_blender = false)
       : shader(shader) {
+    loadModel(path, from_blender);
+  }
+  Model(const std::string &path, std::shared_ptr<Shader> shader, float index, bool from_blender = false)
+      : shader(shader), index(index) {
     loadModel(path, from_blender);
   }
   ~Model() {
@@ -34,15 +55,8 @@ public:
     }
   }
   void render(glm::mat4 global_model_matrix, float delta_time = 0.016f, bool use_skinning = false);
+  void instanced_render(GLsizei instance_count);
   std::vector<std::shared_ptr<Mesh>> meshes;
-
-  Assimp::Importer import;
-  const aiScene *scene;  
-
-  bool hidden = false;
-
-  float metallic = 0.1f;
-  float roughness = 0.1f;
 
   std::vector<BoneInfo> boneInfos;
   std::unordered_map<std::string, unsigned int> boneMapping; // maps a bone name to its index

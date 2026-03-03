@@ -15,10 +15,17 @@ private:
   unsigned int instanceVBO2;
   unsigned int instanceVBO3;
 
+  unsigned int modelInstanceVBO;
+  unsigned int modelInstanceVBO2;
+  unsigned int modelInstanceVBO3;
+
   unsigned int attrLoc1;
   unsigned int attrLoc2;
   unsigned int attrLoc3;
 
+  std::vector<glm::mat4> modelMatrices;
+  std::vector<float> modelIndices;
+  std::vector<glm::vec4> modelParams;
 
   std::vector<glm::mat4> models;
   std::vector<float> sprite_indices;
@@ -37,7 +44,7 @@ public:
   float ui_jitter = 0.0f;
   float ui_jitter_speed = 0.0f;
 
-  float maxDistance = 400.0f; // max distance for light calculations, beyond which light contribution is negligible
+  float maxDistance = 2000.0f; // max distance for light calculations, beyond which light contribution is negligible
 
   void purge(ComponentManager &cm) {
     for (auto &ent : registered_entities) {
@@ -261,11 +268,21 @@ public:
       std::vector<glm::vec3> filteredLightPositions;
       std::vector<glm::vec3> filteredLightColors;
       auto transform = cm.get_component<Transform>(ent);
-      for (size_t i = 0; i < lightPositions.size(); ++i) {
-        float dist = glm::distance(lightPositions[i], transform->get_position());
-        if (dist <= maxDistance) {
-          filteredLightPositions.push_back(lightPositions[i]);
-          filteredLightColors.push_back(lightColors[i]);
+      if(transform != nullptr) {
+        for (size_t i = 0; i < lightPositions.size(); ++i) {
+          float dist = glm::distance(lightPositions[i], transform->get_position());
+          if (dist <= maxDistance) {
+            filteredLightPositions.push_back(lightPositions[i]);
+            filteredLightColors.push_back(lightColors[i]);
+          }
+        }
+      } else {
+        for (size_t i = 0; i < lightPositions.size(); ++i) {
+          float dist = glm::distance(lightPositions[i], cam->get_position());
+          if (dist <= maxDistance) {
+            filteredLightPositions.push_back(lightPositions[i]);
+            filteredLightColors.push_back(lightColors[i]);
+          }
         }
       }
       if(!filteredLightPositions.empty()) {
@@ -619,5 +636,183 @@ public:
                             registered_entities.size());
 
     // quad->unbind_vao();
+  }
+  void init_instanced_model_buffers(std::shared_ptr<Model> model,
+                                    std::shared_ptr<Shader> shader,
+                                    size_t max_instances) {
+    for (auto& mesh : model->meshes) {
+      glBindVertexArray(mesh->VAO);
+
+      // Allocate buffer for Model Matrix (mat4 as 4 vec4 attributes)
+      if (!modelInstanceVBO) {
+        glGenBuffers(1, &modelInstanceVBO);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
+      glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+
+      for (int i = 0; i < 4; ++i) {
+        std::string name = "aModelMatrix" + std::to_string(i);
+        GLuint attrLoc = glGetAttribLocation(shader->ID, name.c_str());
+        glEnableVertexAttribArray(attrLoc);
+        glVertexAttribPointer(attrLoc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)(sizeof(glm::vec4) * i));
+        glVertexAttribDivisor(attrLoc, 1);
+      }
+
+      // Allocate buffer for Model Index (float)
+      if (!modelInstanceVBO2) {
+        glGenBuffers(1, &modelInstanceVBO2);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
+      glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+      GLuint attrLoc2 = glGetAttribLocation(shader->ID, "aModelIndex");
+      glEnableVertexAttribArray(attrLoc2);
+      glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)0);
+      glVertexAttribDivisor(attrLoc2, 1);
+
+      // Allocate buffer for Model Parameters (vec4)
+      if (!modelInstanceVBO3) {
+        glGenBuffers(1, &modelInstanceVBO3);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
+      glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
+
+      GLuint attrLoc3 = glGetAttribLocation(shader->ID, "aModelParams");
+      glEnableVertexAttribArray(attrLoc3);
+      glVertexAttribPointer(attrLoc3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void *)0);
+      glVertexAttribDivisor(attrLoc3, 1);
+
+      glBindVertexArray(0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+  }
+
+  void prepare_instanced_models(ComponentManager &cm, std::shared_ptr<Shader> shader, float x, float y, int zoom) {
+    modelMatrices.clear();
+    modelIndices.clear();
+    modelParams.clear();
+    std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
+
+    for (auto &entity : registered_entities) {
+      auto transform = cm.get_component<Transform>(entity);
+      if (transform != nullptr) {
+        transform->update_camera(cam);
+        update_transform(transform);
+        modelMatrices.push_back(transform->model);
+      }
+
+      auto modelComp = cm.get_component<Model>(entity);
+      if (modelComp != nullptr) {
+        modelIndices.push_back(modelComp->index);
+        modelParams.push_back(modelComp->params);
+      }
+    }
+
+    // Model matrix as 4 vec4 attributes for GLSL 100 / WebGL
+    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
+    if (!modelMatrices.empty()) {
+      glBufferSubData(GL_ARRAY_BUFFER, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
+    }
+
+    // Model Index (float)
+    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
+    if (!modelIndices.empty()) {
+      glBufferSubData(GL_ARRAY_BUFFER, 0, modelIndices.size() * sizeof(float), modelIndices.data());
+    }
+
+    // Model Parameters (vec4)
+    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
+    if (!modelParams.empty()) {
+      glBufferSubData(GL_ARRAY_BUFFER, 0, modelParams.size() * sizeof(glm::vec4), modelParams.data());
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
+
+    // Prepare and render instanced models grouped by model pointer
+  void instanced_model_render(ComponentManager &cm, int x, int y, float zoom = 1.0, int tick = 0) {
+    // Group entities by model pointer
+    std::unordered_map<std::shared_ptr<Model>, std::vector<Entity>> modelGroups;
+    for (auto& entity : registered_entities) {
+      auto modelComp = cm.get_component<Model>(entity);
+      if (modelComp) {
+        modelGroups[modelComp].push_back(entity);
+      }
+    }
+
+    for (auto& [modelPtr, entities] : modelGroups) {
+      // Prepare instance data for this group
+      modelMatrices.clear();
+      modelIndices.clear();
+      modelParams.clear();
+      std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
+
+      for (auto& entity : entities) {
+        auto transform = cm.get_component<Transform>(entity);
+        if (transform != nullptr) {
+          transform->update_camera(cam);
+          update_transform(transform);
+          modelMatrices.push_back(transform->model);
+        }
+        auto modelComp = cm.get_component<Model>(entity);
+        if (modelComp) {
+          modelIndices.push_back(modelComp->index);
+          modelParams.push_back(modelComp->params);
+        }
+      }
+
+      // Update instance buffers
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
+      if (!modelMatrices.empty())
+        glBufferSubData(GL_ARRAY_BUFFER, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
+
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
+      if (!modelIndices.empty())
+        glBufferSubData(GL_ARRAY_BUFFER, 0, modelIndices.size() * sizeof(float), modelIndices.data());
+
+      glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
+      if (!modelParams.empty())
+        glBufferSubData(GL_ARRAY_BUFFER, 0, modelParams.size() * sizeof(glm::vec4), modelParams.data());
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+      // Render all meshes of this model
+      // auto texture = modelPtr->texture;
+      auto shader = cm.get_component<Shader>(entities[0]); // Assuming all entities with the same model use the same shader
+      if (shader) {
+        shader->use();
+
+        glm::mat4 view = cam->get_view_matrix();
+        glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
+
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
+        glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
+        glUniform1f(glGetUniformLocation(shader->ID, "jitter"), inst_jitter);
+        glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"), inst_jitter_speed);
+
+        for (auto& mesh : modelPtr->meshes) {
+          glBindVertexArray(mesh->VAO);
+
+          calculate_lighting(-1, cm, shader, cam, tick);
+          glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
+                      glm::value_ptr(mesh->diffuseColor));
+          glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+                      glm::value_ptr(mesh->diffuseColor));
+          glUniform1f(glGetUniformLocation(shader->ID, "metallic"), 0.1f);
+          glUniform1f(glGetUniformLocation(shader->ID, "roughness"), 0.1f);
+          glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
+                      glm::value_ptr(mesh->specularColor));
+          glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+                      glm::value_ptr(glm::vec3(1.0f)));
+          glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+          glDrawElementsInstanced(GL_TRIANGLES,
+                                  static_cast<unsigned int>(mesh->indices.size()),
+                                  GL_UNSIGNED_INT, 0, entities.size());
+          glBindVertexArray(0);
+        }
+      }
+    }
   }
 };
