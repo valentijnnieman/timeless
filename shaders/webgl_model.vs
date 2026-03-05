@@ -1,7 +1,7 @@
 #version 100
 attribute vec3 aPos;
 attribute vec3 aNormal;
-attribute vec2 aTexCoord;
+attribute vec2 aTexCoords;
 
 uniform mat4 projection;
 uniform mat4 model;
@@ -12,7 +12,7 @@ varying vec3 Normal;
 
 void main()
 {
-    TexCoord = aTexCoord;
+    TexCoord = aTexCoords;
     Normal = aNormal;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

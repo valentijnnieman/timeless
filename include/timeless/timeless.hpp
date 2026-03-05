@@ -24,6 +24,7 @@
 #include "timeless/systems/animation_system.hpp"
 #include "timeless/systems/camera_system.hpp"
 #include "timeless/systems/sound_system.hpp"
+#include "timeless/systems/debug_system.hpp"
 #include "timeless/algorithm/graph.hpp"
 #include "timeless/systems/system.hpp"
 
