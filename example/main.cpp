@@ -55,14 +55,15 @@ public:
 		// with get_window_manager() we get a pointer to it, and enable_screen_shader() sets the shader 
 		// to be used for the entire screen. This shader can be used to create full screen effects, such as the 
 		// video rewind effect in this example.
-		TE::get_window_manager()->enable_screen_shader(screen_shader, screen_shader);
+		TE::get_window_manager()->add_framebuffer(screen_shader); // index 0: text layer
+		TE::get_window_manager()->add_framebuffer(screen_shader); // index 1: tile layer
 
 		// create systems - you can mix and match different systems, and create, for example, multiple rendering
 		// systems so you can handle those individually, which is great for layering etc. In this example, we create 2 rendering systems - one for the tiles, and one for all the ui components.
 		TE::create_system<RenderingSystem>("TileRenderingSystem", new RenderingSystem());
 		TE::create_system<RenderingSystem>("UIRenderingSystem", new RenderingSystem());
-		TE::create_system<TextRenderingSystem>("TextRenderingSystem", new TextRenderingSystem());
-		TE::create_system<TextRenderingSystem>("UITextRenderingSystem", new TextRenderingSystem());
+		TE::create_system<RenderingSystem>("TextRenderingSystem", new RenderingSystem());
+		TE::create_system<RenderingSystem>("UITextRenderingSystem", new RenderingSystem());
 		TE::create_system<MovementSystem>("MovementSystem", new MovementSystem());
 		TE::create_system<KeyboardInputSystem>("KeyboardInputSystem", new KeyboardInputSystem());
 		TE::create_system<NpcAiSystem>("NpcAiSystem", new NpcAiSystem());
@@ -84,12 +85,12 @@ public:
 		// the camera.
 		TE::get_system<MovementSystem>("MovementSystem")->register_camera(main_camera);
 		TE::get_system<RenderingSystem>("TileRenderingSystem")->register_camera(main_camera);
-		TE::get_system<TextRenderingSystem>("TextRenderingSystem")->register_camera(main_camera);
+		TE::get_system<RenderingSystem>("TextRenderingSystem")->register_camera(main_camera);
 		// also register the main camera with the mouse input system, so mouse input can be read
 		TE::get_mouse_input_system()->register_camera(main_camera);
 
 		TE::get_system<RenderingSystem>("UIRenderingSystem")->register_camera(ui_camera);
-		TE::get_system<TextRenderingSystem>("UITextRenderingSystem")->register_camera(ui_camera);
+		TE::get_system<RenderingSystem>("UITextRenderingSystem")->register_camera(ui_camera);
 
 		// define some variables for our tiles, based on how the tiles in the 
 		// sprite sheet are layed out (see the texture png file used above).
@@ -198,19 +199,19 @@ public:
           auto ai = TE::get_system<NpcAiSystem>("NpcAiSystem");
 
           /** render scene into framebuffer */
-          wm.select_framebuffer(wm.screen_shader, true);
+          wm.select_framebuffer(0, true);
 
-          TE::get_system<TextRenderingSystem>("TextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          TE::get_system<RenderingSystem>("TextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-          wm.render_framebuffer_as_quad(wm.screen_shader, true);
+          wm.render_framebuffer_as_quad(0, true);
 
-          wm.select_framebuffer(wm.tile_shader, false);
+          wm.select_framebuffer(1, false);
           TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index);
-          wm.render_framebuffer_as_quad(wm.tile_shader, false);
+          wm.render_framebuffer_as_quad(1, false);
 
           // render ui and other parts not affected by screen shader
           TE::get_system<RenderingSystem>("UIRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
-          TE::get_system<TextRenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          TE::get_system<RenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
           glfwSwapBuffers(window);
           glfwPollEvents();
