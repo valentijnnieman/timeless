@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 in vec2 TexCoord;
 in vec3 Normal;
@@ -30,9 +30,12 @@ void main()
 
     vec3 pointDiffuse = vec3(0.0);
     for (int i = 0; i < numPointLights; ++i) {
-        vec3 plDir = normalize(pointLightPositions[i] - FragPos);
+        vec3 toLight = pointLightPositions[i] - FragPos;
+        float dist = length(toLight);
+        float attenuation = dist < 256.0 ? 1.0 : 0.0;
+        vec3 plDir = normalize(toLight);
         float plDiff = max(dot(norm, plDir), 0.0);
-        pointDiffuse += plDiff * materialDiffuse * pointLightColors[i];
+        pointDiffuse += plDiff * attenuation * materialDiffuse * pointLightColors[i];
     }
 
     vec3 result = ambient + diffuse + pointDiffuse;

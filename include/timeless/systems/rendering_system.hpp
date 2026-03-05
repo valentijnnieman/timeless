@@ -523,7 +523,7 @@ public:
     glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::mat4), nullptr,
                  GL_DYNAMIC_DRAW);
 
-    GLuint attrLoc1 = glGetAttribLocation(shader->ID, "aModel");
+    GLint attrLoc1 = glGetAttribLocation(shader->ID, "aModel");
     for (int i = 0; i < 4; ++i) {
       glEnableVertexAttribArray(attrLoc1 + i);
       glVertexAttribPointer(attrLoc1 + i, 4, GL_FLOAT, GL_FALSE,
@@ -536,7 +536,7 @@ public:
     glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr,
                  GL_DYNAMIC_DRAW);
 
-    GLuint attrLoc2 = glGetAttribLocation(shader->ID, "aIndex");
+    GLint attrLoc2 = glGetAttribLocation(shader->ID, "aIndex");
     glEnableVertexAttribArray(attrLoc2);
     glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float),
                           (void *)0);
@@ -547,7 +547,7 @@ public:
     glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec2), nullptr,
                  GL_DYNAMIC_DRAW);
 
-    GLuint attrLoc3 = glGetAttribLocation(shader->ID, "aSpriteSize");
+    GLint attrLoc3 = glGetAttribLocation(shader->ID, "aSpriteSize");
     glEnableVertexAttribArray(attrLoc3);
     glVertexAttribPointer(attrLoc3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2),
                           (void *)0);
@@ -652,10 +652,12 @@ public:
 
       for (int i = 0; i < 4; ++i) {
         std::string name = "aModelMatrix" + std::to_string(i);
-        GLuint attrLoc = glGetAttribLocation(shader->ID, name.c_str());
-        glEnableVertexAttribArray(attrLoc);
-        glVertexAttribPointer(attrLoc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)(sizeof(glm::vec4) * i));
-        glVertexAttribDivisor(attrLoc, 1);
+        GLint attrLoc = glGetAttribLocation(shader->ID, name.c_str());
+        if (attrLoc >= 0) {
+          glEnableVertexAttribArray(attrLoc);
+          glVertexAttribPointer(attrLoc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)(sizeof(glm::vec4) * i));
+          glVertexAttribDivisor(attrLoc, 1);
+        }
       }
 
       // Allocate buffer for Model Index (float)
@@ -665,10 +667,12 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
       glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 
-      GLuint attrLoc2 = glGetAttribLocation(shader->ID, "aModelIndex");
-      glEnableVertexAttribArray(attrLoc2);
-      glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)0);
-      glVertexAttribDivisor(attrLoc2, 1);
+      GLint attrLoc2 = glGetAttribLocation(shader->ID, "aModelIndex");
+      if (attrLoc2 >= 0) {
+        glEnableVertexAttribArray(attrLoc2);
+        glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)0);
+        glVertexAttribDivisor(attrLoc2, 1);
+      }
 
       // Allocate buffer for Model Parameters (vec4)
       if (!modelInstanceVBO3) {
@@ -677,10 +681,12 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
       glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
 
-      GLuint attrLoc3 = glGetAttribLocation(shader->ID, "aModelParams");
-      glEnableVertexAttribArray(attrLoc3);
-      glVertexAttribPointer(attrLoc3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void *)0);
-      glVertexAttribDivisor(attrLoc3, 1);
+      GLint attrLoc3 = glGetAttribLocation(shader->ID, "aModelParams");
+      if (attrLoc3 >= 0) {
+        glEnableVertexAttribArray(attrLoc3);
+        glVertexAttribPointer(attrLoc3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void *)0);
+        glVertexAttribDivisor(attrLoc3, 1);
+      }
 
       glBindVertexArray(0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -794,6 +800,38 @@ public:
 
         for (auto& mesh : modelPtr->meshes) {
           glBindVertexArray(mesh->VAO);
+
+          // Re-bind our own instance VBOs — another RenderingSystem may have
+          // overwritten these attribute bindings on the shared mesh VAO.
+          glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
+          for (int i = 0; i < 4; ++i) {
+            std::string name = "aModelMatrix" + std::to_string(i);
+            GLint loc = glGetAttribLocation(shader->ID, name.c_str());
+            if (loc >= 0) {
+              glEnableVertexAttribArray(loc);
+              glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * i));
+              glVertexAttribDivisor(loc, 1);
+            }
+          }
+          glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
+          {
+            GLint loc = glGetAttribLocation(shader->ID, "aModelIndex");
+            if (loc >= 0) {
+              glEnableVertexAttribArray(loc);
+              glVertexAttribPointer(loc, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+              glVertexAttribDivisor(loc, 1);
+            }
+          }
+          glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
+          {
+            GLint loc = glGetAttribLocation(shader->ID, "aModelParams");
+            if (loc >= 0) {
+              glEnableVertexAttribArray(loc);
+              glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+              glVertexAttribDivisor(loc, 1);
+            }
+          }
+          glBindBuffer(GL_ARRAY_BUFFER, 0);
 
           calculate_lighting(-1, cm, shader, cam, tick);
           glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,

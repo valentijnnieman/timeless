@@ -6,9 +6,9 @@
 using Entity = uint32_t;
 const Entity MAX_ENTITIES = UINT32_MAX;
 
-static Entity entities = 0;
-static bool out_of_ids = false;
-static std::unordered_set<Entity> active_entities;
+inline Entity entities = 0;
+inline bool out_of_ids = false;
+inline std::unordered_set<Entity> active_entities;
 
 inline Entity create_entity(const std::string& debug_name = "") {
   Entity id;
