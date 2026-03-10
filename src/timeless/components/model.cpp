@@ -236,7 +236,6 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_ski
     }
   }
 }
-
 void Model::instanced_render(GLsizei instance_count) {
   for (unsigned int i = 0; i < meshes.size(); i++) {
     glBindVertexArray(meshes[i]->VAO);

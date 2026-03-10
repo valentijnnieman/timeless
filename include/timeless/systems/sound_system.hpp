@@ -3,6 +3,9 @@
 #include "fmod.hpp"
 #include "fmod_errors.h"
 #include <unordered_map>
+#ifndef __EMSCRIPTEN__
+#include <mutex>
+#endif
 
 class SoundSystem : public System
 {
@@ -20,6 +23,10 @@ private:
   std::unordered_map<std::string, FMOD::Studio::EventInstance*> events;
 
 	std::map<std::string, std::shared_ptr<FMOD::Studio::EventDescription>> event_descriptions;
+
+#ifndef __EMSCRIPTEN__
+  std::mutex _trigger_mutex;
+#endif
 public:
 	float sampling_rate = 48000;
   void register_camera(Entity c)
@@ -93,6 +100,9 @@ public:
 
 	void trigger_event(std::string soundevent_path, float delay = 0.0f, bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0))
 	{
+#ifndef __EMSCRIPTEN__
+    std::lock_guard<std::mutex> lock(_trigger_mutex);
+#endif
     if(!events.contains(soundevent_path)){
       FMOD::Studio::EventDescription* new_event_description = NULL;
       std::string e = "event:/" + soundevent_path;

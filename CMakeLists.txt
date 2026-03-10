@@ -20,6 +20,7 @@ set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON)
 set(ASSIMP_BUILD_FBX_IMPORTER ON)
+set(ASSIMP_BUILD_ZLIB ON)
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
 
@@ -52,7 +53,6 @@ if(EMSCRIPTEN)
   message(STATUS "EMSCIRPTEN BUILD!")
 
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
-
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)

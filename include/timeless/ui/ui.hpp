@@ -41,6 +41,11 @@ public:
     if(transform != nullptr) {
       transform->set_position(position);
     }
+
+    auto main_transform = TE::get_component<Transform>(main_ent);
+    if(main_transform != nullptr) {
+      main_transform->set_position(position);
+    }
   }
 
   void add_entity(Entity entity) { 

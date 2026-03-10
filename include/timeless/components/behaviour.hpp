@@ -21,7 +21,7 @@ public:
     {
     }
 
-    void run(Entity entity, bool reverse = false, float speed = 1.0)
+    void run(Entity entity, bool reverse = false, float speed = 1.0) const
     {
         // run this instruction
         instruct_func(entity, reverse, speed);
@@ -43,6 +43,7 @@ private:
 public:
     std::vector<Instruction> next_instructions;
     std::shared_ptr<Instruction> callback;
+    std::shared_ptr<Instruction> serial_callback;
 
     Behaviour(std::vector<Instruction> f_instructions)
         : next_instructions(f_instructions)
@@ -79,15 +80,9 @@ public:
         next_instructions.resize(max);
     }
 
-    std::shared_ptr<Instruction> next(int index) {
-      if (!next_instructions.empty()) {
-        if (index > next_instructions.size() - 1) {
-          return nullptr;
-        }
-        std::shared_ptr<Instruction> instr =
-            std::make_shared<Instruction>(next_instructions.at(index));
-        return instr;
-      }
+    const Instruction* next(int index) {
+      if (!next_instructions.empty() && index <= (int)next_instructions.size() - 1)
+        return &next_instructions[index];
       return nullptr;
     }
 };

@@ -31,6 +31,9 @@ private:
   std::vector<float> sprite_indices;
   std::vector<glm::vec2> sprite_sizes;
 
+  std::vector<glm::vec3> filteredLightPositions;
+  std::vector<glm::vec3> filteredLightColors;
+
 public:
   Entity camera;
 
@@ -240,7 +243,19 @@ public:
     }
   }
 
-  void calculate_lighting(Entity ent, ComponentManager &cm, std::shared_ptr<Shader> shader,
+  void pre_filter_lights(std::shared_ptr<Camera> cam) {
+    filteredLightPositions.clear();
+    filteredLightColors.clear();
+    glm::vec3 camPos = cam->get_position();
+    for (size_t i = 0; i < lightPositions.size(); ++i) {
+      if (glm::distance(lightPositions[i], camPos) <= maxDistance) {
+        filteredLightPositions.push_back(lightPositions[i]);
+        filteredLightColors.push_back(lightColors[i]);
+      }
+    }
+  }
+
+  void calculate_lighting(Entity /*ent*/, ComponentManager & /*cm*/, std::shared_ptr<Shader> shader,
                      std::shared_ptr<Camera> cam, int tick) {
     int dayTick = 0;
     if(tick >= 16) {
@@ -264,41 +279,19 @@ public:
     glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                  glm::value_ptr(cam->get_position()));
 
-    if (!lightPositions.empty()) {
-      std::vector<glm::vec3> filteredLightPositions;
-      std::vector<glm::vec3> filteredLightColors;
-      auto transform = cm.get_component<Transform>(ent);
-      if(transform != nullptr) {
-        for (size_t i = 0; i < lightPositions.size(); ++i) {
-          float dist = glm::distance(lightPositions[i], transform->get_position());
-          if (dist <= maxDistance) {
-            filteredLightPositions.push_back(lightPositions[i]);
-            filteredLightColors.push_back(lightColors[i]);
-          }
-        }
-      } else {
-        for (size_t i = 0; i < lightPositions.size(); ++i) {
-          float dist = glm::distance(lightPositions[i], cam->get_position());
-          if (dist <= maxDistance) {
-            filteredLightPositions.push_back(lightPositions[i]);
-            filteredLightColors.push_back(lightColors[i]);
-          }
-        }
-      }
-      if(!filteredLightPositions.empty()) {
-        int numPointLights = filteredLightPositions.size();
-        glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
-        glUniform3fv(
-            glGetUniformLocation(shader->ID, "pointLightPositions"),
-            numPointLights,
-            glm::value_ptr(filteredLightPositions[0])
-        );
-        glUniform3fv(
-            glGetUniformLocation(shader->ID, "pointLightColors"),
-            numPointLights,
-            glm::value_ptr(filteredLightColors[0])
-        );
-      }
+    if (!filteredLightPositions.empty()) {
+      int numPointLights = (int)filteredLightPositions.size();
+      glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
+      glUniform3fv(
+          glGetUniformLocation(shader->ID, "pointLightPositions"),
+          numPointLights,
+          glm::value_ptr(filteredLightPositions[0])
+      );
+      glUniform3fv(
+          glGetUniformLocation(shader->ID, "pointLightColors"),
+          numPointLights,
+          glm::value_ptr(filteredLightColors[0])
+      );
     }
 
   }
@@ -307,6 +300,8 @@ public:
               int tick = 0, float delta_time = 0.016f) {
     // get camera if set
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
+    if (cam != nullptr)
+      pre_filter_lights(cam);
 
     for (auto &entity : registered_entities) {
       auto shader = cm.get_component<Shader>(entity);
@@ -614,14 +609,8 @@ public:
     glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
                  glm::value_ptr(glm::vec2(texture->width, texture->height)));
 
-    glm::mat4 view = glm::lookAt(cam->get_position(),
-                                 cam->get_position() + glm::vec3(0, 0, -1),
-                                 glm::vec3(0, 1, 0));
-    glm::mat4 projection =
-        glm::ortho(-(static_cast<float>(x * 0.5) * zoom),
-                   static_cast<float>(x * 0.5) * zoom,
-                   (static_cast<float>(y * 0.5) * zoom),
-                   -static_cast<float>(y * 0.5) * zoom, -1000.0f, 1000.0f);
+    glm::mat4 view = cam->get_view_matrix();
+    glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
                        GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
@@ -737,6 +726,10 @@ public:
 
     // Prepare and render instanced models grouped by model pointer
   void instanced_model_render(ComponentManager &cm, int x, int y, float zoom = 1.0, int tick = 0) {
+    std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
+    if (cam != nullptr)
+      pre_filter_lights(cam);
+
     // Group entities by model pointer
     std::unordered_map<std::shared_ptr<Model>, std::vector<Entity>> modelGroups;
     for (auto& entity : registered_entities) {
@@ -751,7 +744,6 @@ public:
       modelMatrices.clear();
       modelIndices.clear();
       modelParams.clear();
-      std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
       for (auto& entity : entities) {
         auto transform = cm.get_component<Transform>(entity);
