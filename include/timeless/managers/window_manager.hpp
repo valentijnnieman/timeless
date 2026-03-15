@@ -60,14 +60,16 @@ public:
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-    int width = TESettings::SCREEN_X;
-    int height = TESettings::SCREEN_Y;
+    int width = TESettings::WINDOW_X;
+    int height = TESettings::WINDOW_Y;
 
     if(TESettings::NATIVE_RESOLUTION) {
       GLFWmonitor* monitor = glfwGetPrimaryMonitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
       width = mode->width;
       height = mode->height;
+      TESettings::WINDOW_X = width;
+      TESettings::WINDOW_Y = height;
     }
 
     if (TESettings::FULLSCREEN)
@@ -86,6 +88,15 @@ public:
     glfwSetWindowUserPointer(window, this);
 
     glfwSwapInterval(1);
+
+    // Query the actual framebuffer size (may differ from logical size on HiDPI)
+    // and store it as the window dimensions.
+    {
+      int fb_w, fb_h;
+      glfwGetFramebufferSize(window, &fb_w, &fb_h);
+      TESettings::WINDOW_X = fb_w;
+      TESettings::WINDOW_Y = fb_h;
+    }
 
     cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
     glfwSetCursor(window, cursor);
@@ -203,12 +214,17 @@ public:
     }
   }
 
-  void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0) {
+  // to_screen=true: render into the OS window (uses WINDOW_X/Y for the GL
+  // viewport so the design-res framebuffer texture is scaled to fit).
+  // to_screen=false (default): render into another scene framebuffer (uses the
+  // design resolution VIEWPORT_X/Y).
+  void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false) {
     if (idx >= screen_shaders.size() || idx >= textures.size()) return;
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+    int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::VIEWPORT_X;
+    int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::VIEWPORT_Y;
+    glViewport(0, 0, vp_w, vp_h);
     if (clear) {
       glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
                    TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
@@ -222,10 +238,12 @@ public:
 
     glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::VIEWPORT_X);
     glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::VIEWPORT_Y);
+    // Normalise raw mouse position by actual window size so shader effects
+    // (e.g. search highlight) track the cursor correctly regardless of resolution.
     glUniform2fv(
         glGetUniformLocation(screen_shaders[idx]->ID, "mousePosition"), 1,
-        glm::value_ptr(glm::vec2(shader_mouse_position.x / TESettings::SCREEN_X,
-                                shader_mouse_position.y / TESettings::SCREEN_Y)));
+        glm::value_ptr(glm::vec2(shader_mouse_position.x / TESettings::WINDOW_X,
+                                shader_mouse_position.y / TESettings::WINDOW_Y)));
 
     set_shader_time(screen_shaders[idx]);
 
@@ -266,10 +284,12 @@ public:
 
   static void framebuffer_size_callback(GLFWwindow *window, int width,
                                         int height) {
+    // Update the window size tracking. Scene framebuffers are kept at the
+    // fixed design resolution (VIEWPORT_X/Y) and are never resized — the
+    // final blit to screen handles the scaling automatically.
     TESettings::rescale_window(width, height);
     WindowManager *wm =
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
-    wm->resize_framebuffers(width, height);
     glm::vec2 new_size(width, height);
     if(wm->es != nullptr) {
       wm->es->create_event<glm::vec2>(*wm->cm, "ResizeWindow", &new_size);
@@ -300,9 +320,9 @@ public:
 
     wm->set_shader_mouse_position(glm::vec2(xpos, ypos));
 
-    // Scale mouse position from screen space to framebuffer (viewport) space
-    double scale_x = double(TESettings::VIEWPORT_X) / TESettings::SCREEN_X;
-    double scale_y = double(TESettings::VIEWPORT_Y) / TESettings::SCREEN_Y;
+    // Map cursor from window pixels to design-resolution world coordinates.
+    double scale_x = double(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
+    double scale_y = double(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
     double fb_x = xpos * scale_x;
     double fb_y = ypos * scale_y;
 
@@ -336,12 +356,13 @@ public:
     double raw_xpos = xpos;
     double raw_ypos = ypos;
 
-    xpos -= TESettings::SCREEN_X * 0.5;
-    ypos -= TESettings::SCREEN_Y * 0.5;
+    // Map from window pixels to design-resolution world coordinates.
+    xpos -= TESettings::WINDOW_X * 0.5;
+    ypos -= TESettings::WINDOW_Y * 0.5;
 
-    double xnorm = xpos / TESettings::SCREEN_X;
+    double xnorm = xpos / TESettings::WINDOW_X;
     double world_x = xnorm * TESettings::VIEWPORT_X;
-    double ynorm = ypos / TESettings::SCREEN_Y;
+    double ynorm = ypos / TESettings::WINDOW_Y;
     double world_y = ynorm * TESettings::VIEWPORT_Y;
 
     xpos = world_x;

@@ -266,9 +266,11 @@ namespace TE
         // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
         glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-        // Mouse position to NDC
-        float mouse_x = event->raw_position.x;
-        float mouse_y = event->raw_position.y;
+        // Scale raw window pixels to design-resolution (viewport) pixels before
+        // unprojecting — raw_position is in OS window coords which may differ
+        // from the design resolution when WINDOW_X/Y != VIEWPORT_X/Y.
+        float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
+        float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
         float win_x = mouse_x;
         float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
         glm::vec3 cam_pos = glm::vec3(glm::inverse(view)[3]);
@@ -335,9 +337,9 @@ namespace TE
           glm::vec4 viewport =
               glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-          // Mouse position to NDC
-          float mouse_x = event->raw_position.x;
-          float mouse_y = event->raw_position.y;
+          // Scale raw window pixels to design-resolution (viewport) pixels.
+          float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
+          float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
           float win_x = mouse_x;
           float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <array>
+#include "timeless/components/transform.hpp"
 #include "timeless/systems/system.hpp"
 
 class MovementSystem : public System
@@ -12,14 +13,18 @@ private:
         a,
         s,
         d,
-        escape
+        escape,
+        up,
+        down,
+        left,
+        right
     };
 
     glm::vec2 x_bounds;
     glm::vec2 y_bounds;
     float walk_speed;
     float camera_speed;
-    std::array<bool, 6> keysPressed = {false, false, false, false, false};
+    std::array<bool, 10> keysPressed = {false, false, false, false, false, false, false, false, false, false};
 
 public:
     Entity camera;
@@ -181,6 +186,26 @@ public:
             move_down(cm);
             keysPressed[s] = true;
         }
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        {
+            move_up(cm);
+            keysPressed[up] = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        {
+            move_down(cm);
+            keysPressed[down] = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        {
+            move_left(cm);
+            keysPressed[left] = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        {
+            move_right(cm);
+            keysPressed[right] = true;
+        }
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             keysPressed[escape] = true;
@@ -192,24 +217,46 @@ public:
         }
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE && keysPressed[a])
         {
-            // update("StopWalking");
             keysPressed[a] = false;
         }
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE && keysPressed[w])
         {
-
-            // update("StopWalking");
             keysPressed[w] = false;
         }
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_RELEASE && keysPressed[s])
         {
-            // update("StopWalking");
             keysPressed[s] = false;
         }
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE && keysPressed[d])
         {
-            // update("StopWalking");
             keysPressed[d] = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE && keysPressed[up])
+        {
+            keysPressed[up] = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE && keysPressed[down])
+        {
+            keysPressed[down] = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE && keysPressed[left])
+        {
+            keysPressed[left] = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE && keysPressed[right])
+        {
+            keysPressed[right] = false;
+        }
+
+        // Edge scrolling
+        {
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            constexpr int edge_margin = 20;
+            if (xpos >= TESettings::WINDOW_X - edge_margin) move_right(cm);
+            if (xpos <= edge_margin)                        move_left(cm);
+            if (ypos <= edge_margin)                        move_up(cm);
+            if (ypos >= TESettings::WINDOW_Y - edge_margin) move_down(cm);
         }
     }
 };

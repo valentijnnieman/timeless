@@ -596,7 +596,7 @@ public:
                         std::shared_ptr<Quad> quad,
                         std::shared_ptr<Texture> texture,
                         std::shared_ptr<Shader> shader, float zoom = 1.0,
-                        int tick = 0) {
+                        int tick = 0, glm::vec4 color = glm::vec4(1.0f)) {
     std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
     shader->use();
@@ -605,7 +605,7 @@ public:
 
     glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
     glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1,
-                 glm::value_ptr(glm::vec4(1.0f)));
+                 glm::value_ptr(color));
     glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
                  glm::value_ptr(glm::vec2(texture->width, texture->height)));
 

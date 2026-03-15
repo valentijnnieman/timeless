@@ -2,6 +2,9 @@
 namespace TESettings
 {
     static glm::vec4 SCREEN_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // Design / internal render resolution — fixed, never changed at runtime.
+    // All game logic, UI positions and camera projections are in this space.
     static int SCREEN_X = 1920;
     static int SCREEN_Y = 1080;
 
@@ -9,6 +12,11 @@ namespace TESettings
     static int VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
     static int VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
     static float ZOOM = 1.0f;
+
+    // Actual OS window / framebuffer size.  Set this before TE::init() to
+    // choose a different window size; it is updated automatically on resize.
+    static int WINDOW_X = SCREEN_X;
+    static int WINDOW_Y = SCREEN_Y;
 
     static unsigned int SHADOW_WIDTH = 1024;
     static unsigned int SHADOW_HEIGHT = 1024;
@@ -26,11 +34,10 @@ namespace TESettings
       VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
     }
 
+    // Only updates the window size; design resolution (SCREEN/VIEWPORT) stays fixed.
     inline void rescale_window(int width, int height)
     {
-        SCREEN_X = width;
-        SCREEN_Y = height;
-        VIEWPORT_X = width * VIEWPORT_SCALE;
-        VIEWPORT_Y = height * VIEWPORT_SCALE;
+        WINDOW_X = width;
+        WINDOW_Y = height;
     }
 }
