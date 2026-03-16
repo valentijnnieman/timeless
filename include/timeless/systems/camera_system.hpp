@@ -3,12 +3,7 @@
 
 class CameraSystem : public System {
 public:
-  CameraSystem(){};
+  CameraSystem() {}
 
-  void update(ComponentManager &cm, float delta_time) {
-    for (auto entity : registered_entities) {
-      auto camera = cm.get_component<Camera>(entity);
-      camera->update(delta_time); 
-    }
-  }
+  void update(ComponentManager &cm, float delta_time);
 };
