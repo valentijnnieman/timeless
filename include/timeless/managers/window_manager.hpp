@@ -89,15 +89,6 @@ public:
 
     glfwSwapInterval(1);
 
-    // Query the actual framebuffer size (may differ from logical size on HiDPI)
-    // and store it as the window dimensions.
-    {
-      int fb_w, fb_h;
-      glfwGetFramebufferSize(window, &fb_w, &fb_h);
-      TESettings::WINDOW_X = fb_w;
-      TESettings::WINDOW_Y = fb_h;
-    }
-
     cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
     glfwSetCursor(window, cursor);
 
@@ -214,10 +205,6 @@ public:
     }
   }
 
-  // to_screen=true: render into the OS window (uses WINDOW_X/Y for the GL
-  // viewport so the design-res framebuffer texture is scaled to fit).
-  // to_screen=false (default): render into another scene framebuffer (uses the
-  // design resolution VIEWPORT_X/Y).
   void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false) {
     if (idx >= screen_shaders.size() || idx >= textures.size()) return;
     glEnable(GL_BLEND);
@@ -284,12 +271,10 @@ public:
 
   static void framebuffer_size_callback(GLFWwindow *window, int width,
                                         int height) {
-    // Update the window size tracking. Scene framebuffers are kept at the
-    // fixed design resolution (VIEWPORT_X/Y) and are never resized — the
-    // final blit to screen handles the scaling automatically.
     TESettings::rescale_window(width, height);
     WindowManager *wm =
         static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+    if (wm == nullptr) return;
     glm::vec2 new_size(width, height);
     if(wm->es != nullptr) {
       wm->es->create_event<glm::vec2>(*wm->cm, "ResizeWindow", &new_size);

@@ -28,6 +28,13 @@ namespace TESettings
 
     static int MAX_TICKS = 200;
 
+    // Physical WebGL drawing buffer size. On HiDPI displays (DPR>1) this is
+    // larger than WINDOW_X/Y (e.g. 3840x2160 for a 1920x1080 CSS canvas on
+    // macOS DPR=2). Use this for the final glViewport blit to the default
+    // framebuffer. Use WINDOW_X/Y for mouse coordinate math instead.
+    static int DRAWING_BUFFER_X = SCREEN_X;
+    static int DRAWING_BUFFER_Y = SCREEN_Y;
+
     inline void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;
       VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;

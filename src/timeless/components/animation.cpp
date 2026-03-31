@@ -9,7 +9,7 @@ Animation::Animation(Entity entity, std::shared_ptr<Quad> quad,
       std::make_shared<Transform>(*transform);
   root = std::make_shared<SpriteBone>(entity, "root", quad, transform,
                                       root_transform, texture, sprite,
-                                      sprite_index);
+                                      sprite_index, glm::vec3(0.0f));
 }
 
 Animation::Animation(Entity entity, std::shared_ptr<Transform> transform) {
@@ -30,13 +30,13 @@ void Animation::add_bone(Entity entity, const std::string &name,
                          std::shared_ptr<Quad> quad,
                          std::shared_ptr<Transform> transform,
                          std::shared_ptr<Texture> texture,
-                         std::shared_ptr<Sprite> sprite, int sprite_index) {
+                         std::shared_ptr<Sprite> sprite, int sprite_index, glm::vec3 offset) {
 
   std::shared_ptr<Transform> bone_transform =
       std::make_shared<Transform>(*transform);
   bones.push_back(std::make_shared<SpriteBone>(entity, name, quad, transform,
                                                bone_transform, texture, sprite,
-                                               sprite_index));
+                                               sprite_index, offset));
 }
 void Animation::add_animation(const std::string &name,
                               const AnimationData &data) {
@@ -158,9 +158,15 @@ void Animation::update(float dt) {
         bone->transform->scale =
             root->transform->scale + glm::mix(prev->scale, next->scale, t);
       } else {
-        bone->transform->position = root->transform->position;
-        bone->transform->rotation = root->transform->rotation;
-        bone->transform->scale = root->transform->scale;
+        if (auto spriteBone = std::dynamic_pointer_cast<SpriteBone>(bone)) {
+          spriteBone->transform->position = root->transform->position + spriteBone->offset;
+          spriteBone->transform->rotation = root->transform->rotation;
+          spriteBone->transform->scale = root->transform->scale;
+        } else {
+          bone->transform->position = root->transform->position;
+          bone->transform->rotation = root->transform->rotation;
+          bone->transform->scale = root->transform->scale;
+        }
       }
     }
   }

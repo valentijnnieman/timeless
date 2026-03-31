@@ -70,6 +70,12 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
+    // Explicitly bind attribute locations before linking so that browsers with
+    // different GLSL linker ordering (e.g. Firefox vs Chrome) use the same
+    // layout as the ScreenVAO (location 0 = aPos, location 1 = aTexCoords).
+    // glBindAttribLocation is silently ignored for attributes not in the shader.
+    glBindAttribLocation(ID, 0, "aPos");
+    glBindAttribLocation(ID, 1, "aTexCoords");
     glLinkProgram(ID);
     glUseProgram(ID);
     // delete the shaders as they're linked into our program now and no longer necessery
@@ -117,6 +123,9 @@ Shader::Shader(const std::vector<uint8_t>& vertexBuffer, const std::vector<uint8
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
+    // Same explicit attribute location binding as the file-based constructor.
+    glBindAttribLocation(ID, 0, "aPos");
+    glBindAttribLocation(ID, 1, "aTexCoords");
     glLinkProgram(ID);
     glUseProgram(ID);
     // delete the shaders as they're linked into our program now and no longer necessery

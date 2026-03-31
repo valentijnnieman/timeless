@@ -288,20 +288,22 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
                 }
                 if (auto spriteBone =
                         std::dynamic_pointer_cast<SpriteBone>(bone)) {
-                    if (spriteBone->sprite) {
-                        spriteBone->sprite->index = spriteBone->sprite_index;
-                        spriteBone->sprite->update();
-                        spriteBone->quad->render();
-                        if (spriteBone->sprite->slice_shader != nullptr) {
-                            spriteBone->sprite->render_sliced();
-                        } else {
-                            spriteBone->texture->render();
-                            set_shader_sprite_uniforms(bone_shader,
-                                                       spriteBone->sprite, tick,
-                                                       cam->get_position());
-                            spriteBone->sprite->render();
-                        }
+                  if (spriteBone->sprite) {
+                    if (!spriteBone->sprite->hidden) {
+                      spriteBone->sprite->index = spriteBone->sprite_index;
+                      spriteBone->sprite->update();
+                      spriteBone->quad->render();
+                      if (spriteBone->sprite->slice_shader != nullptr) {
+                        spriteBone->sprite->render_sliced();
+                      } else {
+                        spriteBone->texture->render();
+                        set_shader_sprite_uniforms(bone_shader,
+                                                   spriteBone->sprite, tick,
+                                                   cam->get_position());
+                        spriteBone->sprite->render();
+                      }
                     }
+                  }
                 }
             }
         }

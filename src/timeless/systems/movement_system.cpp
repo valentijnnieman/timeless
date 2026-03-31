@@ -145,10 +145,12 @@ void MovementSystem::update(ComponentManager &cm, GLFWwindow *window) {
     {
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
+        int win_w, win_h;
+        glfwGetWindowSize(window, &win_w, &win_h);
         constexpr int edge_margin = 20;
-        if (xpos >= TESettings::WINDOW_X - edge_margin) move_right(cm);
-        if (xpos <= edge_margin)                        move_left(cm);
-        if (ypos <= edge_margin)                        move_up(cm);
-        if (ypos >= TESettings::WINDOW_Y - edge_margin) move_down(cm);
+        if (xpos >= win_w - edge_margin) move_right(cm);
+        if (xpos <= edge_margin)         move_left(cm);
+        if (ypos <= edge_margin)         move_up(cm);
+        if (ypos >= win_h - edge_margin) move_down(cm);
     }
 }

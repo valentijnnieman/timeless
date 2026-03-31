@@ -37,14 +37,15 @@ struct SpriteBone : public Bone {
   std::shared_ptr<Texture> texture;
   std::shared_ptr<Sprite> sprite;
   int sprite_index = 0;
+  glm::vec3 offset = glm::vec3(0.0f);
 
   SpriteBone(Entity entity, const std::string &name, std::shared_ptr<Quad> quad,
              std::shared_ptr<Transform> parent_transform,
              std::shared_ptr<Transform> transform,
              std::shared_ptr<Texture> texture, std::shared_ptr<Sprite> sprite,
-             int sprite_index)
+             int sprite_index, glm::vec3 offset)
       : Bone{entity, name, parent_transform, transform}, quad(quad),
-        texture(texture), sprite(sprite), sprite_index(sprite_index) {}
+        texture(texture), sprite(sprite), sprite_index(sprite_index), offset(offset) {}
 };
 
 struct ModelBone : public Bone {
@@ -95,7 +96,7 @@ public:
                 std::shared_ptr<Quad> quad,
                 std::shared_ptr<Transform> transform,
                 std::shared_ptr<Texture> texture,
-                std::shared_ptr<Sprite> sprite, int sprite_index);
+                std::shared_ptr<Sprite> sprite, int sprite_index, glm::vec3 offset = glm::vec3(0.0f));
   void add_animation(const std::string &name, const AnimationData &data);
   void set_animation(const std::string &name);
 
