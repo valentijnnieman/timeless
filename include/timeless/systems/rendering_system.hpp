@@ -49,6 +49,11 @@ public:
 
   float maxDistance = 2000.0f; // max distance for light calculations, beyond which light contribution is negligible
 
+  // Directional light (sun). lightPos is the direction the light points toward
+  // (shader uses normalize(-lightPos) as L). In this engine Z is up, Y is depth.
+  glm::vec3 dirLightPos   = {1.0f, 0.0f, 1.0f};
+  glm::vec3 dirLightColor = {1.0f, 1.0f, 1.0f};
+
   void purge(ComponentManager &cm);
   void register_camera(Entity c);
   void update_transform(std::shared_ptr<Transform> transform,

@@ -180,12 +180,12 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
   int dayTick = (tick >= 16) ? tick - 16 : 0;
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
                          (float)dayTick / (TESettings::MAX_TICKS / 2.0));
-  glm::vec3 lightPos = {1.0f, 0.0f, 1.0f};
-
   glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
               cos(angle) * 0.5f + 0.1f);
   glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
-               glm::value_ptr(lightPos));
+               glm::value_ptr(dirLightPos));
+  glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+               glm::value_ptr(dirLightColor));
   glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                glm::value_ptr(cam->get_position()));
 
@@ -717,8 +717,6 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         glUniform1f(glGetUniformLocation(shader->ID, "roughness"), 0.1f);
         glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                      glm::value_ptr(mesh->specularColor));
-        glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                     glm::value_ptr(glm::vec3(1.0f)));
         glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
         glDrawElementsInstanced(GL_TRIANGLES,
                                 static_cast<unsigned int>(mesh->indices.size()),
