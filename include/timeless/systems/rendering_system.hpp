@@ -67,8 +67,7 @@ public:
   void shadow_rotate(ComponentManager &cm);
   void shadow_reset_rotation(ComponentManager &cm);
   void pre_filter_lights(std::shared_ptr<Camera> cam);
-  void calculate_lighting(Entity ent, ComponentManager &cm,
-                          std::shared_ptr<Shader> shader,
+  void calculate_lighting(std::shared_ptr<Shader> shader,
                           std::shared_ptr<Camera> cam, int tick);
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
               int tick = 0, float delta_time = 0.016f);
