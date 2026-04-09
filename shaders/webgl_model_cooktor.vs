@@ -1,23 +1,40 @@
-#version 100
-attribute vec3 aPos;
-attribute vec3 aNormal;
-attribute vec2 aTexCoord;
+#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+in vec2 aTexCoord;
+in vec4 aBoneIDs;
+in vec4 aBoneWeights;
 
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
+uniform mat4 boneMatrices[32];
 
-varying vec2 TexCoord;
-varying vec3 Normal;
-varying vec3 FragPos;
+out vec2 TexCoord;
+out vec3 Normal;
+out vec3 FragPos;
 
 void main()
 {
-    TexCoord = aTexCoord;
-    // Transform normal to world space (assuming no non-uniform scaling)
-    Normal = mat3(model) * aNormal;
-    Normal = normalize(Normal);
-    // Compute fragment position in world space
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    float totalWeight = aBoneWeights.x + aBoneWeights.y + aBoneWeights.z + aBoneWeights.w;
+
+    vec4 pos;
+    vec3 norm;
+
+    if (totalWeight > 0.001) {
+        mat4 skinMatrix = aBoneWeights.x * boneMatrices[int(aBoneIDs.x)]
+                        + aBoneWeights.y * boneMatrices[int(aBoneIDs.y)]
+                        + aBoneWeights.z * boneMatrices[int(aBoneIDs.z)]
+                        + aBoneWeights.w * boneMatrices[int(aBoneIDs.w)];
+        pos  = skinMatrix * vec4(aPos, 1.0);
+        norm = mat3(skinMatrix) * aNormal;
+    } else {
+        pos  = vec4(aPos, 1.0);
+        norm = aNormal;
+    }
+
+    TexCoord    = aTexCoord;
+    Normal      = normalize(mat3(model) * norm);
+    FragPos     = vec3(model * pos);
+    gl_Position = projection * view * model * pos;
 }

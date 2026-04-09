@@ -14,5 +14,11 @@ void AnimationSystem::update(ComponentManager &cm, float delta_time) {
                 skeletal_animation->update(delta_time);
             }
         }
+        auto node_animation = cm.get_component<NodeAnimation>(entity);
+        if (node_animation != nullptr) {
+            if (node_animation->playing) {
+                node_animation->update(delta_time);
+            }
+        }
     }
 }

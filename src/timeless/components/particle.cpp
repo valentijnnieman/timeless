@@ -24,7 +24,7 @@ void ParticleEmitter::emit(int count) {
     for (int i = 0; i < count; ++i) {
         Particle p;
         p.position = position;
-        float speed = randf(1000.0f, 2500.0f);
+        float speed = randf(speed_min, speed_max);
         float angle = randf(-glm::pi<float>()/4, glm::pi<float>()/4); // spread
 
         // Create a base direction vector with spread in local space
@@ -35,9 +35,9 @@ void ParticleEmitter::emit(int count) {
 
         p.velocity = dir * speed;
         p.color = randomColor();
-        p.lifetime = randf(2.8f, 4.5f);
+        p.lifetime = randf(lifetime_min, lifetime_max);
         p.age = 0.0f;
-        p.size = randf(6.0f, 12.0f);
+        p.size = randf(size_min, size_max);
         p.active = true;
         particles.push_back(p);
     }

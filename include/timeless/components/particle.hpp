@@ -30,6 +30,13 @@ public:
     std::vector<Particle> particles;
     float emissionRate; // particles per second
 
+    float speed_min    = 1000.0f;
+    float speed_max    = 2500.0f;
+    float lifetime_min = 2.8f;
+    float lifetime_max = 4.5f;
+    float size_min     = 6.0f;
+    float size_max     = 12.0f;
+
     void emit(int count);
     void update(float dt);
     void render(std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader);

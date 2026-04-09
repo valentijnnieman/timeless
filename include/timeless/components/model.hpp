@@ -61,6 +61,13 @@ public:
   std::vector<BoneInfo> boneInfos;
   std::unordered_map<std::string, unsigned int> boneMapping; // maps a bone name to its index
   std::vector<SkeletonBone> skeletonBones;
+  // Accumulated transform of all non-bone scene nodes above the skeleton root.
+  // Used as the initial parent transform when computing animated bone poses.
+  glm::mat4 skeletonRootNodeTransform = glm::mat4(1.0f);
+
+  // Maps node name -> index into meshes[], for applying object-level animations
+  // directly to mesh nodeTransforms (non-skinned / no-bone objects).
+  std::unordered_map<std::string, size_t> meshNodeMap;
 
 private:
   std::shared_ptr<Texture> texture;
@@ -69,7 +76,7 @@ private:
 
   void collectBones(const aiScene* scene);
   void loadModel(const std::string &path, bool from_blender = false);
-  void processNode(aiNode *node, const aiScene *scene);
-  void processBone(aiNode *node, const aiScene *scene, int parentBoneIndex = -1);
-  std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor);
+  void processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform = glm::mat4(1.0f));
+  void processBone(aiNode *node, const aiScene *scene, int parentBoneIndex = -1, glm::mat4 parentTransform = glm::mat4(1.0f));
+  std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 nodeTransform, glm::vec3 diffuseColor, glm::vec3 specularColor);
 };

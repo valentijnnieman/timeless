@@ -50,7 +50,6 @@ public:
 
   void setAnimation(const std::string &name) {
     if (animations.find(name) != animations.end()) {
-      std::cout << "Switching to animation: " << name << std::endl;
       currentAnimation = name;
       currentTime = 0.0f;
       playing = true;
@@ -71,9 +70,9 @@ public:
 
     poseMatrices.resize(model->boneInfos.size(), glm::mat4(1.0f));
 
-    // Recursively compute pose for each bone in the skeleton
     for (size_t i = 0; i < model->skeletonBones.size(); ++i) {
-      computeBonePose(i, glm::mat4(1.0f), anim);
+      if (model->skeletonBones[i].parentIndex == -1)
+        computeBonePose(i, model->skeletonRootNodeTransform);
     }
   }
 
@@ -122,79 +121,58 @@ public:
 
         // 6. Store keyframes for this bone
         animData.boneKeyframes[boneName] = keyframes;
-           std::cout << "Loaded bone animation for bone: " << boneName
-                    << " with " << keyframes.times.size() << " keyframes"
-                    << std::endl;
       }
 
       // 7. Store the animation by name
       std::string animName = aiAnim->mName.length > 0
                                  ? aiAnim->mName.C_Str()
                                  : "Anim" + std::to_string(animIdx);
-      std::cout << "Loaded animation: " << animName
-                << " with duration: " << animData.duration << " seconds"
-                << std::endl;
       animations[animName] = animData;
     }
   }
 
 private:
-  void computeBonePose(int boneIndex, const glm::mat4 &parentTransform,
-                       const SkeletalAnimationData &anim) {
-    const auto &skeletonBones = model->skeletonBones;
-    const auto &boneInfos = model->boneInfos;
-    const SkeletonBone &bone = skeletonBones[boneIndex];
+  void computeBonePose(int boneIndex, const glm::mat4 &parentTransform) {
+    const SkeletonBone &bone = model->skeletonBones[boneIndex];
 
-    glm::mat4 localTransform = getLocalTransform(bone.name, anim);
-
+    glm::mat4 localTransform = getLocalTransform(bone.name);
     glm::mat4 globalTransform = parentTransform * localTransform;
 
-    // Find bone mapping index for skinning
     auto it = model->boneMapping.find(bone.name);
     if (it != model->boneMapping.end()) {
       int mappingIdx = it->second;
       poseMatrices[mappingIdx] =
-          globalTransform * boneInfos[mappingIdx].offsetMatrix;
-    } else {
-      std::cout << "Warning: Bone " << bone.name
-                << " not found in model's bone mapping!" << std::endl;
+          globalTransform * model->boneInfos[mappingIdx].offsetMatrix;
     }
 
-    // Recursively process children
-    for (int childIdx : bone.childrenIndices) {
-      computeBonePose(childIdx, globalTransform, anim);
-    }
+    for (int childIdx : bone.childrenIndices)
+      computeBonePose(childIdx, globalTransform);
   }
 
-  glm::mat4 getLocalTransform(const std::string &boneName,
-                              const SkeletalAnimationData &anim) {
-    auto it = anim.boneKeyframes.find(boneName);
-    if (it == anim.boneKeyframes.end())
-      return glm::mat4(1.0f);
+  glm::mat4 getLocalTransform(const std::string &boneName) {
+    auto animIt = animations.find(currentAnimation);
+    if (animIt != animations.end()) {
+      auto boneIt = animIt->second.boneKeyframes.find(boneName);
+      if (boneIt != animIt->second.boneKeyframes.end() && !boneIt->second.times.empty())
+        return interpolate(boneIt->second, currentTime);
+    }
+    return glm::mat4(1.0f);
+  }
 
-    const BoneKeyframes &keys = it->second;
-    if (keys.times.empty())
-      return glm::mat4(1.0f);
-
-    // Find the two keyframes surrounding currentTime
+  glm::mat4 interpolate(const BoneKeyframes &keys, float time) {
     size_t frame = 0;
-    while (frame + 1 < keys.times.size() && keys.times[frame + 1] < currentTime)
+    while (frame + 1 < keys.times.size() && keys.times[frame + 1] < time)
       ++frame;
-
     size_t nextFrame = std::min(frame + 1, keys.times.size() - 1);
     float t = 0.0f;
     if (keys.times[nextFrame] > keys.times[frame])
-      t = (currentTime - keys.times[frame]) /
-          (keys.times[nextFrame] - keys.times[frame]);
+      t = (time - keys.times[frame]) / (keys.times[nextFrame] - keys.times[frame]);
 
-    glm::vec3 pos =
-        glm::mix(keys.positions[frame], keys.positions[nextFrame], t);
-    glm::quat rot =
-        glm::slerp(keys.rotations[frame], keys.rotations[nextFrame], t);
+    glm::vec3 pos   = glm::mix(keys.positions[frame], keys.positions[nextFrame], t);
+    glm::quat rot   = glm::slerp(keys.rotations[frame], keys.rotations[nextFrame], t);
     glm::vec3 scale = glm::mix(keys.scales[frame], keys.scales[nextFrame], t);
 
-    glm::mat4 mat = glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot) *
-                    glm::scale(glm::mat4(1.0f), scale);
-    return mat;
+    return glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot) *
+           glm::scale(glm::mat4(1.0f), scale);
   }
 };

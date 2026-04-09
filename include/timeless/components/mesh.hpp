@@ -34,6 +34,12 @@ public:
   glm::vec3 diffuseColor;
   glm::vec3 specularColor;
 
+  // Node transform from the FBX scene hierarchy (accumulated from root to this mesh's node)
+  glm::mat4 nodeTransform = glm::mat4(1.0f);
+  // Parent's global transform — needed to recompute nodeTransform from animated local transforms
+  glm::mat4 nodeParentTransform = glm::mat4(1.0f);
+  std::string nodeName;
+
   // Transform properties
   glm::vec3 position;
   glm::vec3 rotation;
@@ -57,16 +63,16 @@ public:
   void setupMesh(std::shared_ptr<Shader> shader);
 
   glm::mat4 getModelMatrix() {
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, position);
-    model = glm::rotate(model, glm::radians(rotation.x),
+    glm::mat4 local = glm::mat4(1.0f);
+    local = glm::translate(local, position);
+    local = glm::rotate(local, glm::radians(rotation.x),
                         glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation.y),
+    local = glm::rotate(local, glm::radians(rotation.y),
                         glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation.z),
+    local = glm::rotate(local, glm::radians(rotation.z),
                         glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::scale(model, scale);
-    return model;
+    local = glm::scale(local, scale);
+    return nodeTransform * local;
   }
 
   void animate_to(const glm::vec3 &toPos, float duration) {

@@ -2,6 +2,7 @@
 #include "timeless/components/component.hpp"
 #include "timeless/components/animation.hpp"
 #include "timeless/components/skeletal_animation.hpp"
+#include "timeless/components/node_animation.hpp"
 #include "timeless/components/behaviour.hpp"
 #include "timeless/components/camera.hpp"
 #include "timeless/components/collider.hpp"
@@ -55,6 +56,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Line>> geometry;
   std::unordered_map<Entity, std::shared_ptr<Animation>> animations;
   std::unordered_map<Entity, std::shared_ptr<SkeletalAnimation>> skeletal_animations;
+  std::unordered_map<Entity, std::shared_ptr<NodeAnimation>> node_animations;
   std::unordered_map<Entity, std::shared_ptr<ParticleEmitter>> particleemitters;
 
   ComponentManager(){};
@@ -159,6 +161,12 @@ public:
   void add_component(Entity entity, std::shared_ptr<SkeletalAnimation> animation) {
     skeletal_animations.insert({entity, animation});
   }
+  void add_component(Entity entity, NodeAnimation *animation) {
+    node_animations.insert({entity, std::shared_ptr<NodeAnimation>(animation)});
+  }
+  void add_component(Entity entity, std::shared_ptr<NodeAnimation> animation) {
+    node_animations.insert({entity, animation});
+  }
   void add_component(Entity entity, ParticleEmitter *pe) {
     particleemitters.insert({entity, std::shared_ptr<ParticleEmitter>(pe)});
   }
@@ -205,6 +213,8 @@ public:
       mouse_input_listeners.erase(entity);
       keyboard_input_listeners.erase(entity);
       animations.erase(entity);
+      skeletal_animations.erase(entity);
+      node_animations.erase(entity);
       quads.erase(entity);
       models.erase(entity);
       textures.erase(entity);
@@ -250,6 +260,8 @@ public:
     behaviours.clear();
     geometry.clear();
     animations.clear();
+    skeletal_animations.clear();
+    node_animations.clear();
     particleemitters.clear();
   }
 };
@@ -376,6 +388,13 @@ const inline std::shared_ptr<SkeletalAnimation>
 ComponentManager::get_component<SkeletalAnimation>(Entity entity) {
   if (skeletal_animations.contains(entity))
     return skeletal_animations.at(entity);
+  return nullptr;
+}
+template <>
+const inline std::shared_ptr<NodeAnimation>
+ComponentManager::get_component<NodeAnimation>(Entity entity) {
+  if (node_animations.contains(entity))
+    return node_animations.at(entity);
   return nullptr;
 }
 template <>

@@ -1,6 +1,17 @@
 #include "timeless/components/model.hpp"
+#include "assimp/config.h"
 #include "assimp/postprocess.h"
 #include "glm/gtc/type_ptr.hpp"
+
+static glm::mat4 aiToGlm(const aiMatrix4x4 &m) {
+  // Assimp is row-major; GLM is column-major — transpose on construction.
+  return glm::mat4(
+    m.a1, m.b1, m.c1, m.d1,
+    m.a2, m.b2, m.c2, m.d2,
+    m.a3, m.b3, m.c3, m.d3,
+    m.a4, m.b4, m.c4, m.d4
+  );
+}
 
 void Model::collectBones(const aiScene* scene) {
   // Traverse all meshes and collect bones into boneMapping and boneInfos
@@ -14,13 +25,7 @@ void Model::collectBones(const aiScene* scene) {
         boneMapping[boneName] = boneIndex;
 
         BoneInfo boneInfo;
-        aiMatrix4x4 offset = bone->mOffsetMatrix;
-        boneInfo.offsetMatrix = glm::mat4(
-          offset.a1, offset.b1, offset.c1, offset.d1,
-          offset.a2, offset.b2, offset.c2, offset.d2,
-          offset.a3, offset.b3, offset.c3, offset.d3,
-          offset.a4, offset.b4, offset.c4, offset.d4
-        );
+        boneInfo.offsetMatrix = aiToGlm(bone->mOffsetMatrix);
         boneInfos.push_back(boneInfo);
       }
     }
@@ -28,11 +33,15 @@ void Model::collectBones(const aiScene* scene) {
 }
 
 void Model::loadModel(const std::string &path, bool from_blender) {
-  if(from_blender) {
-    scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_ConvertToLeftHanded);  
-  } else {
-    scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);  
-  }
+  // Scale the entire scene by 0.01 to convert from FBX centimetres (Blender's
+  // default FBX export unit) to metres. Assimp applies this uniformly to
+  // vertex positions, node transforms, and bone offset matrices so the
+  // skinning math stays consistent.
+  import.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
+
+  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GlobalScale;
+  if (from_blender) flags |= aiProcess_ConvertToLeftHanded;
+  scene = import.ReadFile(path, flags);
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
     std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -43,8 +52,8 @@ void Model::loadModel(const std::string &path, bool from_blender) {
   // First, collect all bones for the model
   collectBones(scene);
 
-  processNode(scene->mRootNode, scene);
-  processBone(scene->mRootNode, scene, -1); // Start with root node and no parent bone
+  processNode(scene->mRootNode, scene, glm::mat4(1.0f));
+  processBone(scene->mRootNode, scene, -1, glm::mat4(1.0f));
 
   // Fill childrenIndices for each bone
   std::map<std::string, int> nameToIndex;
@@ -61,59 +70,69 @@ void Model::loadModel(const std::string &path, bool from_blender) {
 
 }
 
-void Model::processBone(aiNode *node, const aiScene *scene, int parentBoneIndex) {
-  int currentBoneIndex = -1;
+void Model::processBone(aiNode *node, const aiScene *scene, int parentSkeletonIdx, glm::mat4 parentTransform) {
+  glm::mat4 globalTransform = parentTransform * aiToGlm(node->mTransformation);
+
+  int currentSkeletonIdx = -1;
   auto it = boneMapping.find(node->mName.C_Str());
   if (it != boneMapping.end()) {
-      currentBoneIndex = it->second;
-      SkeletonBone bone;
-      bone.name = node->mName.C_Str();
-      bone.parentIndex = parentBoneIndex;
-      skeletonBones.push_back(bone);
+    // This is a bone node. If it's a root bone (no skeleton parent yet), record
+    // the accumulated transform of all non-bone ancestor nodes so the animation
+    // system can use it as the initial parent transform.
+    if (parentSkeletonIdx == -1) {
+      skeletonRootNodeTransform = parentTransform;
+    }
+    currentSkeletonIdx = (int)skeletonBones.size();
+    SkeletonBone bone;
+    bone.name = node->mName.C_Str();
+    bone.parentIndex = parentSkeletonIdx;
+    skeletonBones.push_back(bone);
   }
 
-  // Recursively process children
+  // Propagate the last known skeleton index so bones under non-bone nodes
+  // still get the correct parent (fixes the case where a non-bone scene node
+  // sits between two bone nodes in the hierarchy).
+  int nextParentIdx = (currentSkeletonIdx != -1) ? currentSkeletonIdx : parentSkeletonIdx;
+
   for (unsigned int i = 0; i < node->mNumChildren; i++) {
-      processBone(node->mChildren[i], scene, currentBoneIndex);
+    processBone(node->mChildren[i], scene, nextParentIdx, globalTransform);
   }
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene) {
-  // process all the node's meshes (if any)
+void Model::processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform) {
+  glm::mat4 globalTransform = parentTransform * aiToGlm(node->mTransformation);
+
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
     aiMesh *aimesh = scene->mMeshes[node->mMeshes[i]];
 
-    // then parse the materials
     aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-    // Diffuse color
     aiColor3D diffuseColor(0.f, 0.f, 0.f);
     material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
 
-    // Specular color
     aiColor3D specularColor(0.f, 0.f, 0.f);
     material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
 
-    // Texture path
     aiString texPath;
     if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
-        material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
-        // texPath.C_Str() gives you the texture filename
+      material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
     }
-    glm::vec3 diffuseColorVec = glm::vec3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
+    glm::vec3 diffuseColorVec  = glm::vec3(diffuseColor.r,  diffuseColor.g,  diffuseColor.b);
     glm::vec3 specularColorVec = glm::vec3(specularColor.r, specularColor.g, specularColor.b);
-    meshes.push_back(processMesh(aimesh, scene, diffuseColorVec, specularColorVec));
-  }
-  // then do the same for each of its children
-  for (unsigned int i = 0; i < node->mNumChildren; i++) {
-        int childBoneIndex = -1;
-        // Recursively process child, passing currentBoneIndex as parent
-        processNode(node->mChildren[i], scene);
+    size_t meshIndex = meshes.size();
+    auto mesh = processMesh(aimesh, scene, globalTransform, diffuseColorVec, specularColorVec);
+    mesh->nodeName = node->mName.C_Str();
+    mesh->nodeParentTransform = parentTransform;
+    meshNodeMap[node->mName.C_Str()] = meshIndex;
+    meshes.push_back(mesh);
   }
 
+  for (unsigned int i = 0; i < node->mNumChildren; i++) {
+    processNode(node->mChildren[i], scene, globalTransform);
+  }
 }
 
-std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::vec3 diffuseColor, glm::vec3 specularColor) {
+std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 nodeTransform, glm::vec3 diffuseColor, glm::vec3 specularColor) {
   std::vector<Vertex> vertices(mesh->mNumVertices);
   std::vector<unsigned int> indices;
 
@@ -194,10 +213,14 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
       }
   }
 
-  if(mesh->mNumBones > 0) {
-    return std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
+  std::shared_ptr<Mesh> result;
+  if (mesh->mNumBones > 0) {
+    result = std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
+  } else {
+    result = std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
   }
-  return std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
+  result->nodeTransform = nodeTransform;
+  return result;
 }
 
 void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_skinning) {
