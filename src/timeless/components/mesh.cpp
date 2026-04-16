@@ -81,16 +81,13 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
                           (void *)offsetof(Vertex, TexCoords));
   }
 
-  if(boneInfos.size() > 0) {
-    if (boneIDsLoc >= 0) {
-        glEnableVertexAttribArray(boneIDsLoc);
-        glVertexAttribPointer(boneIDsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.ids));
-    }
-
-    if (boneWeightsLoc >= 0) {
-        glEnableVertexAttribArray(boneWeightsLoc);
-        glVertexAttribPointer(boneWeightsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.weights));
-    }
+  if (boneIDsLoc >= 0) {
+      glEnableVertexAttribArray(boneIDsLoc);
+      glVertexAttribPointer(boneIDsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.ids));
+  }
+  if (boneWeightsLoc >= 0) {
+      glEnableVertexAttribArray(boneWeightsLoc);
+      glVertexAttribPointer(boneWeightsLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, boneData.weights));
   }
 
   glBindVertexArray(0);

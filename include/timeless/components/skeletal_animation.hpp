@@ -78,6 +78,7 @@ public:
 
   void loadAnimations() {
     const aiScene *scene = model->scene;
+    if (!scene) return;
     for (unsigned int animIdx = 0; animIdx < scene->mNumAnimations; ++animIdx) {
       aiAnimation *aiAnim = scene->mAnimations[animIdx];
       SkeletalAnimationData animData;
