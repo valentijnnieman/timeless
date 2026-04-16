@@ -33,13 +33,7 @@ void Model::collectBones(const aiScene* scene) {
 }
 
 void Model::loadModel(const std::string &path, bool from_blender) {
-  // Scale the entire scene by 0.01 to convert from FBX centimetres (Blender's
-  // default FBX export unit) to metres. Assimp applies this uniformly to
-  // vertex positions, node transforms, and bone offset matrices so the
-  // skinning math stays consistent.
-  import.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
-
-  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GlobalScale;
+  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
   if (from_blender) flags |= aiProcess_ConvertToLeftHanded;
   scene = import.ReadFile(path, flags);
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||

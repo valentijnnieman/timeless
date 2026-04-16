@@ -72,7 +72,7 @@ public:
     local = glm::rotate(local, glm::radians(rotation.z),
                         glm::vec3(0.0f, 0.0f, 1.0f));
     local = glm::scale(local, scale);
-    return nodeTransform * local;
+    return local;
   }
 
   void animate_to(const glm::vec3 &toPos, float duration) {
