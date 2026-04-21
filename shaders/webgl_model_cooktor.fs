@@ -1,11 +1,9 @@
-#version 300 es
+#version 100
 precision mediump float;
 
-in vec2 TexCoord;
-in vec3 Normal;
-in vec3 FragPos;
-
-out vec4 FragColor;
+varying vec2 TexCoord;
+varying vec3 Normal;
+varying vec3 FragPos;
 
 uniform vec3 albedo;
 uniform float metallic;
@@ -120,5 +118,5 @@ void main()
 
     // Gamma correction
     color = pow(color, vec3(1.0/2.2));
-    FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(color, 1.0);
 }
