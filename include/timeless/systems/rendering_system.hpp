@@ -86,6 +86,8 @@ public:
                         std::shared_ptr<Texture> texture,
                         std::shared_ptr<Shader> shader, float zoom = 1.0,
                         int tick = 0, glm::vec4 color = glm::vec4(1.0f));
+  bool upload_bone_matrices(Entity entity, ComponentManager &cm,
+                            std::shared_ptr<Shader> shader);
   void init_instanced_model_buffers(std::shared_ptr<Model> model,
                                     std::shared_ptr<Shader> shader,
                                     size_t max_instances);

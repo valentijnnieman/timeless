@@ -49,6 +49,21 @@ void Model::loadModel(const std::string &path, bool from_blender) {
   processNode(scene->mRootNode, scene, glm::mat4(1.0f));
   processBone(scene->mRootNode, scene, -1, glm::mat4(1.0f));
 
+  // skeletonRootNodeTransform is the scene-root→armature transform, but
+  // Assimp's mOffsetMatrix is relative to the *mesh's* local space.  When the
+  // mesh is a child of the armature (the common Blender export layout) those
+  // two spaces differ by the armature's own node transform, so poseMatrix at
+  // rest would equal A_global instead of identity.  Dividing out the first
+  // skinned mesh's accumulated node transform corrects this for both the
+  // "mesh under armature" and "mesh sibling to armature" topologies.
+  for (const auto &mesh : meshes) {
+    if (!mesh->boneInfos.empty()) {
+      skeletonRootNodeTransform =
+          glm::inverse(mesh->nodeTransform) * skeletonRootNodeTransform;
+      break;
+    }
+  }
+
   // Fill childrenIndices for each bone
   std::map<std::string, int> nameToIndex;
 
@@ -232,7 +247,7 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_ski
       //   glUniform1i(useSkinningLoc, 1);
       // }
       // else {
-        glUniform1i(useSkinningLoc, 0);
+        glUniform1i(useSkinningLoc, (use_skinning && !meshes[i]->boneInfos.empty()) ? 1 : 0);
       // }
 
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,

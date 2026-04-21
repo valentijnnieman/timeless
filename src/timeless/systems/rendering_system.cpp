@@ -1,5 +1,21 @@
 #include "timeless/systems/rendering_system.hpp"
 
+bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
+                                           std::shared_ptr<Shader> shader) {
+  GLint boneMatrixLoc = glGetUniformLocation(shader->ID, "boneMatrices");
+  if (boneMatrixLoc < 0) return false;
+  auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
+  if (skeletal_animation == nullptr) return false;
+  std::array<glm::mat4, 32> boneMatrices;
+  size_t count = skeletal_animation->poseMatrices.size();
+  for (size_t i = 0; i < 32; ++i)
+    boneMatrices[i] = (i < count) ? skeletal_animation->poseMatrices[i]
+                                  : glm::mat4(1.0f);
+  glUniformMatrix4fv(boneMatrixLoc, 32, GL_FALSE,
+                     glm::value_ptr(boneMatrices[0]));
+  return true;
+}
+
 void RenderingSystem::purge(ComponentManager &cm) {
   for (auto &ent : registered_entities)
     cm.remove_entity(ent);
@@ -247,7 +263,8 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           auto texture = cm.get_component<Texture>(entity);
           if (texture != nullptr)
             texture->render();
-          model->render(rootModelBone->transform->model, delta_time);
+          model->render(rootModelBone->transform->model, delta_time,
+                        upload_bone_matrices(entity, cm, root_shader));
         }
       }
 
@@ -360,25 +377,8 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           if (texture != nullptr)
             texture->render();
 
-          bool use_skinning = false;
-          GLint boneMatrixLoc =
-              glGetUniformLocation(shader->ID, "boneMatrices");
-          if (boneMatrixLoc >= 0) {
-            auto skeletal_animation =
-                cm.get_component<SkeletalAnimation>(entity);
-            if (skeletal_animation != nullptr) {
-              std::array<glm::mat4, 32> boneMatrices;
-              size_t count = skeletal_animation->poseMatrices.size();
-              for (size_t i = 0; i < 32; ++i)
-                boneMatrices[i] = (i < count)
-                                      ? skeletal_animation->poseMatrices[i]
-                                      : glm::mat4(1.0f);
-              glUniformMatrix4fv(boneMatrixLoc, 32, GL_FALSE,
-                                 glm::value_ptr(boneMatrices[0]));
-              use_skinning = true;
-            }
-          }
-          model->render(transform->model, delta_time, use_skinning);
+          model->render(transform->model, delta_time,
+                        upload_bone_matrices(entity, cm, shader));
         }
       }
     }

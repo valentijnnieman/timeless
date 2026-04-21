@@ -161,6 +161,9 @@ private:
   }
 
   glm::mat4 interpolate(const BoneKeyframes &keys, float time) {
+    if (keys.positions.empty() || keys.rotations.empty() || keys.scales.empty())
+      return glm::mat4(1.0f);
+
     size_t frame = 0;
     while (frame + 1 < keys.times.size() && keys.times[frame + 1] < time)
       ++frame;
@@ -169,9 +172,18 @@ private:
     if (keys.times[nextFrame] > keys.times[frame])
       t = (time - keys.times[frame]) / (keys.times[nextFrame] - keys.times[frame]);
 
-    glm::vec3 pos   = glm::mix(keys.positions[frame], keys.positions[nextFrame], t);
-    glm::quat rot   = glm::slerp(keys.rotations[frame], keys.rotations[nextFrame], t);
-    glm::vec3 scale = glm::mix(keys.scales[frame], keys.scales[nextFrame], t);
+    // Each channel may have fewer keyframes than times.size() (e.g. constant
+    // scale exported as a single keyframe). Clamp per-vector to avoid OOB.
+    size_t pf  = std::min(frame,     keys.positions.size() - 1);
+    size_t pn  = std::min(nextFrame, keys.positions.size() - 1);
+    size_t rf  = std::min(frame,     keys.rotations.size() - 1);
+    size_t rn  = std::min(nextFrame, keys.rotations.size() - 1);
+    size_t sf  = std::min(frame,     keys.scales.size() - 1);
+    size_t sn  = std::min(nextFrame, keys.scales.size() - 1);
+
+    glm::vec3 pos   = glm::mix(keys.positions[pf], keys.positions[pn], t);
+    glm::quat rot   = glm::slerp(keys.rotations[rf], keys.rotations[rn], t);
+    glm::vec3 scale = glm::mix(keys.scales[sf],     keys.scales[sn],     t);
 
     return glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot) *
            glm::scale(glm::mat4(1.0f), scale);
