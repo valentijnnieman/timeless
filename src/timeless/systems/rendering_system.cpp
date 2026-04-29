@@ -1,4 +1,160 @@
 #include "timeless/systems/rendering_system.hpp"
+#include <cmath>
+
+// ---------------------------------------------------------------------------
+// Shadow map setup
+// ---------------------------------------------------------------------------
+
+void RenderingSystem::setup_shadow_map() {
+  glGenFramebuffers(1, &shadowFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+
+  glGenTextures(1, &shadowDepthTex);
+  glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F,
+               shadowMapSize, shadowMapSize, 0,
+               GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                         GL_TEXTURE_2D, shadowDepthTex, 0);
+  // Depth-only FBO: explicitly declare no colour output
+  const GLenum none = GL_NONE;
+  glDrawBuffers(1, &none);
+  glReadBuffer(GL_NONE);
+
+  GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if (status != GL_FRAMEBUFFER_COMPLETE)
+    std::cerr << "Shadow FBO incomplete: 0x" << std::hex << status << std::endl;
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Light-space matrix for the directional light
+// ---------------------------------------------------------------------------
+
+glm::mat4 RenderingSystem::compute_light_space_matrix() const {
+  // dirLightPos is the direction the light *points toward*; the source sits
+  // in the opposite direction, far from the scene centre.
+  const glm::vec3 sceneCenter(0.0f, -200.0f, 0.0f);
+  glm::vec3 lightDir = glm::normalize(dirLightPos);
+  glm::vec3 lightEye = sceneCenter - lightDir * 3000.0f;
+
+  // Choose an up vector that is not collinear with lightDir
+  glm::vec3 up(0.0f, -1.0f, 0.0f);
+  if (std::abs(glm::dot(lightDir, up)) > 0.99f)
+    up = glm::vec3(1.0f, 0.0f, 0.0f);
+
+  glm::mat4 lightView = glm::lookAt(lightEye, sceneCenter, up);
+
+  // Orthographic volume that covers the whole scene
+  const float orthoSize = 3000.0f;
+  glm::mat4 lightProj = glm::ortho(
+      -orthoSize,  orthoSize,   // left, right
+      -orthoSize,  orthoSize,   // bottom, top
+      1.0f,        7000.0f      // near, far
+  );
+
+  return lightProj * lightView;
+}
+
+// ---------------------------------------------------------------------------
+// Shadow pre-pass: render scene from light's perspective into shadowFBO
+// ---------------------------------------------------------------------------
+
+void RenderingSystem::render_shadow_pass(ComponentManager &cm,
+                                         std::shared_ptr<Camera> cam,
+                                         float delta_time) {
+  // Save GL state
+  GLint savedFBO = 0;
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &savedFBO);
+  GLint savedVP[4];
+  glGetIntegerv(GL_VIEWPORT, savedVP);
+
+  lightSpaceMatrix = compute_light_space_matrix();
+
+  glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+  glViewport(0, 0, shadowMapSize, shadowMapSize);
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_DEPTH_TEST);
+
+  shadowDepthShader->use();
+  glUniformMatrix4fv(
+      glGetUniformLocation(shadowDepthShader->ID, "lightSpaceMatrix"),
+      1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+  for (auto &entity : registered_entities) {
+    std::shared_ptr<Model>     mdl;
+    std::shared_ptr<Transform> xfm;
+
+    // Animated (position/rotation) model bone
+    auto anim = cm.get_component<Animation>(entity);
+    if (anim && anim->playing) {
+      if (auto rootBone = std::dynamic_pointer_cast<ModelBone>(anim->root)) {
+        mdl = rootBone->model;
+        xfm = rootBone->transform;
+        if (xfm) {
+          if (cam) xfm->update_camera(cam);
+          update_transform(xfm);
+        }
+      }
+    }
+
+    // Static / non-animated model
+    if (!mdl) {
+      mdl = cm.get_component<Model>(entity);
+      xfm = cm.get_component<Transform>(entity);
+      if (xfm) {
+        if (cam) xfm->update_camera(cam);
+        update_transform(xfm);
+      }
+    }
+
+    if (!mdl || !xfm || mdl->hidden) continue;
+
+    // Upload bone matrices once per entity to the depth shader.
+    bool hasSkinning = upload_bone_matrices(entity, cm, shadowDepthShader);
+
+    // Iterate meshes directly so all uniform lookups use shadowDepthShader->ID.
+    // Model::render() uses this->shader->ID (the cooktor shader) which would
+    // set uniforms on the wrong program when the depth shader is active.
+    for (auto &mesh : mdl->meshes) {
+      glBindVertexArray(mesh->VAO);
+
+      // Mirror Model::render()'s per-mesh matrix logic
+      glm::mat4 meshModelMatrix;
+      if (hasSkinning && !mesh->boneInfos.empty()) {
+        meshModelMatrix = xfm->model;
+      } else {
+        glm::mat4 animOffset = glm::translate(glm::mat4(1.0f), mesh->position);
+        meshModelMatrix = xfm->model * animOffset;
+      }
+
+      glUniformMatrix4fv(
+          glGetUniformLocation(shadowDepthShader->ID, "model"),
+          1, GL_FALSE, glm::value_ptr(meshModelMatrix));
+      glUniform1i(
+          glGetUniformLocation(shadowDepthShader->ID, "useSkinning"),
+          (hasSkinning && !mesh->boneInfos.empty()) ? 1 : 0);
+
+      glDrawElements(GL_TRIANGLES,
+                     static_cast<unsigned int>(mesh->indices.size()),
+                     GL_UNSIGNED_INT, 0);
+      glBindVertexArray(0);
+    }
+  }
+
+  // Restore GL state
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(savedFBO));
+  glViewport(savedVP[0], savedVP[1], savedVP[2], savedVP[3]);
+}
 
 bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
                                            std::shared_ptr<Shader> shader) {
@@ -196,8 +352,8 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
   int dayTick = (tick >= 16) ? tick - 16 : 0;
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
                          (float)dayTick / (TESettings::MAX_TICKS / 2.0));
-  glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"),
-              cos(angle) * 0.5f + 0.1f);
+  float ambient = (ambientStrength >= 0.0f) ? ambientStrength : cos(angle) * 0.5f + 0.1f;
+  glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), ambient);
   glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
                glm::value_ptr(dirLightPos));
   glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
@@ -205,14 +361,24 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
   glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
                glm::value_ptr(cam->get_position()));
 
-  if (!filteredLightPositions.empty()) {
-    int numPointLights = (int)filteredLightPositions.size();
-    glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"),
-                numPointLights);
+  int numPointLights = (int)filteredLightPositions.size();
+  glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
+  if (numPointLights > 0) {
     glUniform3fv(glGetUniformLocation(shader->ID, "pointLightPositions"),
                  numPointLights, glm::value_ptr(filteredLightPositions[0]));
     glUniform3fv(glGetUniformLocation(shader->ID, "pointLightColors"),
                  numPointLights, glm::value_ptr(filteredLightColors[0]));
+  }
+
+  // Shadow map uniforms
+  glUniformMatrix4fv(
+      glGetUniformLocation(shader->ID, "lightSpaceMatrix"),
+      1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+  if (shadowDepthTex != 0) {
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
+    glUniform1i(glGetUniformLocation(shader->ID, "shadowMap"), 1);
+    glActiveTexture(GL_TEXTURE0);
   }
 }
 
@@ -221,6 +387,13 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
   std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
   if (cam != nullptr)
     pre_filter_lights(cam);
+
+  // Lazy shadow-map setup + shadow pre-pass
+  if (shadowDepthShader) {
+    if (shadowFBO == 0)
+      setup_shadow_map();
+    render_shadow_pass(cm, cam, delta_time);
+  }
 
   for (auto &entity : registered_entities) {
     auto shader = cm.get_component<Shader>(entity);
@@ -713,8 +886,10 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
                      glm::value_ptr(mesh->diffuseColor));
         glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
                      glm::value_ptr(mesh->diffuseColor));
-        glUniform1f(glGetUniformLocation(shader->ID, "metallic"), 0.1f);
-        glUniform1f(glGetUniformLocation(shader->ID, "roughness"), 0.1f);
+        glUniform1f(glGetUniformLocation(shader->ID, "metallic"),
+                    modelPtr->metallic.value_or(mesh->metallic.value_or(0.1f)));
+        glUniform1f(glGetUniformLocation(shader->ID, "roughness"),
+                    modelPtr->roughness.value_or(mesh->roughness.value_or(0.1f)));
         glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                      glm::value_ptr(mesh->specularColor));
         glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);

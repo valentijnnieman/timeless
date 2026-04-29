@@ -1,20 +1,21 @@
-#version 100
-attribute vec3 aPos;
-attribute vec3 aNormal;
-attribute vec2 aTexCoord;
-
-attribute vec4 aBoneWeights;
-attribute vec4 aBoneIDs;
+#version 300 es
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aTexCoord;
+layout(location = 3) in vec4 aBoneWeights;
+layout(location = 4) in vec4 aBoneIDs;
 
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 boneMatrices[32];
 uniform bool useSkinning;
+uniform mat4 lightSpaceMatrix;
 
-varying vec2 TexCoord;
-varying vec3 Normal;
-varying vec3 FragPos;
+out vec2 TexCoord;
+out vec3 Normal;
+out vec3 FragPos;
+out vec4 FragPosLightSpace;
 
 void main()
 {
@@ -36,7 +37,8 @@ void main()
         skinnedNormal = aNormal;
     }
 
-    Normal = normalize(skinnedNormal);
+    Normal = normalize(mat3(model) * skinnedNormal);
     FragPos = vec3(model * skinnedPos);
+    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
     gl_Position = projection * view * model * skinnedPos;
 }

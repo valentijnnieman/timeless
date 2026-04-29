@@ -19,6 +19,13 @@ Texture::Texture(const char *filename, int width, int height)
 
     stbi_set_flip_vertically_on_load(false);
     unsigned char *data = stbi_load(filename, &w, &h, &nrChannels, 4);
+    if(data == nullptr) {
+        std::cerr << "Failed to load texture!" << std::endl;
+        texture = 0;
+        this->width = 0;
+        this->height = 0;
+        return;
+    }
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

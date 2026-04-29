@@ -2,23 +2,20 @@
 #include "assimp/config.h"
 #include "assimp/postprocess.h"
 #include "glm/gtc/type_ptr.hpp"
+#include <optional>
 
 static glm::mat4 aiToGlm(const aiMatrix4x4 &m) {
   // Assimp is row-major; GLM is column-major — transpose on construction.
-  return glm::mat4(
-    m.a1, m.b1, m.c1, m.d1,
-    m.a2, m.b2, m.c2, m.d2,
-    m.a3, m.b3, m.c3, m.d3,
-    m.a4, m.b4, m.c4, m.d4
-  );
+  return glm::mat4(m.a1, m.b1, m.c1, m.d1, m.a2, m.b2, m.c2, m.d2, m.a3, m.b3,
+                   m.c3, m.d3, m.a4, m.b4, m.c4, m.d4);
 }
 
-void Model::collectBones(const aiScene* scene) {
+void Model::collectBones(const aiScene *scene) {
   // Traverse all meshes and collect bones into boneMapping and boneInfos
   for (unsigned int meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx) {
-    aiMesh* mesh = scene->mMeshes[meshIdx];
+    aiMesh *mesh = scene->mMeshes[meshIdx];
     for (unsigned int i = 0; i < mesh->mNumBones; ++i) {
-      aiBone* bone = mesh->mBones[i];
+      aiBone *bone = mesh->mBones[i];
       std::string boneName(bone->mName.data);
       if (boneMapping.find(boneName) == boneMapping.end()) {
         int boneIndex = boneInfos.size();
@@ -34,7 +31,11 @@ void Model::collectBones(const aiScene* scene) {
 
 void Model::loadModel(const std::string &path, bool from_blender) {
   unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
-  if (from_blender) flags |= aiProcess_ConvertToLeftHanded;
+  // Note: aiProcess_ConvertToLeftHanded is NOT used here — it is a DirectX
+  // (left-handed) flag and actively breaks OpenGL rendering.  Blender FBX
+  // exports embed an axis-correction transform in the root scene node; that
+  // transform is accumulated into each mesh's nodeTransform by processNode and
+  // applied correctly in render() below.
   scene = import.ReadFile(path, flags);
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
@@ -68,18 +69,18 @@ void Model::loadModel(const std::string &path, bool from_blender) {
   std::map<std::string, int> nameToIndex;
 
   for (int i = 0; i < skeletonBones.size(); ++i) {
-      nameToIndex[skeletonBones[i].name] = i;
+    nameToIndex[skeletonBones[i].name] = i;
   }
   for (int i = 0; i < skeletonBones.size(); ++i) {
-      int parentIdx = skeletonBones[i].parentIndex;
-      if (parentIdx != -1 && parentIdx < skeletonBones.size()) {
-          skeletonBones[parentIdx].childrenIndices.push_back(i);
-      }
+    int parentIdx = skeletonBones[i].parentIndex;
+    if (parentIdx != -1 && parentIdx < skeletonBones.size()) {
+      skeletonBones[parentIdx].childrenIndices.push_back(i);
+    }
   }
-
 }
 
-void Model::processBone(aiNode *node, const aiScene *scene, int parentSkeletonIdx, glm::mat4 parentTransform) {
+void Model::processBone(aiNode *node, const aiScene *scene,
+                        int parentSkeletonIdx, glm::mat4 parentTransform) {
   glm::mat4 globalTransform = parentTransform * aiToGlm(node->mTransformation);
 
   int currentSkeletonIdx = -1;
@@ -101,14 +102,16 @@ void Model::processBone(aiNode *node, const aiScene *scene, int parentSkeletonId
   // Propagate the last known skeleton index so bones under non-bone nodes
   // still get the correct parent (fixes the case where a non-bone scene node
   // sits between two bone nodes in the hierarchy).
-  int nextParentIdx = (currentSkeletonIdx != -1) ? currentSkeletonIdx : parentSkeletonIdx;
+  int nextParentIdx =
+      (currentSkeletonIdx != -1) ? currentSkeletonIdx : parentSkeletonIdx;
 
   for (unsigned int i = 0; i < node->mNumChildren; i++) {
     processBone(node->mChildren[i], scene, nextParentIdx, globalTransform);
   }
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform) {
+void Model::processNode(aiNode *node, const aiScene *scene,
+                        glm::mat4 parentTransform) {
   glm::mat4 globalTransform = parentTransform * aiToGlm(node->mTransformation);
 
   for (unsigned int i = 0; i < node->mNumMeshes; i++) {
@@ -126,10 +129,27 @@ void Model::processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTran
     if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
       material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
     }
-    glm::vec3 diffuseColorVec  = glm::vec3(diffuseColor.r,  diffuseColor.g,  diffuseColor.b);
-    glm::vec3 specularColorVec = glm::vec3(specularColor.r, specularColor.g, specularColor.b);
+
+    float metallicFactor, roughnessFactor;
+    std::optional<float> meshMetallic, meshRoughness;
+    if (material->Get(AI_MATKEY_METALLIC_FACTOR, metallicFactor) ==
+        AI_SUCCESS) {
+      meshMetallic = metallicFactor;
+      std::cout << "Found metallicfactor : " << metallicFactor << std::endl;
+    }
+    if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughnessFactor) ==
+        AI_SUCCESS)
+      meshRoughness = roughnessFactor;
+
+    glm::vec3 diffuseColorVec =
+        glm::vec3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
+    glm::vec3 specularColorVec =
+        glm::vec3(specularColor.r, specularColor.g, specularColor.b);
     size_t meshIndex = meshes.size();
-    auto mesh = processMesh(aimesh, scene, globalTransform, diffuseColorVec, specularColorVec);
+    auto mesh = processMesh(aimesh, scene, globalTransform, diffuseColorVec,
+                            specularColorVec);
+    mesh->metallic = meshMetallic;
+    mesh->roughness = meshRoughness;
     mesh->nodeName = node->mName.C_Str();
     mesh->nodeParentTransform = parentTransform;
     meshNodeMap[node->mName.C_Str()] = meshIndex;
@@ -141,16 +161,21 @@ void Model::processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTran
   }
 }
 
-std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 nodeTransform, glm::vec3 diffuseColor, glm::vec3 specularColor) {
+std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene,
+                                         glm::mat4 nodeTransform,
+                                         glm::vec3 diffuseColor,
+                                         glm::vec3 specularColor) {
   std::vector<Vertex> vertices(mesh->mNumVertices);
   std::vector<unsigned int> indices;
 
   // Initialize vertex positions and texcoords
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
     Vertex vertex;
-    vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+    vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y,
+                                mesh->mVertices[i].z);
     if (mesh->mTextureCoords[0]) {
-      vertex.TexCoords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+      vertex.TexCoords =
+          glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
     } else {
       vertex.TexCoords = glm::vec2(0.0f, 0.0f);
     }
@@ -189,7 +214,6 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
     for (unsigned int j = 0; j < face.mNumIndices; j++) {
       indices.push_back(face.mIndices[j]);
     }
-
   }
 
   // Normalize accumulated normals
@@ -199,47 +223,62 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene, glm
 
   // Assign bone indices and weights to vertices using the global boneMapping
   for (unsigned int i = 0; i < mesh->mNumBones; i++) {
-      aiBone* bone = mesh->mBones[i];
-      std::string boneName(bone->mName.data);
+    aiBone *bone = mesh->mBones[i];
+    std::string boneName(bone->mName.data);
 
-      auto it = boneMapping.find(boneName);
-      if (it == boneMapping.end()) {
-          // Should not happen, boneMapping should be complete
-          continue;
-      }
-      int boneIndex = it->second;
+    auto it = boneMapping.find(boneName);
+    if (it == boneMapping.end()) {
+      // Should not happen, boneMapping should be complete
+      continue;
+    }
+    int boneIndex = it->second;
 
-      for (unsigned int j = 0; j < bone->mNumWeights; j++) {
-          unsigned int vertexID = bone->mWeights[j].mVertexId;
-          float weight = bone->mWeights[j].mWeight;
-          for (int k = 0; k < 4; ++k) {
-              if (vertices[vertexID].boneData.weights[k] == 0.0f) {
-                  vertices[vertexID].boneData.ids[k] = static_cast<float>(boneIndex);
-                  vertices[vertexID].boneData.weights[k] = weight;
-                  break;
-              }
-          }
+    for (unsigned int j = 0; j < bone->mNumWeights; j++) {
+      unsigned int vertexID = bone->mWeights[j].mVertexId;
+      float weight = bone->mWeights[j].mWeight;
+      for (int k = 0; k < 4; ++k) {
+        if (vertices[vertexID].boneData.weights[k] == 0.0f) {
+          vertices[vertexID].boneData.ids[k] = static_cast<float>(boneIndex);
+          vertices[vertexID].boneData.weights[k] = weight;
+          break;
+        }
       }
+    }
   }
 
   std::shared_ptr<Mesh> result;
   if (mesh->mNumBones > 0) {
-    result = std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping, this->shader, diffuseColor, specularColor));
+    result =
+        std::make_shared<Mesh>(Mesh(vertices, indices, boneInfos, boneMapping,
+                                    this->shader, diffuseColor, specularColor));
   } else {
-    result = std::make_shared<Mesh>(Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
+    result = std::make_shared<Mesh>(
+        Mesh(vertices, indices, this->shader, diffuseColor, specularColor));
   }
   result->nodeTransform = nodeTransform;
   return result;
 }
 
-void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_skinning) {
-  if(!hidden) {
+void Model::render(glm::mat4 global_model_matrix, float delta_time,
+                   bool use_skinning) {
+  if (!hidden) {
     for (unsigned int i = 0; i < meshes.size(); i++) {
       glBindVertexArray(meshes[i]->VAO);
       // Set the model matrix uniform
       meshes[i]->update_animation(delta_time);
-      glm::mat4 meshModelMatrix = global_model_matrix * meshes[i]->getModelMatrix();
-      glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(meshModelMatrix));
+      glm::mat4 meshModelMatrix;
+      if (use_skinning && !meshes[i]->boneInfos.empty()) {
+        // Skinned mesh: bone matrices already incorporate
+        // skeletonRootNodeTransform (which includes the Blender axis
+        // correction), so no extra node transform here.
+        meshModelMatrix = global_model_matrix;
+      } else {
+        glm::mat4 animOffset =
+            glm::translate(glm::mat4(1.0f), meshes[i]->position);
+        meshModelMatrix = global_model_matrix * animOffset;
+      }
+      glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
+                         glm::value_ptr(meshModelMatrix));
 
       GLint useSkinningLoc = glGetUniformLocation(shader->ID, "useSkinning");
 
@@ -247,23 +286,33 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_ski
       //   glUniform1i(useSkinningLoc, 1);
       // }
       // else {
-        glUniform1i(useSkinningLoc, (use_skinning && !meshes[i]->boneInfos.empty()) ? 1 : 0);
+      glUniform1i(useSkinningLoc,
+                  (use_skinning && !meshes[i]->boneInfos.empty()) ? 1 : 0);
       // }
 
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
-                  glm::value_ptr(meshes[i]->diffuseColor));
+                   glm::value_ptr(meshes[i]->diffuseColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
-                  glm::value_ptr(meshes[i]->diffuseColor));
-      glUniform1f(glGetUniformLocation(shader->ID, "metallic"), metallic);
-      glUniform1f(glGetUniformLocation(shader->ID, "roughness"), roughness);
+                   glm::value_ptr(meshes[i]->diffuseColor));
+      glUniform1f(glGetUniformLocation(shader->ID, "metallic"),
+                  metallic.value_or(meshes[i]->metallic.value_or(0.1f)));
+      glUniform1f(glGetUniformLocation(shader->ID, "roughness"),
+                  roughness.value_or(meshes[i]->roughness.value_or(0.1f)));
       glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
-                  glm::value_ptr(meshes[i]->specularColor));
+                   glm::value_ptr(meshes[i]->specularColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
-                  glm::value_ptr(glm::vec3(1.0f)));
+                   glm::value_ptr(glm::vec3(1.0f)));
       glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+      glUniform1i(glGetUniformLocation(shader->ID, "albedoMap"), 0);
+      if (normal_texture) {
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, normal_texture->texture);
+        glUniform1i(glGetUniformLocation(shader->ID, "normalMap"), 2);
+        glActiveTexture(GL_TEXTURE0);
+      }
       glDrawElements(GL_TRIANGLES,
-                    static_cast<unsigned int>(meshes[i]->indices.size()),
-                    GL_UNSIGNED_INT, 0);
+                     static_cast<unsigned int>(meshes[i]->indices.size()),
+                     GL_UNSIGNED_INT, 0);
       glBindVertexArray(0);
     }
   }
@@ -271,9 +320,9 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time, bool use_ski
 void Model::instanced_render(GLsizei instance_count) {
   for (unsigned int i = 0; i < meshes.size(); i++) {
     glBindVertexArray(meshes[i]->VAO);
-    glDrawElementsInstanced(GL_TRIANGLES,
-                            static_cast<unsigned int>(meshes[i]->indices.size()),
-                            GL_UNSIGNED_INT, 0, instance_count);
+    glDrawElementsInstanced(
+        GL_TRIANGLES, static_cast<unsigned int>(meshes[i]->indices.size()),
+        GL_UNSIGNED_INT, 0, instance_count);
     glBindVertexArray(0);
   }
 }

@@ -57,6 +57,7 @@ void Mesh::setupMesh(std::shared_ptr<Shader> shader) {
   GLint posLoc = glGetAttribLocation(shader->ID, "aPos");
   GLint normLoc = glGetAttribLocation(shader->ID, "aNormal");
   GLint texLoc = glGetAttribLocation(shader->ID, "aTexCoords");
+  if (texLoc < 0) texLoc = glGetAttribLocation(shader->ID, "aTexCoord");
   GLint boneIDsLoc = glGetAttribLocation(shader->ID, "aBoneIDs");
   GLint boneWeightsLoc = glGetAttribLocation(shader->ID, "aBoneWeights");
   // std::cout << "Model Attribute Locations - Pos: " << posLoc

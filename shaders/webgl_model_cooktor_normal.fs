@@ -6,14 +6,16 @@ in vec3 Normal;
 in vec3 FragPos;
 in vec4 FragPosLightSpace;
 
-uniform vec3 albedo;
+uniform sampler2D albedoMap;   // unit 0 — base colour texture
+uniform sampler2D shadowMap;   // unit 1 — shadow depth map
+uniform sampler2D normalMap;   // unit 2 — tangent-space normal map
+
 uniform float metallic;
 uniform float roughness;
-uniform vec3 lightPos;         // directional light: direction vector pointing toward the light
-uniform vec3 lightColor;       // directional light color/intensity
+uniform vec3 lightPos;
+uniform vec3 lightColor;
 uniform float ambientStrength;
 uniform vec3 cameraPos;
-uniform sampler2D shadowMap;
 
 #define MAX_POINT_LIGHTS 64
 uniform vec3 pointLightPositions[MAX_POINT_LIGHTS];
@@ -24,32 +26,27 @@ out vec4 fragColor;
 
 const float PI = 3.14159265359;
 
-// Schlick's approximation for Fresnel
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-// GGX / Trowbridge-Reitz normal distribution function
 float DistributionGGX(vec3 N, vec3 H, float r)
 {
     float a = r * r;
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
-
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     return a2 / (PI * denom * denom);
 }
 
-// Schlick-GGX geometry function (single term)
 float GeometrySchlickGGX(float NdotV, float r)
 {
     float k = (r + 1.0) * (r + 1.0) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
-// Smith's method for geometry function
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float r)
 {
     float NdotV = max(dot(N, V), 0.0);
@@ -57,13 +54,11 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float r)
     return GeometrySchlickGGX(NdotV, r) * GeometrySchlickGGX(NdotL, r);
 }
 
-// 3x3 PCF shadow with slope-scaled bias
 float shadowFactor(vec4 fragPosLS, vec3 N, vec3 L)
 {
     vec3 proj = fragPosLS.xyz / fragPosLS.w;
     proj = proj * 0.5 + 0.5;
 
-    // Outside the light frustum — lit
     if (proj.x < 0.0 || proj.x > 1.0 ||
         proj.y < 0.0 || proj.y > 1.0 ||
         proj.z > 1.0)
@@ -84,16 +79,40 @@ float shadowFactor(vec4 fragPosLS, vec3 N, vec3 L)
     return shadow / 9.0;
 }
 
+// Compute a TBN matrix from screen-space derivatives — no tangent attribute needed.
+mat3 computeTBN()
+{
+    vec3 dPdx = dFdx(FragPos);
+    vec3 dPdy = dFdy(FragPos);
+    vec2 dUVdx = dFdx(TexCoord);
+    vec2 dUVdy = dFdy(TexCoord);
+
+    float det = dUVdx.x * dUVdy.y - dUVdy.x * dUVdx.y;
+    // Avoid division by zero on degenerate UVs
+    if (abs(det) < 1e-6) det = sign(det) * 1e-6;
+
+    vec3 T = (dPdx * dUVdy.y - dPdy * dUVdx.y) / det;
+    vec3 Ngeom = normalize(Normal);
+    T = normalize(T - dot(T, Ngeom) * Ngeom); // re-orthogonalise
+    vec3 B = cross(Ngeom, T);
+    return mat3(T, B, Ngeom);
+}
+
 void main()
 {
-    vec3 N = normalize(Normal);
-    vec3 V = normalize(cameraPos - FragPos);
+    vec3 albedo = texture(albedoMap, TexCoord).rgb;
 
+    // Decode normal map (tangent space) and transform to world space
+    mat3 TBN = computeTBN();
+    vec3 normalSample = texture(normalMap, TexCoord).rgb * 2.0 - 1.0;
+    vec3 N = normalize(TBN * normalSample);
+
+    vec3 V = normalize(cameraPos - FragPos);
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 color = vec3(0.0);
 
-    // Directional light (sun) — no attenuation, lightPos is a direction vector
+    // Directional light
     {
         vec3 L = normalize(-lightPos);
         vec3 H = normalize(V + L);
@@ -115,7 +134,7 @@ void main()
         color += (diffuse + specular) * lightColor * NdotL * (1.0 - shadow);
     }
 
-    // Point lights — with inverse-square attenuation (no shadow)
+    // Point lights
     for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
         if (i >= numPointLights) break;
 
@@ -142,13 +161,10 @@ void main()
     }
 
     // Ambient
-    vec3 ambient = ambientStrength * albedo;
-    color += ambient;
+    color += ambientStrength * albedo;
 
-    // Reinhard tonemapping
+    // Reinhard tonemapping + gamma correction
     color = color / (color + vec3(1.0));
-
-    // Gamma correction
     color = pow(color, vec3(1.0 / 2.2));
     fragColor = vec4(color, 1.0);
 }

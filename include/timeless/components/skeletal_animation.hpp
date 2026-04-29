@@ -56,6 +56,12 @@ public:
     }
   }
 
+  void stopAnimation() {
+    playing = false;
+    currentAnimation = "";
+    std::fill(poseMatrices.begin(), poseMatrices.end(), glm::mat4(1.0f));
+  }
+
   void update(float dt) {
     if (!playing || !model ||
         animations.find(currentAnimation) == animations.end())

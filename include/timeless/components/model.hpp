@@ -13,6 +13,7 @@
 #include "timeless/components/texture.hpp"
 #include <memory>
 #include <map>
+#include <optional>
 #include <unordered_map>
 
 struct SkeletonBone {
@@ -28,8 +29,8 @@ public:
 
   bool hidden = false;
 
-  float metallic = 0.1f;
-  float roughness = 0.1f;
+  std::optional<float> metallic;
+  std::optional<float> roughness;
 
   float index = 0.0f;
   glm::vec4 params = glm::vec4(0.1f, 0.1f, 0.0f, 0.0f); // Example: metallic, roughness, unused, unused
@@ -68,6 +69,10 @@ public:
   // Maps node name -> index into meshes[], for applying object-level animations
   // directly to mesh nodeTransforms (non-skinned / no-bone objects).
   std::unordered_map<std::string, size_t> meshNodeMap;
+
+  // Optional normal map for webgl_model_cooktor_normal shader.
+  // Bound to GL_TEXTURE2 during render().
+  std::shared_ptr<Texture> normal_texture;
 
 private:
   std::shared_ptr<Texture> texture;

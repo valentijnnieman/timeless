@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <unordered_map>
 
@@ -33,6 +34,9 @@ public:
   //
   glm::vec3 diffuseColor;
   glm::vec3 specularColor;
+
+  std::optional<float> metallic;
+  std::optional<float> roughness;
 
   // Node transform from the FBX scene hierarchy (accumulated from root to this mesh's node)
   glm::mat4 nodeTransform = glm::mat4(1.0f);

@@ -54,6 +54,22 @@ public:
   glm::vec3 dirLightPos   = {1.0f, 0.0f, 1.0f};
   glm::vec3 dirLightColor = {1.0f, 1.0f, 1.0f};
 
+  // Override ambient strength. When >= 0 this value is used directly instead
+  // of the day-cycle formula (cos(angle)*0.5+0.1).
+  float ambientStrength = -1.0f;
+
+  // Shadow mapping (directional light only)
+  unsigned int shadowFBO = 0;
+  unsigned int shadowDepthTex = 0;
+  int shadowMapSize = 2048;
+  glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
+  std::shared_ptr<Shader> shadowDepthShader;
+
+  void setup_shadow_map();
+  glm::mat4 compute_light_space_matrix() const;
+  void render_shadow_pass(ComponentManager &cm, std::shared_ptr<Camera> cam,
+                          float delta_time);
+
   void purge(ComponentManager &cm);
   void register_camera(Entity c);
   void update_transform(std::shared_ptr<Transform> transform,
