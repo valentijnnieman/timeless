@@ -50,8 +50,6 @@ inline Entity create_entity(const std::string &debug_name = "") {
 }
 
 inline void destroy_entity(Entity id) {
-  if (active_entities.contains(id)) {
-    active_entities.erase(id);
-    free_ids.push_back(id);
-  }
+  active_entities.erase(id);
+  free_ids.push_back(id);
 }

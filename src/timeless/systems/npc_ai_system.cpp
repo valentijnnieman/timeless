@@ -56,12 +56,38 @@ void NpcAiSystem::update(ComponentManager &cm) {
     if (timer.pollTime()) {
         if (running) {
             bool reverse = !forward;
+#ifndef __EMSCRIPTEN__
+            struct Work { Entity entity; const Instruction* instr; };
+            std::vector<Work> work;
+            work.reserve(registered_entities.size());
+            for (const auto &entity : registered_entities) {
+                auto behaviour = cm.get_component<Behaviour>(entity);
+                if (behaviour != nullptr) {
+                    const Instruction* instr = behaviour->next(main_index);
+                    if (instr != nullptr)
+                        work.push_back({entity, instr});
+                }
+            }
+            float spd = speed;
+            unsigned int n_threads = std::min((unsigned int)work.size(),
+                                              std::thread::hardware_concurrency());
+            std::vector<std::future<void>> futures;
+            futures.reserve(n_threads);
+            for (unsigned int t = 0; t < n_threads; t++) {
+                futures.push_back(std::async(std::launch::async, [&work, t, n_threads, reverse, spd]() {
+                    for (unsigned int i = t; i < (unsigned int)work.size(); i += n_threads)
+                        work[i].instr->run(work[i].entity, reverse, spd);
+                }));
+            }
+            for (auto &f : futures) f.get();
+#else
             for (auto &entity : registered_entities) {
                 auto behaviour = cm.get_component<Behaviour>(entity);
                 auto instr     = behaviour->next(main_index);
                 if (instr != nullptr)
                     instr->run(entity, reverse, speed);
             }
+#endif
             update_text(cm);
             update_text(cm);
             if (!forward) {

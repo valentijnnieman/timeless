@@ -1,6 +1,10 @@
 #pragma once
 #include "timeless/timer.hpp"
 #include "timeless/systems/system.hpp"
+#ifndef __EMSCRIPTEN__
+#include <future>
+#include <thread>
+#endif
 
 class NpcAiSystem : public System {
 private:

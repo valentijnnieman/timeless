@@ -6,6 +6,7 @@
 class UIComponent {
 private:
   std::vector<Entity> entities;
+  bool removed = false;
 
 public:
   Entity main_ent;
@@ -83,7 +84,11 @@ public:
     }
   }
 
+  bool is_removed() const { return removed; }
+
   virtual void remove() {
+    if (removed) return;
+    removed = true;
     for (auto entity : entities) {
       TE::remove_entity(entity);
     }
