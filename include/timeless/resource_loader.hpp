@@ -35,4 +35,16 @@ public:
       auto it = assets.find(name);
       return it != assets.end() ? it->second : empty;
     }
+
+    // Returns file contents as a string.
+    // WASM: reads directly from disk. Native: reads from loaded assets.bin.
+    std::string get_string(const std::string& name) const {
+#ifdef __EMSCRIPTEN__
+      std::ifstream f(name);
+      return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+#else
+      const auto& bytes = get(name);
+      return std::string(bytes.begin(), bytes.end());
+#endif
+    }
 };

@@ -62,116 +62,114 @@ public:
   ComponentManager(){};
 
   void add_component(Entity entity, Quad *quad) {
-    quads.insert({entity, std::shared_ptr<Quad>(quad)});
+    quads.insert_or_assign(entity, std::shared_ptr<Quad>(quad));
   }
   void add_component(Entity entity, std::shared_ptr<Quad> quad) {
-    quads.insert({entity, quad});
+    quads.insert_or_assign(entity, quad);
   }
   void add_component(Entity entity, Model *model) {
-    models.insert({entity, std::shared_ptr<Model>(model)});
+    models.insert_or_assign(entity, std::shared_ptr<Model>(model));
   }
   void add_component(Entity entity, std::shared_ptr<Model> model) {
-    models.insert({entity, model});
+    models.insert_or_assign(entity, model);
   }
   void add_component(Entity entity, Texture *texture) {
-    textures.insert({entity, std::shared_ptr<Texture>(texture)});
+    textures.insert_or_assign(entity, std::shared_ptr<Texture>(texture));
   }
   void add_component(Entity entity, std::shared_ptr<Texture> texture) {
-    textures.insert({entity, texture});
+    textures.insert_or_assign(entity, texture);
   }
   void add_component(Entity entity, Shader *shader) {
-    shaders.insert({entity, std::shared_ptr<Shader>(shader)});
+    shaders.insert_or_assign(entity, std::shared_ptr<Shader>(shader));
   }
   void add_component(Entity entity, std::shared_ptr<Shader> shader) {
-    shaders.insert({entity, shader});
+    shaders.insert_or_assign(entity, shader);
   }
   void add_component(Entity entity, Sprite *sprite) {
-    sprites.insert({entity, std::shared_ptr<Sprite>(sprite)});
+    sprites.insert_or_assign(entity, std::shared_ptr<Sprite>(sprite));
   }
   void add_component(Entity entity, Transform *transform) {
-    transforms.insert({entity, std::shared_ptr<Transform>(transform)});
+    transforms.insert_or_assign(entity, std::shared_ptr<Transform>(transform));
   }
   void add_component(Entity entity,
                      MouseInputListener<MouseEvent> *mouse_input) {
-    mouse_input_listeners.insert(
-        {entity, std::shared_ptr<MouseInputListener<MouseEvent>>(mouse_input)});
+    mouse_input_listeners.insert_or_assign(
+        entity, std::shared_ptr<MouseInputListener<MouseEvent>>(mouse_input));
   }
   void add_component(Entity entity,
                      MouseInputListener<MouseMoveEvent> *mouse_input) {
-    mouse_move_listeners.insert(
-        {entity,
-         std::shared_ptr<MouseInputListener<MouseMoveEvent>>(mouse_input)});
+    mouse_move_listeners.insert_or_assign(
+        entity, std::shared_ptr<MouseInputListener<MouseMoveEvent>>(mouse_input));
   }
   void add_component(Entity entity, EventListener<Event> *event_listener) {
-    event_listeners.insert(
-        {entity, std::shared_ptr<EventListener<Event>>(event_listener)});
+    event_listeners.insert_or_assign(
+        entity, std::shared_ptr<EventListener<Event>>(event_listener));
   }
   void add_component(Entity entity,
                      EventListener<PositionEvent> *event_listener) {
-    position_event_listeners.insert(
-        {entity,
-         std::shared_ptr<EventListener<PositionEvent>>(event_listener)});
+    position_event_listeners.insert_or_assign(
+        entity, std::shared_ptr<EventListener<PositionEvent>>(event_listener));
   }
   void add_component(Entity entity, KeyboardInputListener *keyboard_input) {
-    keyboard_input_listeners.insert(
-        {entity, std::shared_ptr<KeyboardInputListener>(keyboard_input)});
+    keyboard_input_listeners.insert_or_assign(
+        entity, std::shared_ptr<KeyboardInputListener>(keyboard_input));
   }
   void add_component(Entity entity, Camera *camera) {
-    cameras.insert({entity, std::shared_ptr<Camera>(camera)});
+    cameras.insert_or_assign(entity, std::shared_ptr<Camera>(camera));
   }
   void add_component(Entity entity, std::shared_ptr<Camera> camera) {
-    cameras.insert({entity, camera});
+    cameras.insert_or_assign(entity, camera);
   }
   void add_component(Entity entity, MovementController *movement) {
-    movements.insert({entity, std::shared_ptr<MovementController>(movement)});
+    movements.insert_or_assign(entity, std::shared_ptr<MovementController>(movement));
   }
   void add_component(Entity entity, Collider *collider) {
-    colliders.insert({entity, std::shared_ptr<Collider>(collider)});
+    colliders.insert_or_assign(entity, std::shared_ptr<Collider>(collider));
   }
   void add_component(Entity entity, Node *node) {
-    nodes.insert({entity, std::shared_ptr<Node>(node)});
+    nodes.insert_or_assign(entity, std::shared_ptr<Node>(node));
   }
   void add_component(Entity entity, std::shared_ptr<Node> node) {
-    nodes.insert({entity, node});
+    nodes.insert_or_assign(entity, node);
   }
   void add_component(Entity entity, Font *font) {
-    fonts.insert({entity, std::shared_ptr<Font>(font)});
+    fonts.insert_or_assign(entity, std::shared_ptr<Font>(font));
   }
   void add_component(Entity entity, std::shared_ptr<Font> font) {
-    fonts.insert({entity, font});
+    fonts.insert_or_assign(entity, font);
   }
   void add_component(Entity entity, Text *text) {
-    texts.insert({entity, std::shared_ptr<Text>(text)});
+    texts.insert_or_assign(entity, std::shared_ptr<Text>(text));
   }
   void add_component(Entity entity, Behaviour *behaviour) {
-    behaviours.insert({entity, std::shared_ptr<Behaviour>(behaviour)});
+    behaviours.insert_or_assign(entity, std::shared_ptr<Behaviour>(behaviour));
   }
   void add_component(Entity entity, Line *line) {
-    geometry.insert({entity, std::shared_ptr<Line>(line)});
+    geometry.insert_or_assign(entity, std::shared_ptr<Line>(line));
   }
   void add_component(Entity entity, Animation *animation) {
-    animations.insert({entity, std::shared_ptr<Animation>(animation)});
+    animations.insert_or_assign(entity, std::shared_ptr<Animation>(animation));
   }
   void add_component(Entity entity, std::shared_ptr<Animation> animation) {
-    animations.insert({entity, animation});
+    animations.insert_or_assign(entity, animation);
   }
   void add_component(Entity entity, SkeletalAnimation *animation) {
-    skeletal_animations.insert({entity, std::shared_ptr<SkeletalAnimation>(animation)});
+    skeletal_animations.insert_or_assign(entity, std::shared_ptr<SkeletalAnimation>(animation));
   }
   void add_component(Entity entity, std::shared_ptr<SkeletalAnimation> animation) {
-    skeletal_animations.insert({entity, animation});
+    skeletal_animations.insert_or_assign(entity, animation);
   }
   void add_component(Entity entity, NodeAnimation *animation) {
-    node_animations.insert({entity, std::shared_ptr<NodeAnimation>(animation)});
+    node_animations.insert_or_assign(entity, std::shared_ptr<NodeAnimation>(animation));
   }
   void add_component(Entity entity, std::shared_ptr<NodeAnimation> animation) {
-    node_animations.insert({entity, animation});
+    node_animations.insert_or_assign(entity, animation);
   }
   void add_component(Entity entity, ParticleEmitter *pe) {
-    particleemitters.insert({entity, std::shared_ptr<ParticleEmitter>(pe)});
+    particleemitters.insert_or_assign(entity, std::shared_ptr<ParticleEmitter>(pe));
   }
   void add_component(Entity entity, std::shared_ptr<ParticleEmitter> pe) {
-    particleemitters.insert({entity, pe});
+    particleemitters.insert_or_assign(entity, pe);
   }
 
   template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
@@ -210,18 +208,17 @@ public:
   /** this method completely removes all components for an entity */
   void remove_entity(Entity entity, bool destroy = true) {
     try {
-      mouse_input_listeners.erase(entity);
-      keyboard_input_listeners.erase(entity);
-      animations.erase(entity);
-      skeletal_animations.erase(entity);
-      node_animations.erase(entity);
       quads.erase(entity);
       models.erase(entity);
       textures.erase(entity);
       shaders.erase(entity);
       sprites.erase(entity);
       transforms.erase(entity);
-      geometry.erase(entity);
+      mouse_input_listeners.erase(entity);
+      mouse_move_listeners.erase(entity);
+      event_listeners.erase(entity);
+      position_event_listeners.erase(entity);
+      keyboard_input_listeners.erase(entity);
       cameras.erase(entity);
       colliders.erase(entity);
       movements.erase(entity);
@@ -229,8 +226,10 @@ public:
       fonts.erase(entity);
       texts.erase(entity);
       behaviours.erase(entity);
-      event_listeners.erase(entity);
-      position_event_listeners.erase(entity);
+      geometry.erase(entity);
+      animations.erase(entity);
+      skeletal_animations.erase(entity);
+      node_animations.erase(entity);
       particleemitters.erase(entity);
       if(destroy) {
         destroy_entity(entity);

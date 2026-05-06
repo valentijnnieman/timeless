@@ -162,19 +162,19 @@ bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
   if (boneMatrixLoc < 0) return false;
   auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
   if (skeletal_animation == nullptr) return false;
-  std::array<glm::mat4, 32> boneMatrices;
+  std::array<glm::mat4, 128> boneMatrices;
   size_t count = skeletal_animation->poseMatrices.size();
-  for (size_t i = 0; i < 32; ++i)
+  for (size_t i = 0; i < 128; ++i)
     boneMatrices[i] = (i < count) ? skeletal_animation->poseMatrices[i]
                                   : glm::mat4(1.0f);
-  glUniformMatrix4fv(boneMatrixLoc, 32, GL_FALSE,
+  glUniformMatrix4fv(boneMatrixLoc, 128, GL_FALSE,
                      glm::value_ptr(boneMatrices[0]));
   return true;
 }
 
 void RenderingSystem::purge(ComponentManager &cm) {
-  for (auto &ent : registered_entities)
-    cm.remove_entity(ent);
+  // for (auto &ent : registered_entities)
+  //   cm.remove_entity(ent);
   registered_entities.clear();
   models.clear();
   sprite_indices.clear();
@@ -443,6 +443,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
 
       if (auto rootSpriteBone =
               std::dynamic_pointer_cast<SpriteBone>(animation->root)) {
+        if (rootSpriteBone->sprite->hidden) continue;
         rootSpriteBone->sprite->index = rootSpriteBone->sprite_index;
         rootSpriteBone->sprite->update();
         rootSpriteBone->quad->render();

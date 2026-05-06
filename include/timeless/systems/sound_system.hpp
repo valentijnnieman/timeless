@@ -44,6 +44,7 @@ public:
   void start_loop(std::string soundevent_path, float delay = 0.0f,
                   bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0));
   void stop_looping_event();
+  void stop_event(std::string soundevent_path);
   void unload();
   double half_to_time(int p, float speed);
   double quarter_to_time(int p, float speed);

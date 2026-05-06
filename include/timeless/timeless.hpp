@@ -130,6 +130,7 @@ namespace TE
 
     inline void remove_entity(Entity entity, bool destroy = true)
     {
+        if (!active_entities.contains(entity)) return;
         mis->remove_entity(entity);
         mis->remove_move_entity(entity);
         for (const auto& [key, system] : systems)
@@ -259,45 +260,47 @@ namespace TE
     if(transform != nullptr) {
         // Get camera matrices and viewport
         auto camera = transform->camera;
-        glm::mat4 view = camera->get_view_matrix();
-        glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
-        // glm::mat4 proj = camera->get_projection_matrix();
+        if(camera != nullptr) {
+          glm::mat4 view = camera->get_view_matrix();
+          glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
+          // glm::mat4 proj = camera->get_projection_matrix();
 
-        // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
-        glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
+          glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-        // Scale raw window pixels to design-resolution (viewport) pixels before
-        // unprojecting — raw_position is in OS window coords which may differ
-        // from the design resolution when WINDOW_X/Y != VIEWPORT_X/Y.
-        float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
-        float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
-        float win_x = mouse_x;
-        float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
-        glm::vec3 cam_pos = glm::vec3(glm::inverse(view)[3]);
+          // Scale raw window pixels to design-resolution (viewport) pixels before
+          // unprojecting — raw_position is in OS window coords which may differ
+          // from the design resolution when WINDOW_X/Y != VIEWPORT_X/Y.
+          float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
+          float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
+          float win_x = mouse_x;
+          float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
+          glm::vec3 cam_pos = glm::vec3(glm::inverse(view)[3]);
 
-        // Unproject to world space (near and far plane)
-        glm::vec3 near_point = glm::unProject(glm::vec3(win_x, win_y, 0.0f), view, proj, viewport);
-        glm::vec3 far_point  = glm::unProject(glm::vec3(win_x, win_y, 1.0f), view, proj, viewport);
+          // Unproject to world space (near and far plane)
+          glm::vec3 near_point = glm::unProject(glm::vec3(win_x, win_y, 0.0f), view, proj, viewport);
+          glm::vec3 far_point  = glm::unProject(glm::vec3(win_x, win_y, 1.0f), view, proj, viewport);
 
-        // Ray from camera position to far_point
-        glm::vec3 ray_dir = glm::normalize(far_point - near_point);
+          // Ray from camera position to far_point
+          glm::vec3 ray_dir = glm::normalize(far_point - near_point);
 
-        if(!camera->perspective) {
-          ray_dir = -glm::normalize(camera->get_forward());
+          if(!camera->perspective) {
+            ray_dir = -glm::normalize(camera->get_forward());
+          }
+
+          // Entity bounding box (centered position, width, height)
+          glm::vec3 box_center = transform->get_position();
+          float w = transform->width;
+          float h = transform->height;
+          if(transform->width == 0.0f && transform->height == 0.0f) {
+            w = transform->scale.x * transform->hit_scale_x;
+            h = transform->scale.y * transform->hit_scale_y;
+          }
+          glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
+          glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
+
+          return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
         }
-
-        // Entity bounding box (centered position, width, height)
-        glm::vec3 box_center = transform->get_position();
-        float w = transform->width;
-        float h = transform->height;
-        if(transform->width == 0.0f && transform->height == 0.0f) {
-          w = transform->scale.x;
-          h = transform->scale.y;
-        }
-        glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
-        glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
-
-        return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
     }
     return false;
     }
@@ -361,8 +364,8 @@ namespace TE
           float w = transform->width;
           float h = transform->height;
           if(transform->width == 0.0f && transform->height == 0.0f) {
-            w = transform->scale.x;
-            h = transform->scale.y;
+            w = transform->scale.x * transform->hit_scale_x;
+            h = transform->scale.y * transform->hit_scale_y;
           }
           glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
           glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);

@@ -29,21 +29,7 @@ void Model::collectBones(const aiScene *scene) {
   }
 }
 
-void Model::loadModel(const std::string &path, bool from_blender) {
-  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
-  // Note: aiProcess_ConvertToLeftHanded is NOT used here — it is a DirectX
-  // (left-handed) flag and actively breaks OpenGL rendering.  Blender FBX
-  // exports embed an axis-correction transform in the root scene node; that
-  // transform is accumulated into each mesh's nodeTransform by processNode and
-  // applied correctly in render() below.
-  scene = import.ReadFile(path, flags);
-  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-      !scene->mRootNode) {
-    std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
-    return;
-  }
-  directory = path.substr(0, path.find_last_of('/'));
-
+void Model::processLoadedScene() {
   // First, collect all bones for the model
   collectBones(scene);
 
@@ -65,18 +51,50 @@ void Model::loadModel(const std::string &path, bool from_blender) {
     }
   }
 
+  glm::vec3 rootScale(glm::length(glm::vec3(skeletonRootNodeTransform[0])),
+                      glm::length(glm::vec3(skeletonRootNodeTransform[1])),
+                      glm::length(glm::vec3(skeletonRootNodeTransform[2])));
   // Fill childrenIndices for each bone
   std::map<std::string, int> nameToIndex;
 
-  for (int i = 0; i < skeletonBones.size(); ++i) {
+  for (int i = 0; i < (int)skeletonBones.size(); ++i) {
     nameToIndex[skeletonBones[i].name] = i;
   }
-  for (int i = 0; i < skeletonBones.size(); ++i) {
+  for (int i = 0; i < (int)skeletonBones.size(); ++i) {
     int parentIdx = skeletonBones[i].parentIndex;
-    if (parentIdx != -1 && parentIdx < skeletonBones.size()) {
+    if (parentIdx != -1 && parentIdx < (int)skeletonBones.size()) {
       skeletonBones[parentIdx].childrenIndices.push_back(i);
     }
   }
+}
+
+void Model::loadModel(const std::string &path, bool from_blender) {
+  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
+  // Note: aiProcess_ConvertToLeftHanded is NOT used here — it is a DirectX
+  // (left-handed) flag and actively breaks OpenGL rendering.  Blender FBX
+  // exports embed an axis-correction transform in the root scene node; that
+  // transform is accumulated into each mesh's nodeTransform by processNode and
+  // applied correctly in render() below.
+  scene = import.ReadFile(path, flags);
+  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      !scene->mRootNode) {
+    std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+    return;
+  }
+  directory = path.substr(0, path.find_last_of('/'));
+  processLoadedScene();
+}
+
+void Model::loadModelFromMemory(const std::vector<uint8_t> &data, bool from_blender) {
+  unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
+  scene = import.ReadFileFromMemory(data.data(), data.size(), flags, "fbx");
+  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      !scene->mRootNode) {
+    std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+    return;
+  }
+  directory = "";
+  processLoadedScene();
 }
 
 void Model::processBone(aiNode *node, const aiScene *scene,
@@ -290,14 +308,18 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time,
                   (use_skinning && !meshes[i]->boneInfos.empty()) ? 1 : 0);
       // }
 
+      glm::vec3 tinted = meshes[i]->diffuseColor * color_tint;
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                    glm::value_ptr(meshes[i]->diffuseColor));
-      glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
-                   glm::value_ptr(meshes[i]->diffuseColor));
+      // glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+      //              glm::value_ptr(meshes[i]->diffuseColor));
       glUniform1f(glGetUniformLocation(shader->ID, "metallic"),
                   metallic.value_or(meshes[i]->metallic.value_or(0.1f)));
       glUniform1f(glGetUniformLocation(shader->ID, "roughness"),
                   roughness.value_or(meshes[i]->roughness.value_or(0.1f)));
+      glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+                   glm::value_ptr(tinted));
+      glUniform1f(glGetUniformLocation(shader->ID, "alpha"), alpha);
       glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
                    glm::value_ptr(meshes[i]->specularColor));
       glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,

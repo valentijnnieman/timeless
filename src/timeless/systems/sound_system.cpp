@@ -124,6 +124,12 @@ void SoundSystem::stop_looping_event() {
     }
 }
 
+void SoundSystem::stop_event(std::string soundevent_path) {
+    if (events.contains(soundevent_path)) {
+        events.at(soundevent_path)->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    }
+}
+
 void SoundSystem::unload() {
     for (auto &[event, instance] : events)
         instance->release();

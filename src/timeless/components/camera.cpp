@@ -28,7 +28,7 @@ glm::vec3 Camera::get_right() const {
 }
 
 glm::mat4 Camera::get_view_matrix() {
-  if (perspective) {
+  if (this->perspective) {
     if (focus_point) {
       view = glm::lookAt(position, *focus_point + get_forward(), get_up());
     } else {

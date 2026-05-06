@@ -45,6 +45,8 @@ public:
     glm::quat rotation;
 
     float width, height;
+    float hit_scale_x = 1.0f; // multiplier for hit-detection box only (does not affect rendering)
+    float hit_scale_y = 1.0f; // multiplier for hit-detection box only (does not affect rendering)
     float grid_x = 0;
     float grid_y = 0;
     bool flip = false;

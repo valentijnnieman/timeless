@@ -2,7 +2,10 @@
 #include <algorithm>
 
 void System::register_entity(Entity entity) {
-  registered_entities.push_back(entity);
+  auto found = std::find(registered_entities.begin(), registered_entities.end(), entity);
+  if (found == registered_entities.end()) {
+    registered_entities.push_back(entity);
+  }
 }
 
 void System::remove_entity(Entity entity) {
@@ -18,9 +21,9 @@ void System::remove_entity(Entity entity) {
 
 void System::clear(ComponentManager &cm) {
   if (!registered_entities.empty()) {
-    for (auto ent : registered_entities) {
-      cm.remove_entity(ent);
-    }
+    // for (auto ent : registered_entities) {
+    //   cm.remove_entity(ent);
+    // }
     registered_entities.clear();
   }
 }

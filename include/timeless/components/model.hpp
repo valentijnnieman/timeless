@@ -31,6 +31,8 @@ public:
 
   std::optional<float> metallic;
   std::optional<float> roughness;
+  glm::vec3 color_tint = glm::vec3(1.0f);
+  float alpha = 1.0f;
 
   float index = 0.0f;
   glm::vec4 params = glm::vec4(0.1f, 0.1f, 0.0f, 0.0f); // Example: metallic, roughness, unused, unused
@@ -47,6 +49,14 @@ public:
   Model(const std::string &path, std::shared_ptr<Shader> shader, float index, bool from_blender = false)
       : shader(shader), index(index) {
     loadModel(path, from_blender);
+  }
+  Model(const std::vector<uint8_t> &data, std::shared_ptr<Shader> shader, bool from_blender = false)
+      : shader(shader) {
+    loadModelFromMemory(data, from_blender);
+  }
+  Model(const std::vector<uint8_t> &data, std::shared_ptr<Shader> shader, float index, bool from_blender = false)
+      : shader(shader), index(index) {
+    loadModelFromMemory(data, from_blender);
   }
   ~Model() {
     for (auto &mesh : meshes) {
@@ -81,6 +91,8 @@ private:
 
   void collectBones(const aiScene* scene);
   void loadModel(const std::string &path, bool from_blender = false);
+  void loadModelFromMemory(const std::vector<uint8_t> &data, bool from_blender = false);
+  void processLoadedScene();
   void processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform = glm::mat4(1.0f));
   void processBone(aiNode *node, const aiScene *scene, int parentBoneIndex = -1, glm::mat4 parentTransform = glm::mat4(1.0f));
   std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 nodeTransform, glm::vec3 diffuseColor, glm::vec3 specularColor);

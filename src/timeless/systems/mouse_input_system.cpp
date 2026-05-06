@@ -49,14 +49,19 @@ void MouseInputSystem::mouse_click_handler(ComponentManager &cm,
     std::string et = event->eventType;
     event->eventType = "Global" + et;
 
-    for (const auto &entity : registered_entities)
+    // Copy the list so that handlers which remove entities (via TE::remove_entity)
+    // don't invalidate the iterator.  notify_listener already null-checks the
+    // component, so removed entities are silently skipped.
+    auto entities = registered_entities;
+    for (const auto &entity : entities)
         notify_listener(cm, event, entity);
     delete event;
 }
 
 void MouseInputSystem::mouse_release_handler(ComponentManager &cm,
                                               MouseEvent *event) {
-    for (const auto &entity : registered_entities)
+    auto entities = registered_entities;
+    for (const auto &entity : entities)
         notify_listener(cm, event, entity);
     delete event;
 }
@@ -73,7 +78,8 @@ void MouseInputSystem::mouse_move_handler(ComponentManager &cm,
 
 void MouseInputSystem::mouse_scroll_handler(ComponentManager &cm,
                                              MouseEvent *event) {
-    for (const auto &entity : registered_entities) {
+    auto entities = registered_entities;
+    for (const auto &entity : entities) {
         notify_listener(cm, event, entity);
         if (event->picked_up)
             break;

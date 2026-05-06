@@ -8,7 +8,7 @@ layout(location = 4) in vec4 aBoneIDs;
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
-uniform mat4 boneMatrices[32];
+uniform mat4 boneMatrices[128];
 uniform bool useSkinning;
 uniform mat4 lightSpaceMatrix;
 
