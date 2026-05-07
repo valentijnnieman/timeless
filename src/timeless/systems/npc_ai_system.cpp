@@ -74,7 +74,7 @@ void NpcAiSystem::update(ComponentManager &cm) {
             std::vector<std::future<void>> futures;
             futures.reserve(n_threads);
             for (unsigned int t = 0; t < n_threads; t++) {
-                futures.push_back(std::async(std::launch::async, [&work, t, n_threads, reverse, spd]() {
+                futures.push_back(pool.submit([&work, t, n_threads, reverse, spd]() {
                     for (unsigned int i = t; i < (unsigned int)work.size(); i += n_threads)
                         work[i].instr->run(work[i].entity, reverse, spd);
                 }));

@@ -4,11 +4,15 @@
 #ifndef __EMSCRIPTEN__
 #include <future>
 #include <thread>
+#include "timeless/thread_pool.hpp"
 #endif
 
 class NpcAiSystem : public System {
 private:
   Timer timer = Timer(1.0f);
+#ifndef __EMSCRIPTEN__
+  ThreadPool pool{std::thread::hardware_concurrency()};
+#endif
   bool forward = true;
   bool playing_solution = false;
   int start_hour = 7;
