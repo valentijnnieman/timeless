@@ -86,7 +86,7 @@ void RenderingSystem::render_shadow_pass(ComponentManager &cm,
 
   shadowDepthShader->use();
   glUniformMatrix4fv(
-      glGetUniformLocation(shadowDepthShader->ID, "lightSpaceMatrix"),
+      shadowDepthShader->get_uniform("lightSpaceMatrix"),
       1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 
   for (auto &entity : registered_entities) {
@@ -137,10 +137,10 @@ void RenderingSystem::render_shadow_pass(ComponentManager &cm,
       }
 
       glUniformMatrix4fv(
-          glGetUniformLocation(shadowDepthShader->ID, "model"),
+          shadowDepthShader->get_uniform("model"),
           1, GL_FALSE, glm::value_ptr(meshModelMatrix));
       glUniform1i(
-          glGetUniformLocation(shadowDepthShader->ID, "useSkinning"),
+          shadowDepthShader->get_uniform("useSkinning"),
           (hasSkinning && !mesh->boneInfos.empty()) ? 1 : 0);
 
       glDrawElements(GL_TRIANGLES,
@@ -158,7 +158,7 @@ void RenderingSystem::render_shadow_pass(ComponentManager &cm,
 
 bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
                                            std::shared_ptr<Shader> shader) {
-  GLint boneMatrixLoc = glGetUniformLocation(shader->ID, "boneMatrices");
+  GLint boneMatrixLoc = shader->get_uniform("boneMatrices");
   if (boneMatrixLoc < 0) return false;
   auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
   if (skeletal_animation == nullptr) return false;
@@ -228,14 +228,14 @@ void RenderingSystem::set_shader_transform_uniforms(
     std::shared_ptr<Camera> camera, int x, int y, float zoom, int tick) {
   if (shader != nullptr && transform != nullptr) {
     glUniformMatrix4fv(
-        glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE,
+        shader->get_uniform("projection"), 1, GL_FALSE,
         glm::value_ptr(camera->get_projection_matrix(x, y, zoom)));
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE,
+    glUniformMatrix4fv(shader->get_uniform("model"), 1, GL_FALSE,
                        glm::value_ptr(transform->model));
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
+    glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
                        glm::value_ptr(camera->get_view_matrix()));
-    glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
-    glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
+    glUniform1f(shader->get_uniform("time"), glfwGetTime());
+    glUniform1f(shader->get_uniform("tick"), tick);
   }
 }
 
@@ -248,22 +248,22 @@ void RenderingSystem::set_shader_sprite_uniforms(std::shared_ptr<Shader> shader,
     float col = sprite->index - cols * floor(sprite->index / cols);
     float row = floor(sprite->index / cols);
 
-    glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
-    glUniform1f(glGetUniformLocation(shader->ID, "index"),
+    glUniform1i(shader->get_uniform("texture1"), 0);
+    glUniform1f(shader->get_uniform("index"),
                 static_cast<float>(sprite->index));
-    glUniform1f(glGetUniformLocation(shader->ID, "col"), col);
-    glUniform1f(glGetUniformLocation(shader->ID, "row"), row);
-    glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1,
+    glUniform1f(shader->get_uniform("col"), col);
+    glUniform1f(shader->get_uniform("row"), row);
+    glUniform4fv(shader->get_uniform("highlightColor"), 1,
                  glm::value_ptr(sprite->color));
-    glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
+    glUniform2fv(shader->get_uniform("spriteSheetSize"), 1,
                  glm::value_ptr(sprite->spriteSheetSize));
-    glUniform2fv(glGetUniformLocation(shader->ID, "spriteSize"), 1,
+    glUniform2fv(shader->get_uniform("spriteSize"), 1,
                  glm::value_ptr(sprite->spriteSize));
-    glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
-    glUniform1f(glGetUniformLocation(shader->ID, "jitter"), ui_jitter);
-    glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
+    glUniform1f(shader->get_uniform("time"), glfwGetTime());
+    glUniform1f(shader->get_uniform("jitter"), ui_jitter);
+    glUniform1f(shader->get_uniform("jitter_speed"),
                 ui_jitter_speed);
-    glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
+    glUniform1f(shader->get_uniform("tick"), tick);
   }
 }
 
@@ -353,31 +353,31 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
                          (float)dayTick / (TESettings::MAX_TICKS / 2.0));
   float ambient = (ambientStrength >= 0.0f) ? ambientStrength : cos(angle) * 0.5f + 0.1f;
-  glUniform1f(glGetUniformLocation(shader->ID, "ambientStrength"), ambient);
-  glUniform3fv(glGetUniformLocation(shader->ID, "lightPos"), 1,
+  glUniform1f(shader->get_uniform("ambientStrength"), ambient);
+  glUniform3fv(shader->get_uniform("lightPos"), 1,
                glm::value_ptr(dirLightPos));
-  glUniform3fv(glGetUniformLocation(shader->ID, "lightColor"), 1,
+  glUniform3fv(shader->get_uniform("lightColor"), 1,
                glm::value_ptr(dirLightColor));
-  glUniform3fv(glGetUniformLocation(shader->ID, "cameraPos"), 1,
+  glUniform3fv(shader->get_uniform("cameraPos"), 1,
                glm::value_ptr(cam->get_position()));
 
   int numPointLights = (int)filteredLightPositions.size();
-  glUniform1i(glGetUniformLocation(shader->ID, "numPointLights"), numPointLights);
+  glUniform1i(shader->get_uniform("numPointLights"), numPointLights);
   if (numPointLights > 0) {
-    glUniform3fv(glGetUniformLocation(shader->ID, "pointLightPositions"),
+    glUniform3fv(shader->get_uniform("pointLightPositions"),
                  numPointLights, glm::value_ptr(filteredLightPositions[0]));
-    glUniform3fv(glGetUniformLocation(shader->ID, "pointLightColors"),
+    glUniform3fv(shader->get_uniform("pointLightColors"),
                  numPointLights, glm::value_ptr(filteredLightColors[0]));
   }
 
   // Shadow map uniforms
   glUniformMatrix4fv(
-      glGetUniformLocation(shader->ID, "lightSpaceMatrix"),
+      shader->get_uniform("lightSpaceMatrix"),
       1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
   if (shadowDepthTex != 0) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
-    glUniform1i(glGetUniformLocation(shader->ID, "shadowMap"), 1);
+    glUniform1i(shader->get_uniform("shadowMap"), 1);
     glActiveTexture(GL_TEXTURE0);
   }
 }
@@ -583,7 +583,7 @@ void RenderingSystem::init_instanced_buffers(std::shared_ptr<Quad> quad,
   glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::mat4), nullptr,
                GL_DYNAMIC_DRAW);
 
-  GLint attrLoc1 = glGetAttribLocation(shader->ID, "aModel");
+  GLint attrLoc1 = shader->get_attrib("aModel");
   for (int i = 0; i < 4; ++i) {
     glEnableVertexAttribArray(attrLoc1 + i);
     glVertexAttribPointer(attrLoc1 + i, 4, GL_FLOAT, GL_FALSE,
@@ -594,7 +594,7 @@ void RenderingSystem::init_instanced_buffers(std::shared_ptr<Quad> quad,
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2);
   glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr,
                GL_DYNAMIC_DRAW);
-  GLint attrLoc2 = glGetAttribLocation(shader->ID, "aIndex");
+  GLint attrLoc2 = shader->get_attrib("aIndex");
   glEnableVertexAttribArray(attrLoc2);
   glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float),
                         (void *)0);
@@ -603,7 +603,7 @@ void RenderingSystem::init_instanced_buffers(std::shared_ptr<Quad> quad,
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3);
   glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec2), nullptr,
                GL_DYNAMIC_DRAW);
-  GLint attrLoc3 = glGetAttribLocation(shader->ID, "aSpriteSize");
+  GLint attrLoc3 = shader->get_attrib("aSpriteSize");
   glEnableVertexAttribArray(attrLoc3);
   glVertexAttribPointer(attrLoc3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2),
                         (void *)0);
@@ -662,22 +662,22 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
   quad->render();
   texture->render();
 
-  glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
-  glUniform4fv(glGetUniformLocation(shader->ID, "highlightColor"), 1,
+  glUniform1i(shader->get_uniform("texture1"), 0);
+  glUniform4fv(shader->get_uniform("highlightColor"), 1,
                glm::value_ptr(color));
-  glUniform2fv(glGetUniformLocation(shader->ID, "spriteSheetSize"), 1,
+  glUniform2fv(shader->get_uniform("spriteSheetSize"), 1,
                glm::value_ptr(glm::vec2(texture->width, texture->height)));
 
   glm::mat4 view = cam->get_view_matrix();
   glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
-  glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
+  glUniformMatrix4fv(shader->get_uniform("projection"), 1,
                      GL_FALSE, glm::value_ptr(projection));
-  glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
+  glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
                      glm::value_ptr(view));
-  glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
-  glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
-  glUniform1f(glGetUniformLocation(shader->ID, "jitter"), inst_jitter);
-  glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
+  glUniform1f(shader->get_uniform("time"), glfwGetTime());
+  glUniform1f(shader->get_uniform("tick"), tick);
+  glUniform1f(shader->get_uniform("jitter"), inst_jitter);
+  glUniform1f(shader->get_uniform("jitter_speed"),
               inst_jitter_speed);
 
   glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0,
@@ -697,7 +697,7 @@ void RenderingSystem::init_instanced_model_buffers(
                  GL_DYNAMIC_DRAW);
     for (int i = 0; i < 4; ++i) {
       std::string name = "aModelMatrix" + std::to_string(i);
-      GLint attrLoc = glGetAttribLocation(shader->ID, name.c_str());
+      GLint attrLoc = shader->get_attrib(name);
       if (attrLoc >= 0) {
         glEnableVertexAttribArray(attrLoc);
         glVertexAttribPointer(attrLoc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
@@ -711,7 +711,7 @@ void RenderingSystem::init_instanced_model_buffers(
     glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
     glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr,
                  GL_DYNAMIC_DRAW);
-    GLint attrLoc2 = glGetAttribLocation(shader->ID, "aModelIndex");
+    GLint attrLoc2 = shader->get_attrib("aModelIndex");
     if (attrLoc2 >= 0) {
       glEnableVertexAttribArray(attrLoc2);
       glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float),
@@ -724,7 +724,7 @@ void RenderingSystem::init_instanced_model_buffers(
     glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
     glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec4), nullptr,
                  GL_DYNAMIC_DRAW);
-    GLint attrLoc3 = glGetAttribLocation(shader->ID, "aModelParams");
+    GLint attrLoc3 = shader->get_attrib("aModelParams");
     if (attrLoc3 >= 0) {
       glEnableVertexAttribArray(attrLoc3);
       glVertexAttribPointer(attrLoc3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4),
@@ -835,14 +835,14 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
 
       glm::mat4 view = cam->get_view_matrix();
       glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
-      glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1,
+      glUniformMatrix4fv(shader->get_uniform("projection"), 1,
                          GL_FALSE, glm::value_ptr(projection));
-      glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE,
+      glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
                          glm::value_ptr(view));
-      glUniform1f(glGetUniformLocation(shader->ID, "time"), glfwGetTime());
-      glUniform1f(glGetUniformLocation(shader->ID, "tick"), tick);
-      glUniform1f(glGetUniformLocation(shader->ID, "jitter"), inst_jitter);
-      glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
+      glUniform1f(shader->get_uniform("time"), glfwGetTime());
+      glUniform1f(shader->get_uniform("tick"), tick);
+      glUniform1f(shader->get_uniform("jitter"), inst_jitter);
+      glUniform1f(shader->get_uniform("jitter_speed"),
                   inst_jitter_speed);
 
       for (auto &mesh : modelPtr->meshes) {
@@ -852,7 +852,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
         for (int i = 0; i < 4; ++i) {
           std::string name = "aModelMatrix" + std::to_string(i);
-          GLint loc = glGetAttribLocation(shader->ID, name.c_str());
+          GLint loc = shader->get_attrib(name);
           if (loc >= 0) {
             glEnableVertexAttribArray(loc);
             glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
@@ -862,7 +862,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         }
         glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
         {
-          GLint loc = glGetAttribLocation(shader->ID, "aModelIndex");
+          GLint loc = shader->get_attrib("aModelIndex");
           if (loc >= 0) {
             glEnableVertexAttribArray(loc);
             glVertexAttribPointer(loc, 1, GL_FLOAT, GL_FALSE, sizeof(float),
@@ -872,7 +872,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         }
         glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
         {
-          GLint loc = glGetAttribLocation(shader->ID, "aModelParams");
+          GLint loc = shader->get_attrib("aModelParams");
           if (loc >= 0) {
             glEnableVertexAttribArray(loc);
             glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4),
@@ -883,17 +883,17 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         calculate_lighting(shader, cam, tick);
-        glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
+        glUniform3fv(shader->get_uniform("materialDiffuse"), 1,
                      glm::value_ptr(mesh->diffuseColor));
-        glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
+        glUniform3fv(shader->get_uniform("albedo"), 1,
                      glm::value_ptr(mesh->diffuseColor));
-        glUniform1f(glGetUniformLocation(shader->ID, "metallic"),
+        glUniform1f(shader->get_uniform("metallic"),
                     modelPtr->metallic.value_or(mesh->metallic.value_or(0.1f)));
-        glUniform1f(glGetUniformLocation(shader->ID, "roughness"),
+        glUniform1f(shader->get_uniform("roughness"),
                     modelPtr->roughness.value_or(mesh->roughness.value_or(0.1f)));
-        glUniform3fv(glGetUniformLocation(shader->ID, "materialSpecular"), 1,
+        glUniform3fv(shader->get_uniform("materialSpecular"), 1,
                      glm::value_ptr(mesh->specularColor));
-        glUniform1i(glGetUniformLocation(shader->ID, "texture1"), 0);
+        glUniform1i(shader->get_uniform("texture1"), 0);
         glDrawElementsInstanced(GL_TRIANGLES,
                                 static_cast<unsigned int>(mesh->indices.size()),
                                 GL_UNSIGNED_INT, 0, entities.size());
