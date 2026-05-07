@@ -225,22 +225,22 @@ void RenderingSystem::update_transform(std::shared_ptr<Transform> transform,
 
 void RenderingSystem::set_shader_transform_uniforms(
     std::shared_ptr<Shader> shader, std::shared_ptr<Transform> transform,
-    std::shared_ptr<Camera> camera, int x, int y, float zoom, int tick) {
+    const glm::mat4& view, const glm::mat4& projection, float time, int tick) {
   if (shader != nullptr && transform != nullptr) {
-    glUniformMatrix4fv(
-        shader->get_uniform("projection"), 1, GL_FALSE,
-        glm::value_ptr(camera->get_projection_matrix(x, y, zoom)));
+    glUniformMatrix4fv(shader->get_uniform("projection"), 1, GL_FALSE,
+                       glm::value_ptr(projection));
     glUniformMatrix4fv(shader->get_uniform("model"), 1, GL_FALSE,
                        glm::value_ptr(transform->model));
     glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
-                       glm::value_ptr(camera->get_view_matrix()));
-    glUniform1f(shader->get_uniform("time"), glfwGetTime());
+                       glm::value_ptr(view));
+    glUniform1f(shader->get_uniform("time"), time);
     glUniform1f(shader->get_uniform("tick"), tick);
   }
 }
 
 void RenderingSystem::set_shader_sprite_uniforms(std::shared_ptr<Shader> shader,
                                                  std::shared_ptr<Sprite> sprite,
+                                                 float time,
                                                  int tick,
                                                  glm::vec3 cam_position) {
   if (shader != nullptr && sprite != nullptr) {
@@ -259,7 +259,7 @@ void RenderingSystem::set_shader_sprite_uniforms(std::shared_ptr<Shader> shader,
                  glm::value_ptr(sprite->spriteSheetSize));
     glUniform2fv(shader->get_uniform("spriteSize"), 1,
                  glm::value_ptr(sprite->spriteSize));
-    glUniform1f(shader->get_uniform("time"), glfwGetTime());
+    glUniform1f(shader->get_uniform("time"), time);
     glUniform1f(shader->get_uniform("jitter"), ui_jitter);
     glUniform1f(shader->get_uniform("jitter_speed"),
                 ui_jitter_speed);
@@ -347,7 +347,7 @@ void RenderingSystem::pre_filter_lights(std::shared_ptr<Camera> cam) {
 }
 
 void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
-                                         std::shared_ptr<Camera> cam,
+                                         const glm::vec3& cam_pos,
                                          int tick) {
   int dayTick = (tick >= 16) ? tick - 16 : 0;
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
@@ -359,7 +359,7 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
   glUniform3fv(shader->get_uniform("lightColor"), 1,
                glm::value_ptr(dirLightColor));
   glUniform3fv(shader->get_uniform("cameraPos"), 1,
-               glm::value_ptr(cam->get_position()));
+               glm::value_ptr(cam_pos));
 
   int numPointLights = (int)filteredLightPositions.size();
   glUniform1i(shader->get_uniform("numPointLights"), numPointLights);
@@ -388,6 +388,19 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
   if (cam != nullptr)
     pre_filter_lights(cam);
 
+  // Cache per-frame values once — avoids redundant matrix computations and
+  // system calls inside the per-entity loop.
+  const float time = (float)glfwGetTime();
+  glm::mat4 view{}, projection{};
+  glm::vec3 cam_pos{};
+  Frustum frustum{};
+  if (cam != nullptr) {
+    view       = cam->get_view_matrix();
+    projection = cam->get_projection_matrix(x, y, zoom);
+    cam_pos    = cam->get_position();
+    frustum    = cam->get_frustum(x, y, zoom);
+  }
+
   // Lazy shadow-map setup + shadow pre-pass
   if (shadowDepthShader) {
     if (shadowFBO == 0)
@@ -413,7 +426,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
     if (particle_emitter != nullptr) {
       auto quad = cm.get_component<Quad>(entity);
       if (quad != nullptr) {
-        set_shader_transform_uniforms(shader, transform, cam, x, y, zoom, tick);
+        set_shader_transform_uniforms(shader, transform, view, projection, time, tick);
         particle_emitter->update(delta_time);
         particle_emitter->render(quad, shader);
       }
@@ -426,13 +439,13 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
       update_transform(animation->root->transform);
       auto root_shader = cm.get_component<Shader>(animation->root->entity);
       set_shader_transform_uniforms(root_shader, animation->root->transform,
-                                    cam, x, y, zoom, tick);
+                                    view, projection, time, tick);
 
       if (auto rootModelBone =
               std::dynamic_pointer_cast<ModelBone>(animation->root)) {
         auto model = rootModelBone->model;
         if (model != nullptr) {
-          calculate_lighting(root_shader, cam, tick);
+          calculate_lighting(root_shader, cam_pos, tick);
           auto texture = cm.get_component<Texture>(entity);
           if (texture != nullptr)
             texture->render();
@@ -448,14 +461,14 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
         rootSpriteBone->sprite->update();
         rootSpriteBone->quad->render();
         if (rootSpriteBone->sprite->slice_shader != nullptr) {
-          set_shader_sprite_uniforms(root_shader, rootSpriteBone->sprite, tick,
-                                     cam->get_position());
+          set_shader_sprite_uniforms(root_shader, rootSpriteBone->sprite, time,
+                                     tick, cam_pos);
           rootSpriteBone->sprite->render_sliced();
         } else {
           if (rootSpriteBone->texture != nullptr) {
             rootSpriteBone->texture->render();
             set_shader_sprite_uniforms(root_shader, rootSpriteBone->sprite,
-                                       tick, cam->get_position());
+                                       time, tick, cam_pos);
           }
           rootSpriteBone->sprite->render();
         }
@@ -467,8 +480,8 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
         if (bone->transform) {
           bone->transform->update_camera(cam);
           update_transform(bone->transform);
-          set_shader_transform_uniforms(bone_shader, bone->transform, cam, x, y,
-                                        zoom, tick);
+          set_shader_transform_uniforms(bone_shader, bone->transform, view,
+                                        projection, time, tick);
         }
         if (auto spriteBone = std::dynamic_pointer_cast<SpriteBone>(bone)) {
           if (spriteBone->sprite) {
@@ -481,7 +494,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
               } else {
                 spriteBone->texture->render();
                 set_shader_sprite_uniforms(bone_shader, spriteBone->sprite,
-                                           tick, cam->get_position());
+                                           time, tick, cam_pos);
                 spriteBone->sprite->render();
               }
             }
@@ -504,8 +517,8 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
       if (font != nullptr) {
         if (!text->hidden) {
           if (!animation || (animation && !animation->playing))
-            set_shader_transform_uniforms(shader, transform, cam, x, y, zoom,
-                                          tick);
+            set_shader_transform_uniforms(shader, transform, view, projection,
+                                          time, tick);
           text->render(font, 0.0f, 0.0f, get_text_font_height(entity, cm),
                        shader);
         }
@@ -526,10 +539,9 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           } else {
             auto texture = cm.get_component<Texture>(entity);
             if (texture != nullptr) {
-              set_shader_transform_uniforms(shader, transform, cam, x, y, zoom,
-                                            tick);
-              set_shader_sprite_uniforms(shader, sprite, tick,
-                                         cam->get_position());
+              set_shader_transform_uniforms(shader, transform, view, projection,
+                                            time, tick);
+              set_shader_sprite_uniforms(shader, sprite, time, tick, cam_pos);
               texture->render();
               sprite->render();
             } else {
@@ -543,10 +555,10 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
       auto model = cm.get_component<Model>(entity);
       if (model != nullptr) {
         BoundingSphere sphere = transform->get_bounding_sphere();
-        if (is_in_frustum(cam->get_frustum(x, y, zoom), sphere)) {
-          set_shader_transform_uniforms(shader, transform, cam, x, y, zoom,
-                                        tick);
-          calculate_lighting(shader, cam, tick);
+        if (is_in_frustum(frustum, sphere)) {
+          set_shader_transform_uniforms(shader, transform, view, projection,
+                                        time, tick);
+          calculate_lighting(shader, cam_pos, tick);
           auto texture = cm.get_component<Texture>(entity);
           if (texture != nullptr)
             texture->render();
@@ -668,13 +680,14 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
   glUniform2fv(shader->get_uniform("spriteSheetSize"), 1,
                glm::value_ptr(glm::vec2(texture->width, texture->height)));
 
+  const float time = (float)glfwGetTime();
   glm::mat4 view = cam->get_view_matrix();
   glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
   glUniformMatrix4fv(shader->get_uniform("projection"), 1,
                      GL_FALSE, glm::value_ptr(projection));
   glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
                      glm::value_ptr(view));
-  glUniform1f(shader->get_uniform("time"), glfwGetTime());
+  glUniform1f(shader->get_uniform("time"), time);
   glUniform1f(shader->get_uniform("tick"), tick);
   glUniform1f(shader->get_uniform("jitter"), inst_jitter);
   glUniform1f(shader->get_uniform("jitter_speed"),
@@ -784,6 +797,15 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
   if (cam != nullptr)
     pre_filter_lights(cam);
 
+  const float time = (float)glfwGetTime();
+  glm::mat4 view{}, projection{};
+  glm::vec3 cam_pos{};
+  if (cam != nullptr) {
+    view       = cam->get_view_matrix();
+    projection = cam->get_projection_matrix(x, y, zoom);
+    cam_pos    = cam->get_position();
+  }
+
   std::unordered_map<std::shared_ptr<Model>, std::vector<Entity>> modelGroups;
   for (auto &entity : registered_entities) {
     auto modelComp = cm.get_component<Model>(entity);
@@ -833,17 +855,18 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
     if (shader) {
       shader->use();
 
-      glm::mat4 view = cam->get_view_matrix();
-      glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
       glUniformMatrix4fv(shader->get_uniform("projection"), 1,
                          GL_FALSE, glm::value_ptr(projection));
       glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
                          glm::value_ptr(view));
-      glUniform1f(shader->get_uniform("time"), glfwGetTime());
+      glUniform1f(shader->get_uniform("time"), time);
       glUniform1f(shader->get_uniform("tick"), tick);
       glUniform1f(shader->get_uniform("jitter"), inst_jitter);
       glUniform1f(shader->get_uniform("jitter_speed"),
                   inst_jitter_speed);
+
+      // Lighting is the same for all meshes in this group — set it once.
+      calculate_lighting(shader, cam_pos, tick);
 
       for (auto &mesh : modelPtr->meshes) {
         glBindVertexArray(mesh->VAO);
@@ -882,7 +905,6 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        calculate_lighting(shader, cam, tick);
         glUniform3fv(shader->get_uniform("materialDiffuse"), 1,
                      glm::value_ptr(mesh->diffuseColor));
         glUniform3fv(shader->get_uniform("albedo"), 1,

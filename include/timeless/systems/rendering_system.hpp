@@ -76,10 +76,14 @@ public:
                         glm::vec3 o = glm::vec3(0.0f));
   void set_shader_transform_uniforms(std::shared_ptr<Shader> shader,
                                      std::shared_ptr<Transform> transform,
-                                     std::shared_ptr<Camera> camera,
-                                     int x, int y, float zoom, int tick = 0);
+                                     const glm::mat4& view,
+                                     const glm::mat4& projection,
+                                     float time,
+                                     int tick = 0);
   void set_shader_sprite_uniforms(std::shared_ptr<Shader> shader,
-                                  std::shared_ptr<Sprite> sprite, int tick = 0,
+                                  std::shared_ptr<Sprite> sprite,
+                                  float time,
+                                  int tick = 0,
                                   glm::vec3 cam_position = glm::vec3(0.0));
   float get_text_width(Entity entity, ComponentManager &cm);
   float get_text_height(Entity entity, ComponentManager &cm);
@@ -89,7 +93,7 @@ public:
   void shadow_reset_rotation(ComponentManager &cm);
   void pre_filter_lights(std::shared_ptr<Camera> cam);
   void calculate_lighting(std::shared_ptr<Shader> shader,
-                          std::shared_ptr<Camera> cam, int tick);
+                          const glm::vec3& cam_pos, int tick);
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
               int tick = 0, float delta_time = 0.016f);
   bool is_in_frustum(const Frustum &frustum, const BoundingSphere &sphere);

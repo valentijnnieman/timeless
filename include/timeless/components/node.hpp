@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "timeless/components/component.hpp"
+#include "timeless/mutex.hpp"
 
 enum LocationType
 {
@@ -68,6 +69,9 @@ enum dirs
 
 class Node : public Component
 {
+private:
+  Mutex entities_mutex;
+
 public:
 	int x, y, z;
 	int layer;
@@ -137,6 +141,7 @@ public:
 	}
 	void add_entity(Entity entity)
 	{
+    std::lock_guard lock(entities_mutex);
 		entities.insert(entity);
 	}
 	void remove_entity(Entity entity)
@@ -147,6 +152,7 @@ public:
 				{ return e == entity; });
 			if (found != entities.end())
 			{
+        std::lock_guard lock(entities_mutex);
 				entities.erase(found);
 			}
 		}

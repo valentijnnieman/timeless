@@ -71,10 +71,11 @@ public:
     void loop_instructions()
     {
         int n = floor(max / next_instructions.size());
+        const std::vector<Instruction> original = next_instructions;
 
         for (int i = 0; i < n; i++)
         {
-            next_instructions.insert(next_instructions.end(), next_instructions.begin(), next_instructions.end());
+            next_instructions.insert(next_instructions.end(), original.begin(), original.end());
         }
 
         next_instructions.resize(max);
