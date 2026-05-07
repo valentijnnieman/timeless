@@ -245,6 +245,7 @@ public:
   }
   /** this method completely removes all components for an entity */
   void remove_entity(Entity entity, bool destroy = true) {
+    std::unique_lock lock(manager_mutex);
     try {
       quads.erase(entity);
       models.erase(entity);
@@ -277,6 +278,7 @@ public:
     }
   }
   void cleanup() {
+    std::unique_lock lock(manager_mutex);
     quads.clear();
     models.clear();
     textures.clear();
@@ -304,6 +306,7 @@ public:
 };
 template <>
 const inline void ComponentManager::remove_component<Shader>(Entity entity) {
+  std::unique_lock lock(manager_mutex);
   if (shaders.contains(entity))
     shaders.erase(entity);
 }
