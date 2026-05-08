@@ -31,7 +31,33 @@
 
 class ComponentManager {
 private:
- mutable SharedMutex manager_mutex; // 'mutable' allows locking in const functions
+  mutable SharedMutex manager_mutex;
+
+  // Tag dispatch — one overload per component type, returns ref to its map
+  auto& map_for(Quad*)                               { return quads; }
+  auto& map_for(Model*)                              { return models; }
+  auto& map_for(Texture*)                            { return textures; }
+  auto& map_for(Shader*)                             { return shaders; }
+  auto& map_for(Sprite*)                             { return sprites; }
+  auto& map_for(Transform*)                          { return transforms; }
+  auto& map_for(MouseInputListener<MouseEvent>*)     { return mouse_input_listeners; }
+  auto& map_for(MouseInputListener<MouseMoveEvent>*) { return mouse_move_listeners; }
+  auto& map_for(EventListener<Event>*)               { return event_listeners; }
+  auto& map_for(EventListener<PositionEvent>*)       { return position_event_listeners; }
+  auto& map_for(KeyboardInputListener*)              { return keyboard_input_listeners; }
+  auto& map_for(Camera*)                             { return cameras; }
+  auto& map_for(Collider*)                           { return colliders; }
+  auto& map_for(MovementController*)                 { return movements; }
+  auto& map_for(Node*)                               { return nodes; }
+  auto& map_for(Font*)                               { return fonts; }
+  auto& map_for(Text*)                               { return texts; }
+  auto& map_for(Behaviour*)                          { return behaviours; }
+  auto& map_for(Line*)                               { return geometry; }
+  auto& map_for(Animation*)                          { return animations; }
+  auto& map_for(SkeletalAnimation*)                  { return skeletal_animations; }
+  auto& map_for(NodeAnimation*)                      { return node_animations; }
+  auto& map_for(ParticleEmitter*)                    { return particleemitters; }
+
 public:
   std::unordered_map<Entity, std::shared_ptr<Quad>> quads;
   std::unordered_map<Entity, std::shared_ptr<Model>> models;
@@ -41,8 +67,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Transform>> transforms;
   std::unordered_map<Entity, std::shared_ptr<MouseInputListener<MouseEvent>>>
       mouse_input_listeners;
-  std::unordered_map<Entity,
-                     std::shared_ptr<MouseInputListener<MouseMoveEvent>>>
+  std::unordered_map<Entity, std::shared_ptr<MouseInputListener<MouseMoveEvent>>>
       mouse_move_listeners;
   std::unordered_map<Entity, std::shared_ptr<EventListener<Event>>>
       event_listeners;
@@ -65,157 +90,29 @@ public:
 
   ComponentManager(){};
 
-  void add_component(Entity entity, Quad *quad) {
+  template <class T>
+  void add_component(Entity entity, std::shared_ptr<T> comp) {
     std::unique_lock lock(manager_mutex);
-    quads.insert_or_assign(entity, std::shared_ptr<Quad>(quad));
-  }
-  void add_component(Entity entity, std::shared_ptr<Quad> quad) {
-    std::unique_lock lock(manager_mutex);
-    quads.insert_or_assign(entity, quad);
-  }
-  void add_component(Entity entity, Model *model) {
-    std::unique_lock lock(manager_mutex);
-    models.insert_or_assign(entity, std::shared_ptr<Model>(model));
-  }
-  void add_component(Entity entity, std::shared_ptr<Model> model) {
-    std::unique_lock lock(manager_mutex);
-    models.insert_or_assign(entity, model);
-  }
-  void add_component(Entity entity, Texture *texture) {
-    std::unique_lock lock(manager_mutex);
-    textures.insert_or_assign(entity, std::shared_ptr<Texture>(texture));
-  }
-  void add_component(Entity entity, std::shared_ptr<Texture> texture) {
-    std::unique_lock lock(manager_mutex);
-    textures.insert_or_assign(entity, texture);
-  }
-  void add_component(Entity entity, Shader *shader) {
-    std::unique_lock lock(manager_mutex);
-    shaders.insert_or_assign(entity, std::shared_ptr<Shader>(shader));
-  }
-  void add_component(Entity entity, std::shared_ptr<Shader> shader) {
-    std::unique_lock lock(manager_mutex);
-    shaders.insert_or_assign(entity, shader);
-  }
-  void add_component(Entity entity, Sprite *sprite) {
-    std::unique_lock lock(manager_mutex);
-    sprites.insert_or_assign(entity, std::shared_ptr<Sprite>(sprite));
-  }
-  void add_component(Entity entity, Transform *transform) {
-    std::unique_lock lock(manager_mutex);
-    transforms.insert_or_assign(entity, std::shared_ptr<Transform>(transform));
-  }
-  void add_component(Entity entity,
-                     MouseInputListener<MouseEvent> *mouse_input) {
-    std::unique_lock lock(manager_mutex);
-    mouse_input_listeners.insert_or_assign(
-        entity, std::shared_ptr<MouseInputListener<MouseEvent>>(mouse_input));
-  }
-  void add_component(Entity entity,
-                     MouseInputListener<MouseMoveEvent> *mouse_input) {
-    std::unique_lock lock(manager_mutex);
-    mouse_move_listeners.insert_or_assign(
-        entity, std::shared_ptr<MouseInputListener<MouseMoveEvent>>(mouse_input));
-  }
-  void add_component(Entity entity, EventListener<Event> *event_listener) {
-    std::unique_lock lock(manager_mutex);
-    event_listeners.insert_or_assign(
-        entity, std::shared_ptr<EventListener<Event>>(event_listener));
-  }
-  void add_component(Entity entity,
-                     EventListener<PositionEvent> *event_listener) {
-    std::unique_lock lock(manager_mutex);
-    position_event_listeners.insert_or_assign(
-        entity, std::shared_ptr<EventListener<PositionEvent>>(event_listener));
-  }
-  void add_component(Entity entity, KeyboardInputListener *keyboard_input) {
-    std::unique_lock lock(manager_mutex);
-    keyboard_input_listeners.insert_or_assign(
-        entity, std::shared_ptr<KeyboardInputListener>(keyboard_input));
-  }
-  void add_component(Entity entity, Camera *camera) {
-    std::unique_lock lock(manager_mutex);
-    cameras.insert_or_assign(entity, std::shared_ptr<Camera>(camera));
-  }
-  void add_component(Entity entity, std::shared_ptr<Camera> camera) {
-    std::unique_lock lock(manager_mutex);
-    cameras.insert_or_assign(entity, camera);
-  }
-  void add_component(Entity entity, MovementController *movement) {
-    std::unique_lock lock(manager_mutex);
-    movements.insert_or_assign(entity, std::shared_ptr<MovementController>(movement));
-  }
-  void add_component(Entity entity, Collider *collider) {
-    std::unique_lock lock(manager_mutex);
-    colliders.insert_or_assign(entity, std::shared_ptr<Collider>(collider));
-  }
-  void add_component(Entity entity, Node *node) {
-    std::unique_lock lock(manager_mutex);
-    nodes.insert_or_assign(entity, std::shared_ptr<Node>(node));
-  }
-  void add_component(Entity entity, std::shared_ptr<Node> node) {
-    std::unique_lock lock(manager_mutex);
-    nodes.insert_or_assign(entity, node);
-  }
-  void add_component(Entity entity, Font *font) {
-    std::unique_lock lock(manager_mutex);
-    fonts.insert_or_assign(entity, std::shared_ptr<Font>(font));
-  }
-  void add_component(Entity entity, std::shared_ptr<Font> font) {
-    std::unique_lock lock(manager_mutex);
-    fonts.insert_or_assign(entity, font);
-  }
-  void add_component(Entity entity, Text *text) {
-    std::unique_lock lock(manager_mutex);
-    texts.insert_or_assign(entity, std::shared_ptr<Text>(text));
-  }
-  void add_component(Entity entity, Behaviour *behaviour) {
-    std::unique_lock lock(manager_mutex);
-    behaviours.insert_or_assign(entity, std::shared_ptr<Behaviour>(behaviour));
-  }
-  void add_component(Entity entity, Line *line) {
-    std::unique_lock lock(manager_mutex);
-    geometry.insert_or_assign(entity, std::shared_ptr<Line>(line));
-  }
-  void add_component(Entity entity, Animation *animation) {
-    std::unique_lock lock(manager_mutex);
-    animations.insert_or_assign(entity, std::shared_ptr<Animation>(animation));
-  }
-  void add_component(Entity entity, std::shared_ptr<Animation> animation) {
-    std::unique_lock lock(manager_mutex);
-    animations.insert_or_assign(entity, animation);
-  }
-  void add_component(Entity entity, SkeletalAnimation *animation) {
-    std::unique_lock lock(manager_mutex);
-    skeletal_animations.insert_or_assign(entity, std::shared_ptr<SkeletalAnimation>(animation));
-  }
-  void add_component(Entity entity, std::shared_ptr<SkeletalAnimation> animation) {
-    std::unique_lock lock(manager_mutex);
-    skeletal_animations.insert_or_assign(entity, animation);
-  }
-  void add_component(Entity entity, NodeAnimation *animation) {
-    std::unique_lock lock(manager_mutex);
-    node_animations.insert_or_assign(entity, std::shared_ptr<NodeAnimation>(animation));
-  }
-  void add_component(Entity entity, std::shared_ptr<NodeAnimation> animation) {
-    std::unique_lock lock(manager_mutex);
-    node_animations.insert_or_assign(entity, animation);
-  }
-  void add_component(Entity entity, ParticleEmitter *pe) {
-    std::unique_lock lock(manager_mutex);
-    particleemitters.insert_or_assign(entity, std::shared_ptr<ParticleEmitter>(pe));
-  }
-  void add_component(Entity entity, std::shared_ptr<ParticleEmitter> pe) {
-    std::unique_lock lock(manager_mutex);
-    particleemitters.insert_or_assign(entity, pe);
+    map_for(static_cast<T*>(nullptr)).insert_or_assign(entity, comp);
   }
 
-  template <class T> const inline std::shared_ptr<T> get_component(Entity entity) {
-    return nullptr;
+  template <class T>
+  void add_component(Entity entity, T* comp) {
+    std::unique_lock lock(manager_mutex);
+    map_for(static_cast<T*>(nullptr)).insert_or_assign(entity, std::shared_ptr<T>(comp));
   }
 
-  template <class T> const inline void remove_component(Entity entity) {
+  template <class T>
+  const inline std::shared_ptr<T> get_component(Entity entity) {
+    std::shared_lock lock(manager_mutex);
+    auto& m = map_for(static_cast<T*>(nullptr));
+    auto it = m.find(entity);
+    return it != m.end() ? it->second : nullptr;
   }
+
+  template <class T>
+  const inline void remove_component(Entity entity) {}
+
   void does_component_exist(Entity entity) {
     if (
         quads.contains(entity) ||
@@ -239,10 +136,10 @@ public:
         geometry.contains(entity) ||
         animations.contains(entity)
     ) {
-        // Entity exists in at least one map
         std::cout << "Entity " << entity << " already has components!" << std::endl;
     }
   }
+
   /** this method completely removes all components for an entity */
   void remove_entity(Entity entity, bool destroy = true) {
     std::unique_lock lock(manager_mutex);
@@ -277,6 +174,7 @@ public:
       throw e;
     }
   }
+
   void cleanup() {
     std::unique_lock lock(manager_mutex);
     quads.clear();
@@ -304,163 +202,9 @@ public:
     particleemitters.clear();
   }
 };
+
 template <>
 const inline void ComponentManager::remove_component<Shader>(Entity entity) {
   std::unique_lock lock(manager_mutex);
-  if (shaders.contains(entity))
-    shaders.erase(entity);
-}
-
-template <>
-const inline std::shared_ptr<Node> ComponentManager::get_component<Node>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (nodes.contains(entity))
-    return nodes.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Quad> ComponentManager::get_component<Quad>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (quads.contains(entity))
-    return quads.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Model> ComponentManager::get_component<Model>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (models.contains(entity))
-    return models.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Texture>
-ComponentManager::get_component<Texture>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (textures.contains(entity))
-    return textures.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Shader> ComponentManager::get_component<Shader>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (shaders.contains(entity))
-    return shaders.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Transform>
-ComponentManager::get_component<Transform>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (transforms.contains(entity))
-    return transforms.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Sprite> ComponentManager::get_component<Sprite>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (sprites.contains(entity))
-    return sprites.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Camera> ComponentManager::get_component<Camera>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (cameras.contains(entity))
-    return cameras.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Font> ComponentManager::get_component<Font>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (fonts.contains(entity))
-    return fonts.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Behaviour>
-ComponentManager::get_component<Behaviour>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (behaviours.contains(entity))
-    return behaviours.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Text> ComponentManager::get_component<Text>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (texts.contains(entity))
-    return texts.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<MouseInputListener<MouseEvent>>
-ComponentManager::get_component<MouseInputListener<MouseEvent>>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (mouse_input_listeners.contains(entity))
-    return mouse_input_listeners.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<MouseInputListener<MouseMoveEvent>>
-ComponentManager::get_component<MouseInputListener<MouseMoveEvent>>(
-    Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (mouse_move_listeners.contains(entity))
-    return mouse_move_listeners.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<EventListener<Event>>
-ComponentManager::get_component<EventListener<Event>>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (event_listeners.contains(entity))
-    return event_listeners.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<EventListener<PositionEvent>>
-ComponentManager::get_component<EventListener<PositionEvent>>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (position_event_listeners.contains(entity))
-    return position_event_listeners.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<KeyboardInputListener>
-ComponentManager::get_component<KeyboardInputListener>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (keyboard_input_listeners.contains(entity))
-    return keyboard_input_listeners.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<Animation>
-ComponentManager::get_component<Animation>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (animations.contains(entity))
-    return animations.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<SkeletalAnimation>
-ComponentManager::get_component<SkeletalAnimation>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (skeletal_animations.contains(entity))
-    return skeletal_animations.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<NodeAnimation>
-ComponentManager::get_component<NodeAnimation>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (node_animations.contains(entity))
-    return node_animations.at(entity);
-  return nullptr;
-}
-template <>
-const inline std::shared_ptr<ParticleEmitter>
-ComponentManager::get_component<ParticleEmitter>(Entity entity) {
-  std::shared_lock lock(manager_mutex);
-  if (particleemitters.contains(entity))
-    return particleemitters.at(entity);
-  return nullptr;
+  shaders.erase(entity);
 }

@@ -146,13 +146,13 @@ public:
 	}
 	void remove_entity(Entity entity)
 	{
+    std::lock_guard lock(entities_mutex);
 		if (!entities.empty())
 		{
 			auto found = std::find_if(entities.begin(), entities.end(), [&](auto& e)
 				{ return e == entity; });
 			if (found != entities.end())
 			{
-        std::lock_guard lock(entities_mutex);
 				entities.erase(found);
 			}
 		}

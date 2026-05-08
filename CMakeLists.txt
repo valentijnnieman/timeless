@@ -51,6 +51,9 @@ set_property(
 
 if(EMSCRIPTEN)
   message(STATUS "EMSCIRPTEN BUILD!")
+  # 1. Force ALL sub-projects (Assimp, GLM, etc.) to use pthreads
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
@@ -59,6 +62,10 @@ if(EMSCRIPTEN)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
+
+  target_compile_options(${PROJECT_NAME} PUBLIC
+    -pthread
+  )
 
   target_link_options(${PROJECT_NAME} PUBLIC
     -sALLOW_MEMORY_GROWTH=1
@@ -71,6 +78,9 @@ if(EMSCRIPTEN)
     -sFULL_ES3
     -sSTB_IMAGE=1
     --embed-file Assets
+    -pthread
+    -sPTHREAD_POOL_SIZE=5
+    -sINITIAL_MEMORY=67108864
   )
   target_link_libraries(${PROJECT_NAME} glm fmod fmod_studio assimp)
 
@@ -168,14 +178,14 @@ else()
     add_custom_command(
           TARGET ${PROJECT_NAME} POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/core/lib/x86_64/libfmod.so.13
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmod.so.13)
+          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/core/lib/x86_64/libfmod.so.14
+          ${CMAKE_CURRENT_BINARY_DIR}/libfmod.so.14)
 
     add_custom_command(
           TARGET ${PROJECT_NAME} POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/studio/lib/x86_64/libfmodstudio.so.13
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.13)
+          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/studio/lib/x86_64/libfmodstudio.so.14
+          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.14)
   endif()
 
   add_subdirectory(example example)

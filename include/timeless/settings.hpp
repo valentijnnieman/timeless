@@ -1,39 +1,39 @@
 #include <thread>
 namespace TESettings
 {
-    static glm::vec4 SCREEN_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    inline glm::vec4 SCREEN_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
     // Design / internal render resolution — fixed, never changed at runtime.
     // All game logic, UI positions and camera projections are in this space.
-    static int SCREEN_X = 1920;
-    static int SCREEN_Y = 1080;
+    inline int SCREEN_X = 1920;
+    inline int SCREEN_Y = 1080;
 
-    static float VIEWPORT_SCALE = 1.0;
-    static int VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
-    static int VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
-    static float ZOOM = 1.0f;
+    inline float VIEWPORT_SCALE = 1.0;
+    inline int VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
+    inline int VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
+    inline float ZOOM = 1.0f;
 
     // Actual OS window / framebuffer size.  Set this before TE::init() to
     // choose a different window size; it is updated automatically on resize.
-    static int WINDOW_X = SCREEN_X;
-    static int WINDOW_Y = SCREEN_Y;
+    inline int WINDOW_X = SCREEN_X;
+    inline int WINDOW_Y = SCREEN_Y;
 
-    static unsigned int SHADOW_WIDTH = 1024;
-    static unsigned int SHADOW_HEIGHT = 1024;
+    inline unsigned int SHADOW_WIDTH = 1024;
+    inline unsigned int SHADOW_HEIGHT = 1024;
 
-    static bool FULLSCREEN = false;
-    static bool NATIVE_RESOLUTION = false;
+    inline bool FULLSCREEN = false;
+    inline bool NATIVE_RESOLUTION = false;
 
-    static int MAX_THREADS = std::thread::hardware_concurrency();
+    inline int MAX_THREADS = std::thread::hardware_concurrency();
 
-    static int MAX_TICKS = 200;
+    inline int MAX_TICKS = 200;
 
     // Physical WebGL drawing buffer size. On HiDPI displays (DPR>1) this is
     // larger than WINDOW_X/Y (e.g. 3840x2160 for a 1920x1080 CSS canvas on
     // macOS DPR=2). Use this for the final glViewport blit to the default
     // framebuffer. Use WINDOW_X/Y for mouse coordinate math instead.
-    static int DRAWING_BUFFER_X = SCREEN_X;
-    static int DRAWING_BUFFER_Y = SCREEN_Y;
+    inline int DRAWING_BUFFER_X = SCREEN_X;
+    inline int DRAWING_BUFFER_Y = SCREEN_Y;
 
     inline void set_viewport_scale(float new_scale) {
       VIEWPORT_SCALE = new_scale;

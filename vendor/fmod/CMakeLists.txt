@@ -16,12 +16,12 @@ set_property(TARGET fmod_studio PROPERTY
 endif()
 if(EMSCRIPTEN)
 set_property(TARGET fmod PROPERTY
-    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/core/lib/upstream/w32/fmod_wasm.a")
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/core/lib/w32/fmodP_wasm.a")
 set_property(TARGET fmod PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/html5/core/inc")
 
 set_property(TARGET fmod_studio PROPERTY
-    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/studio/lib/upstream/w32/fmodstudio_wasm.a")
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/html5/studio/lib/w32/fmodstudioP_wasm.a")
 set_property(TARGET fmod_studio PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/html5/studio/inc")
 

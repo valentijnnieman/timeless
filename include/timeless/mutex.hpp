@@ -5,7 +5,9 @@
 // A mutex that does absolutely nothing
 struct NullMutex {
     void lock() {}
+    void lock_shared() {}
     void unlock() {}
+    void unlock_shared() {}
     bool try_lock() { return true; }
 };
 using Mutex = NullMutex;
