@@ -1,5 +1,4 @@
 #pragma once
-#ifndef __EMSCRIPTEN__
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -59,4 +58,3 @@ public:
   }
 
 };
-#endif

@@ -7,7 +7,10 @@ varying vec2 TexCoords;
 
 void main()
 {
-    // gl_FragColor = vec4(vec3(texture2D(screenTexture, TexCoords)), 1.0);
+    // Force opaque output: the offscreen FBO's alpha channel gets eroded along
+    // anti-aliased text edges (text is blended with SRC_ALPHA over an opaque
+    // white clear), so passing that alpha through to the screen composite blends
+    // the white clear color back in as a halo/outline around dark glyphs.
     vec4 texColor = texture2D(screenTexture, TexCoords);
-    gl_FragColor = texColor;
+    gl_FragColor = vec4(texColor.rgb, 1.0);
 }  

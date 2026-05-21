@@ -10,6 +10,9 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  // Request an alpha channel in the framebuffer so the canvas can be composited
+  // transparently over the HTML page (emscripten maps this to WebGL alpha:true).
+  glfwWindowHint(GLFW_ALPHA_BITS, 8);
 
   int width = TESettings::WINDOW_X;
   int height = TESettings::WINDOW_Y;
@@ -142,7 +145,9 @@ void WindowManager::resize_framebuffers(int new_width, int new_height) {
 void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick, bool to_screen) {
   if (idx >= screen_shaders.size() || idx >= textures.size()) return;
   glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // Premultiplied "over": the offscreen FBO holds premultiplied colour, so this
+  // lets the page background show through transparent regions of the composite.
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::VIEWPORT_X;
   int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::VIEWPORT_Y;
   glViewport(0, 0, vp_w, vp_h);

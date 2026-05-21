@@ -23,6 +23,7 @@ set(ASSIMP_BUILD_FBX_IMPORTER ON)
 set(ASSIMP_BUILD_ZLIB ON)
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
+option(EMSCRIPTEN_PTHREADS "PThread support" OFF)
 
 # Collect all source files from src/timeless
 file(GLOB_RECURSE TIMELESS_SOURCES
@@ -63,25 +64,38 @@ if(EMSCRIPTEN)
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
 
-  target_compile_options(${PROJECT_NAME} PUBLIC
-    -pthread
-  )
-
-  target_link_options(${PROJECT_NAME} PUBLIC
-    -sALLOW_MEMORY_GROWTH=1
-    -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
-    -sUSE_FREETYPE=1
-    -sUSE_GLFW=3
-    # --use-port=contrib.glfw3
-    -sMIN_WEBGL_VERSION=2
-    -sMAX_WEBGL_VERSION=2
-    -sFULL_ES3
-    -sSTB_IMAGE=1
-    --embed-file Assets
-    -pthread
-    -sPTHREAD_POOL_SIZE=5
-    -sINITIAL_MEMORY=67108864
-  )
+  if(EMSCRIPTEN_PTHREADS)
+    target_compile_options(${PROJECT_NAME} PUBLIC
+      -pthread
+    )
+    target_link_options(${PROJECT_NAME} PUBLIC
+      -sALLOW_MEMORY_GROWTH=1
+      -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
+      -sUSE_FREETYPE=1
+      -sUSE_GLFW=3
+      # --use-port=contrib.glfw3
+      -sMIN_WEBGL_VERSION=2
+      -sMAX_WEBGL_VERSION=2
+      -sFULL_ES3
+      -sSTB_IMAGE=1
+      --embed-file Assets
+      -pthread
+      -sPTHREAD_POOL_SIZE=5
+    )
+  else()
+    target_link_options(${PROJECT_NAME} PUBLIC
+      -sALLOW_MEMORY_GROWTH=1
+      -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
+      -sUSE_FREETYPE=1
+      -sUSE_GLFW=3
+      # --use-port=contrib.glfw3
+      -sMIN_WEBGL_VERSION=2
+      -sMAX_WEBGL_VERSION=2
+      -sFULL_ES3
+      -sSTB_IMAGE=1
+      --embed-file Assets
+    )
+  endif()
   target_link_libraries(${PROJECT_NAME} glm fmod fmod_studio assimp)
 
   # add_subdirectory(example example)
