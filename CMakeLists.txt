@@ -25,23 +25,41 @@ set(ASSIMP_BUILD_ZLIB ON)
 option(EMSCRIPTEN "WASM build or regular" OFF)
 option(EMSCRIPTEN_PTHREADS "PThread support" OFF)
 
-# Collect all source files from src/timeless
-file(GLOB_RECURSE TIMELESS_SOURCES
+# ---------------------------------------------------------------------------
+# Modular sub-targets
+#
+#   timeless        — core engine (components, rendering, input, window, ...)
+#   timeless-audio  — FMOD-backed SoundSystem (the ONLY target that links FMOD)
+#   timeless-ai     — NpcAiSystem time-sequencing (rewind/replay)
+#
+# The optional feature modules depend on core one-way; core never references
+# them (verified: SoundSystem/NpcAiSystem are each referenced only by their own
+# translation unit). So a game links just the modules it uses — e.g. BiasBusters
+# links `timeless timeless-audio` and pays nothing for the AI module or, if it
+# dropped audio too, for FMOD.
+# ---------------------------------------------------------------------------
+
+# Feature-module sources, carved out of the source tree.
+set(TIMELESS_AUDIO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/systems/sound_system.cpp")
+set(TIMELESS_AI_SOURCES    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/systems/npc_ai_system.cpp")
+
+# Everything else (minus the standalone resource packer) is core.
+file(GLOB_RECURSE TIMELESS_CORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/**/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/*.cpp"
 )
+list(FILTER TIMELESS_CORE_SOURCES EXCLUDE REGEX ".*resource_packer\\.cpp$")
+list(REMOVE_ITEM TIMELESS_CORE_SOURCES ${TIMELESS_AUDIO_SOURCES} ${TIMELESS_AI_SOURCES})
 
-# Remove resource_packer.cpp from library sources (it's a separate executable)
-list(FILTER TIMELESS_SOURCES EXCLUDE REGEX ".*resource_packer\\.cpp$")
+add_library(${PROJECT_NAME} STATIC ${TIMELESS_CORE_SOURCES})
+add_library(${PROJECT_NAME}-audio STATIC ${TIMELESS_AUDIO_SOURCES})
+add_library(${PROJECT_NAME}-ai STATIC ${TIMELESS_AI_SOURCES})
 
-# Create the library with collected sources or a dummy file if no sources exist
-if(TIMELESS_SOURCES)
-  add_library(${PROJECT_NAME} STATIC ${TIMELESS_SOURCES})
-else()
-  # Header-only library - create an empty source file
-  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp" "// Dummy file for header-only library\n")
-  add_library(${PROJECT_NAME} STATIC "${CMAKE_CURRENT_BINARY_DIR}/timeless_dummy.cpp")
-endif()
+# Feature modules compile against core's headers/flags but core never links them
+# back (keeps the dependency graph acyclic). PRIVATE so core's link options
+# aren't re-propagated to consumers a second time through these libs.
+target_link_libraries(${PROJECT_NAME}-audio PRIVATE ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}-ai    PRIVATE ${PROJECT_NAME})
 
 # add property for shaders folder - to be copied into game build "Assets/" folder
 set_property(
@@ -96,7 +114,9 @@ if(EMSCRIPTEN)
       --embed-file Assets
     )
   endif()
-  target_link_libraries(${PROJECT_NAME} glm fmod fmod_studio assimp)
+  target_link_libraries(${PROJECT_NAME} glm assimp)
+  # FMOD lives only in the audio module.
+  target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
 
   # add_subdirectory(example example)
 
@@ -141,7 +161,9 @@ else()
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype fmod fmod_studio assimp)
+  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype assimp)
+  # FMOD lives only in the audio module.
+  target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
 
   if(WIN32)
     add_custom_command(
