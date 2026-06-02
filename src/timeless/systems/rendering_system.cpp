@@ -505,23 +505,32 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
 
     auto text = cm.get_component<Text>(entity);
     if (text != nullptr) {
-      if (text->center) {
-        update_transform(transform,
-                         glm::vec3(-get_text_width(entity, cm) * 0.5f,
-                                   -get_text_font_height(entity, cm) * 0.5f,
-                                   0.0f));
-      }
-    }
-    if (text != nullptr) {
       auto font = cm.get_component<Font>(entity);
-      if (font != nullptr) {
-        if (!text->hidden) {
-          if (!animation || (animation && !animation->playing))
-            set_shader_transform_uniforms(shader, transform, view, projection,
-                                          time, tick);
-          text->render(font, 0.0f, 0.0f, get_text_font_height(entity, cm),
-                       shader);
-        }
+      if (font != nullptr && !text->hidden) {
+        // Centering shifts the glyphs left/up by half the text's extents so the
+        // transform position lands at the text's middle.
+        glm::vec3 offset(0.0f);
+        if (text->center)
+          offset = glm::vec3(-get_text_width(entity, cm) * 0.5f,
+                             -get_text_font_height(entity, cm) * 0.5f, 0.0f);
+
+        // While an animation drives this text (e.g. the zoom-in countdown), the
+        // transform that actually gets rendered is the animation's root copy,
+        // and its model was already uploaded above WITHOUT this centering
+        // offset. Previously the offset was folded into the entity's own
+        // transform and then never re-uploaded (the gate below skipped it during
+        // animation), so centered + animated text rendered off-center. Build the
+        // model from whichever transform is animating, fold in the offset, and
+        // upload it right before drawing the glyphs.
+        auto draw_transform = (animation && animation->playing)
+                                  ? animation->root->transform
+                                  : transform;
+        shader->use();
+        update_transform(draw_transform, offset);
+        set_shader_transform_uniforms(shader, draw_transform, view, projection,
+                                      time, tick);
+        text->render(font, 0.0f, 0.0f, get_text_font_height(entity, cm),
+                     shader);
       }
     }
 

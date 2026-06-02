@@ -95,6 +95,52 @@ void SoundSystem::trigger_event(std::string soundevent_path, float delay,
     event_instance->start();
 }
 
+void SoundSystem::preload_event(std::string soundevent_path) {
+#ifndef __EMSCRIPTEN__
+    std::lock_guard<std::mutex> lock(_trigger_mutex);
+#endif
+    if (oneshot_descriptions.contains(soundevent_path))
+        return;
+    FMOD::Studio::EventDescription *desc = NULL;
+    std::string e = "event:/" + soundevent_path;
+    if (fmodSystem->getEvent(e.c_str(), &desc) != FMOD_OK || desc == NULL)
+        return;
+    desc->loadSampleData();
+    oneshot_descriptions.insert({soundevent_path, desc});
+}
+
+void SoundSystem::play_oneshot(std::string soundevent_path, bool spatial,
+                                glm::vec2 spatial_pos) {
+#ifndef __EMSCRIPTEN__
+    std::lock_guard<std::mutex> lock(_trigger_mutex);
+#endif
+    FMOD::Studio::EventDescription *desc = NULL;
+    auto it = oneshot_descriptions.find(soundevent_path);
+    if (it != oneshot_descriptions.end()) {
+        desc = it->second;
+    } else {
+        std::string e = "event:/" + soundevent_path;
+        if (fmodSystem->getEvent(e.c_str(), &desc) != FMOD_OK || desc == NULL)
+            return;
+        desc->loadSampleData();
+        oneshot_descriptions.insert({soundevent_path, desc});
+    }
+
+    FMOD::Studio::EventInstance *instance = NULL;
+    if (desc->createInstance(&instance) != FMOD_OK || instance == NULL)
+        return;
+
+    if (spatial) {
+        atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
+        instance->set3DAttributes(atrbs);
+    }
+
+    instance->start();
+    // Release immediately: FMOD frees the instance once it finishes playing, so
+    // each call is fire-and-forget and overlapping copies don't leak.
+    instance->release();
+}
+
 void SoundSystem::start_loop(std::string soundevent_path, float delay,
                               bool spatial, glm::vec2 spatial_pos) {
     if (!is_looping) {

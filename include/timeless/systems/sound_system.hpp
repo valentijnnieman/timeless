@@ -25,6 +25,10 @@ private:
 
   std::unordered_map<std::string, FMOD::Studio::EventInstance*> events;
 
+  // Cached event descriptions for play_oneshot(). FMOD owns these pointers; we
+  // only cache them so repeated one-shots don't re-resolve the event each call.
+  std::unordered_map<std::string, FMOD::Studio::EventDescription*> oneshot_descriptions;
+
 	std::map<std::string, std::shared_ptr<FMOD::Studio::EventDescription>> event_descriptions;
 
 #ifndef __EMSCRIPTEN__
@@ -41,6 +45,14 @@ public:
   void load_event_description(std::string soundevent_path);
   void trigger_event(std::string soundevent_path, float delay = 0.0f,
                      bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0));
+  // Fire-and-forget one-shot: creates a fresh event instance each call and
+  // releases it when playback finishes, so multiple copies can overlap. Unlike
+  // trigger_event(), it does not reuse a single cached instance.
+  void play_oneshot(std::string soundevent_path, bool spatial = false,
+                    glm::vec2 spatial_pos = glm::vec2(0.0));
+  // Resolves an event and loads its sample data ahead of time so the first
+  // play_oneshot() isn't silent while FMOD streams the sample in.
+  void preload_event(std::string soundevent_path);
   void start_loop(std::string soundevent_path, float delay = 0.0f,
                   bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0));
   void stop_looping_event();
