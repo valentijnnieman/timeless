@@ -18,7 +18,7 @@ foreach(dir ${ENGINE_INCLUDES})
 endforeach()
 
 # target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" ${INCLUDE_COMPILER_STRING})
-target_link_libraries(${PROJECT_NAME} PUBLIC timeless)
+target_link_libraries(${PROJECT_NAME} PUBLIC timeless timeless-audio timeless-ai)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

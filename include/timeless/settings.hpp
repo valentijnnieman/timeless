@@ -1,4 +1,6 @@
+#pragma once
 #include <thread>
+#include <glm/glm.hpp> // glm::vec4 used below
 namespace TESettings
 {
     inline glm::vec4 SCREEN_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);

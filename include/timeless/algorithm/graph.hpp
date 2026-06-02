@@ -3,7 +3,6 @@
 #include "timeless/components/node.hpp"
 #include "timeless/entity.hpp"
 #include "timeless/managers/component_manager.hpp"
-#include "timeless/timeless.hpp"
 #include <glm/glm.hpp>
 
 namespace std {
