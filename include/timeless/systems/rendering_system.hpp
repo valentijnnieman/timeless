@@ -5,7 +5,6 @@
 #include "timeless/components/transform.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/systems/system.hpp"
-#include "timeless/timeless.hpp"
 #include <memory>
 #include <string.h>
 
