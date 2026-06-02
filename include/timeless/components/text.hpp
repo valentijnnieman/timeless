@@ -21,7 +21,7 @@ public:
   bool hidden = false;
 
   float type_speed = 0.0f;
-  bool completed;
+  bool completed = false;
   int print_length = 0;
 
   Text(
