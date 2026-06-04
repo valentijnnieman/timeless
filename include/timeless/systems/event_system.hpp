@@ -29,7 +29,12 @@ public:
   bool create_event(ComponentManager &cm, const std::string &event_type,
                     T *data) {
     Event *event = new Event(event_type);
-    for (const auto &entity : registered_entities) {
+    // Copy the list so that handlers which remove entities (via
+    // TE::remove_entity) — e.g. a block finalizing and tearing itself down — do
+    // not invalidate the iterator. notify_listener already null-checks the
+    // component, so removed entities are silently skipped.
+    auto entities = registered_entities;
+    for (const auto &entity : entities) {
       notify_listener<T>(cm, event, entity, data);
     }
     if (event->picked_up) {
@@ -45,7 +50,12 @@ public:
                              const std::string &event_type, glm::vec2 position,
                              T *data) {
     PositionEvent *event = new PositionEvent(event_type, position);
-    for (const auto &entity : registered_entities) {
+    // Copy first — the DropImage handler tears down the finished block (calling
+    // TE::remove_entity on this very listener entity), which would otherwise
+    // invalidate the iterator mid-loop. Skipped-because-removed entities are
+    // handled by notify_listener's null check.
+    auto entities = registered_entities;
+    for (const auto &entity : entities) {
       notify_listener<T>(cm, event, entity, data);
     }
     if (event->picked_up) {
