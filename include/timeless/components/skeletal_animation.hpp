@@ -34,6 +34,15 @@ public:
   // Animation name -> AnimationData
   std::unordered_map<std::string, SkeletalAnimationData> animations;
 
+  // Extra per-bone, local-space transforms applied on top of the current clip
+  // (e.g. procedural lip/jaw motion). Keyed by bone name.
+  std::unordered_map<std::string, glm::mat4> boneOverrides;
+
+  void setBoneOverride(const std::string &name, const glm::mat4 &m) {
+    boneOverrides[name] = m;
+  }
+  void clearBoneOverride(const std::string &name) { boneOverrides.erase(name); }
+
   // Computed pose matrices for skinning (one per bone, matches Model's bone
   // order)
   std::vector<glm::mat4> poseMatrices;
@@ -142,7 +151,8 @@ private:
   void computeBonePose(int boneIndex, const glm::mat4 &parentTransform) {
     const SkeletonBone &bone = model->skeletonBones[boneIndex];
 
-    glm::mat4 localTransform = getLocalTransform(bone.name);
+    glm::mat4 localTransform =
+        getLocalTransform(bone.name, bone.restLocalTransform);
     glm::mat4 globalTransform = parentTransform * localTransform;
 
     auto it = model->boneMapping.find(bone.name);
@@ -156,14 +166,24 @@ private:
       computeBonePose(childIdx, globalTransform);
   }
 
-  glm::mat4 getLocalTransform(const std::string &boneName) {
+  glm::mat4 getLocalTransform(const std::string &boneName,
+                              const glm::mat4 &restLocal = glm::mat4(1.0f)) {
+    // Fall back to the bind-pose local transform (not identity) so bones the
+    // current clip doesn't animate keep their rest offset instead of collapsing.
+    glm::mat4 local = restLocal;
     auto animIt = animations.find(currentAnimation);
     if (animIt != animations.end()) {
       auto boneIt = animIt->second.boneKeyframes.find(boneName);
-      if (boneIt != animIt->second.boneKeyframes.end() && !boneIt->second.times.empty())
-        return interpolate(boneIt->second, currentTime);
+      if (boneIt != animIt->second.boneKeyframes.end() &&
+          !boneIt->second.times.empty())
+        local = interpolate(boneIt->second, currentTime);
     }
-    return glm::mat4(1.0f);
+    // Procedural overrides ride on top of the baked local pose, in the bone's
+    // own space, so e.g. a lip bone can open further than the clip poses it.
+    auto ov = boneOverrides.find(boneName);
+    if (ov != boneOverrides.end())
+      local = local * ov->second;
+    return local;
   }
 
   glm::mat4 interpolate(const BoneKeyframes &keys, float time) {

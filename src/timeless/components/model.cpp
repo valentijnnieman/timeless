@@ -2,7 +2,10 @@
 #include "assimp/config.h"
 #include "assimp/postprocess.h"
 #include "glm/gtc/type_ptr.hpp"
+#include <algorithm>
 #include <optional>
+#include <utility>
+#include <vector>
 
 static glm::mat4 aiToGlm(const aiMatrix4x4 &m) {
   // Assimp is row-major; GLM is column-major — transpose on construction.
@@ -114,6 +117,9 @@ void Model::processBone(aiNode *node, const aiScene *scene,
     SkeletonBone bone;
     bone.name = node->mName.C_Str();
     bone.parentIndex = parentSkeletonIdx;
+    // Remember the bind-pose local transform so the animation system can fall
+    // back to it for clips that don't keyframe this bone.
+    bone.restLocalTransform = aiToGlm(node->mTransformation);
     skeletonBones.push_back(bone);
   }
 
@@ -239,7 +245,13 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene,
     vertices[i].Normal = glm::normalize(vertices[i].Normal);
   }
 
-  // Assign bone indices and weights to vertices using the global boneMapping
+  // Assign bone indices and weights to vertices using the global boneMapping.
+  // The skinning shader supports only 4 influences and does NOT normalize, so
+  // we gather every influence per vertex, keep the 4 strongest, and renormalize
+  // them to sum to 1. Without this, vertices with >4 influences or unnormalized
+  // weights (common after re-skinning in Blender) get pulled toward the model
+  // origin.
+  std::vector<std::vector<std::pair<int, float>>> influences(vertices.size());
   for (unsigned int i = 0; i < mesh->mNumBones; i++) {
     aiBone *bone = mesh->mBones[i];
     std::string boneName(bone->mName.data);
@@ -254,12 +266,37 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh *mesh, const aiScene *scene,
     for (unsigned int j = 0; j < bone->mNumWeights; j++) {
       unsigned int vertexID = bone->mWeights[j].mVertexId;
       float weight = bone->mWeights[j].mWeight;
-      for (int k = 0; k < 4; ++k) {
-        if (vertices[vertexID].boneData.weights[k] == 0.0f) {
-          vertices[vertexID].boneData.ids[k] = static_cast<float>(boneIndex);
-          vertices[vertexID].boneData.weights[k] = weight;
-          break;
-        }
+      if (weight > 0.0f && vertexID < influences.size())
+        influences[vertexID].emplace_back(boneIndex, weight);
+    }
+  }
+
+  int over_influenced = 0; // verts that had >4 bone influences (diagnostic)
+  int unweighted = 0;      // verts with no bone weights at all (diagnostic)
+  for (size_t v = 0; v < vertices.size(); ++v) {
+    auto &infl = influences[v];
+    if (infl.empty())
+      unweighted++;
+    if (infl.size() > 4)
+      over_influenced++;
+    // Keep the 4 strongest influences.
+    std::sort(infl.begin(), infl.end(),
+              [](const std::pair<int, float> &a,
+                 const std::pair<int, float> &b) { return a.second > b.second; });
+    if (infl.size() > 4)
+      infl.resize(4);
+
+    float sum = 0.0f;
+    for (auto &p : infl)
+      sum += p.second;
+
+    for (int k = 0; k < 4; ++k) {
+      if (k < (int)infl.size() && sum > 0.0f) {
+        vertices[v].boneData.ids[k] = static_cast<float>(infl[k].first);
+        vertices[v].boneData.weights[k] = infl[k].second / sum;
+      } else {
+        vertices[v].boneData.ids[k] = 0.0f;
+        vertices[v].boneData.weights[k] = 0.0f;
       }
     }
   }

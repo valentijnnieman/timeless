@@ -24,7 +24,8 @@ void main()
     vec4 skinnedPos;
     vec3 skinnedNormal;
 
-    if (useSkinning) {
+    float wsum = aBoneWeights.x + aBoneWeights.y + aBoneWeights.z + aBoneWeights.w;
+    if (useSkinning && wsum > 0.0001) {
         mat4 skinMatrix =
             aBoneWeights.x * boneMatrices[int(aBoneIDs.x)] +
             aBoneWeights.y * boneMatrices[int(aBoneIDs.y)] +
@@ -33,6 +34,8 @@ void main()
         skinnedPos = skinMatrix * vec4(aPos, 1.0);
         skinnedNormal = mat3(skinMatrix) * aNormal;
     } else {
+        // No skinning, or an unweighted vertex: keep it at its bind position
+        // instead of collapsing to the origin (skinMatrix would be the 0 matrix).
         skinnedPos = vec4(aPos, 1.0);
         skinnedNormal = aNormal;
     }

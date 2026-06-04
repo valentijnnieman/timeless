@@ -11,7 +11,8 @@ uniform bool useSkinning;
 void main()
 {
     vec4 pos;
-    if (useSkinning) {
+    float wsum = aBoneWeights.x + aBoneWeights.y + aBoneWeights.z + aBoneWeights.w;
+    if (useSkinning && wsum > 0.0001) {
         mat4 skinMatrix =
             aBoneWeights.x * boneMatrices[int(aBoneIDs.x)] +
             aBoneWeights.y * boneMatrices[int(aBoneIDs.y)] +
@@ -19,6 +20,7 @@ void main()
             aBoneWeights.w * boneMatrices[int(aBoneIDs.w)];
         pos = skinMatrix * vec4(aPos, 1.0);
     } else {
+        // Unweighted vertex stays at bind position (avoids origin collapse).
         pos = vec4(aPos, 1.0);
     }
     gl_Position = lightSpaceMatrix * model * pos;
