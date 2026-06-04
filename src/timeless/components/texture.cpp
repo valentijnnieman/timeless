@@ -1,5 +1,6 @@
 #include "timeless/components/texture.hpp"
 #include <iostream>
+#include <unordered_map>
 
 #ifdef __EMSCRIPTEN__
 #include <GL/gl.h>
@@ -9,6 +10,18 @@
 #endif
 
 #include "stb_image.h"
+
+std::shared_ptr<Texture> Texture::get_cached(const std::string &filename,
+                                             int width, int height)
+{
+    static std::unordered_map<std::string, std::shared_ptr<Texture>> cache;
+    auto it = cache.find(filename);
+    if (it != cache.end())
+        return it->second;
+    auto tex = std::make_shared<Texture>(filename.c_str(), width, height);
+    cache.emplace(filename, tex);
+    return tex;
+}
 
 Texture::Texture(const char *filename, int width, int height)
     : width(width), height(height), filename(std::string(filename))

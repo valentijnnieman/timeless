@@ -20,6 +20,10 @@ struct SkeletonBone {
     std::string name;
     int parentIndex; // -1 if root
     std::vector<int> childrenIndices;
+    // The bone's rest (bind) local transform, straight from the node hierarchy.
+    // Used as the fallback pose for any clip that doesn't animate this bone, so
+    // un-keyframed bones hold their bind offset instead of collapsing to identity.
+    glm::mat4 restLocalTransform = glm::mat4(1.0f);
 };
 
 class Model : public Component {
