@@ -21,20 +21,16 @@ ParticleEmitter::ParticleEmitter(std::shared_ptr<Transform> transform) : positio
 }
 
 void ParticleEmitter::emit(int count) {
+    glm::vec3 dir = glm::length(direction) > 1e-6f ? glm::normalize(direction)
+                                                   : glm::vec3(0.0f, 0.0f, -1.0f);
     for (int i = 0; i < count; ++i) {
         Particle p;
         p.position = position;
-        float speed = randf(speed_min, speed_max);
-        float angle = randf(-glm::pi<float>()/4, glm::pi<float>()/4); // spread
-
-        // Create a base direction vector with spread in local space
-        glm::vec3 baseDir = glm::vec3(cos(angle), sin(angle), 0.0f);
-
-        // Rotate baseDir by the emitter's rotation quaternion
-        glm::vec3 dir = rotation * baseDir;
-
-        p.velocity = dir * speed;
-        p.color = randomColor();
+        // Random direction within a cone around `direction`.
+        glm::vec3 jitter(randf(-1.0f, 1.0f), randf(-1.0f, 1.0f), randf(-1.0f, 1.0f));
+        glm::vec3 d = glm::normalize(dir + jitter * spread);
+        p.velocity = d * randf(speed_min, speed_max);
+        p.color = color;
         p.lifetime = randf(lifetime_min, lifetime_max);
         p.age = 0.0f;
         p.size = randf(size_min, size_max);
@@ -45,6 +41,7 @@ void ParticleEmitter::emit(int count) {
 
 void ParticleEmitter::update(float dt) {
     for (auto& p : particles) {
+        p.velocity += gravity * dt;
         p.position += p.velocity * dt;
         p.age += dt;
     }

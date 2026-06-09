@@ -41,7 +41,7 @@ void RenderingSystem::setup_shadow_map() {
 glm::mat4 RenderingSystem::compute_light_space_matrix() const {
   // dirLightPos is the direction the light *points toward*; the source sits
   // in the opposite direction, far from the scene centre.
-  const glm::vec3 sceneCenter(0.0f, -200.0f, 0.0f);
+  const glm::vec3 sceneCenter = shadowCenter;
   glm::vec3 lightDir = glm::normalize(dirLightPos);
   glm::vec3 lightEye = sceneCenter - lightDir * 3000.0f;
 
@@ -53,7 +53,7 @@ glm::mat4 RenderingSystem::compute_light_space_matrix() const {
   glm::mat4 lightView = glm::lookAt(lightEye, sceneCenter, up);
 
   // Orthographic volume that covers the whole scene
-  const float orthoSize = 3000.0f;
+  const float orthoSize = shadowOrthoSize;
   glm::mat4 lightProj = glm::ortho(
       -orthoSize,  orthoSize,   // left, right
       -orthoSize,  orthoSize,   // bottom, top
@@ -90,6 +90,8 @@ void RenderingSystem::render_shadow_pass(ComponentManager &cm,
       1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 
   for (auto &entity : registered_entities) {
+    if (no_shadow_cast.count(entity)) continue; // excluded from casting shadows
+
     std::shared_ptr<Model>     mdl;
     std::shared_ptr<Transform> xfm;
 
@@ -427,8 +429,14 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
       auto quad = cm.get_component<Quad>(entity);
       if (quad != nullptr) {
         set_shader_transform_uniforms(shader, transform, view, projection, time, tick);
+        // Don't let the (soft, fading) particles write depth so they don't
+        // occlude each other or the scene. Blending is already enabled globally
+        // (window_manager) with the same func, so leave it on — disabling it
+        // here would break the text pass that renders afterwards.
+        glDepthMask(GL_FALSE);
         particle_emitter->update(delta_time);
         particle_emitter->render(quad, shader);
+        glDepthMask(GL_TRUE);
       }
       continue;
     }
@@ -536,8 +544,19 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
 
     if (animation == nullptr || !animation->playing) {
       auto quad = cm.get_component<Quad>(entity);
-      if (quad != nullptr)
-        quad->render();
+      if (quad != nullptr) {
+        quad->render(); // binds the VAO (unchanged behaviour)
+        // A standalone quad (no Sprite/Model on this entity, e.g. a ground
+        // decal): position it from its Transform and actually draw it. This path
+        // previously only bound the VAO — it set no transform uniforms and
+        // issued no draw call, so standalone quads never rendered.
+        if (cm.get_component<Sprite>(entity) == nullptr &&
+            cm.get_component<Model>(entity) == nullptr) {
+          set_shader_transform_uniforms(shader, transform, view, projection, time,
+                                        tick);
+          glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        }
+      }
 
       auto sprite = cm.get_component<Sprite>(entity);
       if (sprite != nullptr) {
@@ -572,8 +591,44 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           if (texture != nullptr)
             texture->render();
 
+          // Per-entity sun-burn uniforms — the fragment shader reddens only the
+          // sunlit fragments. Set 0 for entities without a burn so the previous
+          // entity's value doesn't leak (get_uniform is a no-op == -1 for
+          // shaders without these uniforms).
+          auto burnIt = entity_burn.find(entity);
+          float burnAmt = (burnIt != entity_burn.end()) ? burnIt->second.w : 0.0f;
+          glm::vec3 burnCol = (burnIt != entity_burn.end())
+                                  ? glm::vec3(burnIt->second)
+                                  : glm::vec3(1.0f);
+          glUniform1f(shader->get_uniform("burnAmount"), burnAmt);
+          glUniform3fv(shader->get_uniform("burnColor"), 1,
+                       glm::value_ptr(burnCol));
+          auto tanIt = entity_tan.find(entity);
+          float tanAmt = (tanIt != entity_tan.end()) ? tanIt->second.w : 0.0f;
+          glm::vec3 tanCol = (tanIt != entity_tan.end())
+                                 ? glm::vec3(tanIt->second)
+                                 : glm::vec3(1.0f);
+          glUniform1f(shader->get_uniform("tanAmount"), tanAmt);
+          glUniform3fv(shader->get_uniform("tanColor"), 1,
+                       glm::value_ptr(tanCol));
+          auto sheenIt = entity_sheen.find(entity);
+          glUniform1f(shader->get_uniform("sheen"),
+                      sheenIt != entity_sheen.end() ? sheenIt->second : 0.0f);
+          // Per-entity translucency: output as fragment alpha, and for a
+          // translucent entity drop depth writes so it doesn't occlude geometry
+          // behind it (depth test stays on, so it's still hidden by nearer
+          // opaque geometry). Restore the depth mask afterwards.
+          auto alphaIt = entity_alpha.find(entity);
+          float modelAlpha =
+              (alphaIt != entity_alpha.end()) ? alphaIt->second : 1.0f;
+          glUniform1f(shader->get_uniform("modelAlpha"), modelAlpha);
+          bool translucent = modelAlpha < 0.999f;
+          if (translucent)
+            glDepthMask(GL_FALSE);
           model->render(transform->model, delta_time,
                         upload_bone_matrices(entity, cm, shader));
+          if (translucent)
+            glDepthMask(GL_TRUE);
         }
       }
     }

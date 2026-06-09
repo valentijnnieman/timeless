@@ -58,6 +58,12 @@ public:
   // Returns the camera's local rightG vector
   glm::vec3 get_right() const;
 
+  // The rotation-independent base axes the camera was constructed with.
+  // get_forward()/get_up() apply the current rotation on top of these; cutscene
+  // playback needs the raw axes to derive a look-at orientation.
+  glm::vec3 get_base_forward() const { return forward; }
+  glm::vec3 get_base_up() const { return up; }
+
   glm::mat4 get_view_matrix();
 
   glm::mat4 get_projection_matrix(int x, int y, float zoom = 1.0f);

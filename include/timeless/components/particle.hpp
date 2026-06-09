@@ -37,6 +37,14 @@ public:
     float size_min     = 6.0f;
     float size_max     = 12.0f;
 
+    // Emit particles in a cone around `direction` (default straight down) with
+    // `spread` jitter and a constant `color` (alpha fades over life), and apply
+    // `gravity` each update — lets emitters do things like dripping lotion.
+    glm::vec3 gravity   = glm::vec3(0.0f);
+    glm::vec3 direction = glm::vec3(0.0f, 0.0f, -1.0f);
+    float     spread    = 0.3f;
+    glm::vec4 color     = glm::vec4(1.0f);
+
     void emit(int count);
     void update(float dt);
     void render(std::shared_ptr<Quad> quad, std::shared_ptr<Shader> shader);
