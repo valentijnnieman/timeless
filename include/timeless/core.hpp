@@ -68,7 +68,8 @@ namespace TE
 
         for (const auto& [key, system] : systems)
         {
-            system->purge();
+            if (system)
+                system->purge();
         }
 
         // mis.reset();
@@ -106,9 +107,18 @@ namespace TE
       }
     }
 
+    // Look up a system by key, or nullptr if there's none registered under it.
+    // Uses find() rather than operator[] on purpose: operator[] would INSERT a
+    // null shared_ptr for a missing key, and that null then gets dereferenced by
+    // every loop that iterates `systems` (cleanup/purge, remove_entity), which
+    // segfaults. Probing for an optional system (e.g. an absent SoundSystem)
+    // each frame must therefore not mutate the map.
     template <typename T>
     inline std::shared_ptr<T> get_system(const std::string &key) {
-      return std::dynamic_pointer_cast<T>(systems[key]);
+      auto it = systems.find(key);
+      if (it == systems.end())
+        return nullptr;
+      return std::dynamic_pointer_cast<T>(it->second);
     }
 
     template <typename T>
@@ -149,7 +159,8 @@ namespace TE
         mis->remove_move_entity(entity);
         for (const auto& [key, system] : systems)
         {
-            system->remove_entity(entity);
+            if (system)
+                system->remove_entity(entity);
         }
         cm->remove_entity(entity, destroy);
     }

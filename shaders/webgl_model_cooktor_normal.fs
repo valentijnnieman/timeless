@@ -6,9 +6,13 @@ in vec3 Normal;
 in vec3 FragPos;
 in vec4 FragPosLightSpace;
 
-uniform sampler2D albedoMap;   // unit 0 — base colour texture
+uniform vec3 albedo;           // base colour (material diffuse * tint), as in cooktor.fs
 uniform sampler2D shadowMap;   // unit 1 — shadow depth map
 uniform sampler2D normalMap;   // unit 2 — tangent-space normal map
+
+// The map reads rotated 90 deg on the model, so the UV lookup and the decoded
+// normal are both turned a quarter turn (flip the sign to spin the other way).
+vec2 rot90(vec2 v) { return vec2(-v.y, v.x); }
 
 uniform float metallic;
 uniform float roughness;
@@ -100,11 +104,11 @@ mat3 computeTBN()
 
 void main()
 {
-    vec3 albedo = texture(albedoMap, TexCoord).rgb;
-
-    // Decode normal map (tangent space) and transform to world space
+    // Decode the normal map (one copy across the whole object, no tiling, rotated
+    // 90 deg) and transform tangent space -> world space.
     mat3 TBN = computeTBN();
-    vec3 normalSample = texture(normalMap, TexCoord).rgb * 2.0 - 1.0;
+    vec3 normalSample = texture(normalMap, rot90(TexCoord)).rgb * 2.0 - 1.0;
+    normalSample.xy = rot90(normalSample.xy); // turn the bump direction with the pattern
     vec3 N = normalize(TBN * normalSample);
 
     vec3 V = normalize(cameraPos - FragPos);

@@ -62,6 +62,15 @@ struct AnimTrigger {
   std::string clip; // empty => stop the current animation
 };
 
+// A one-shot sound to fire when the playhead crosses time t. `event` is the
+// game's sound-event name (e.g. an FMOD event path without the "event:/"
+// prefix); playback is left to the game via CutsceneSystem::on_sound, so this
+// stays audio-backend-agnostic. In a looping cutscene it re-fires each pass.
+struct SoundCue {
+  float t = 0.0f;
+  std::string event;
+};
+
 // A line of dialogue / subtitle, shown while the playhead is within
 // [t, t + duration). Rendering is left to the game (CutsceneSystem reports the
 // active line via a callback) so this stays font/shader-agnostic. Keep text
@@ -91,6 +100,7 @@ struct Cutscene {
   CameraTrack camera;
   std::vector<TransformTrack> transforms;
   std::vector<AnimTrigger> anims;
+  std::vector<SoundCue> sounds;
   std::vector<DialogueLine> dialogue;
   bool loop = false;
   float duration_override = 0.0f; // 0 => derive from the latest keyframe
@@ -114,6 +124,8 @@ struct Cutscene {
     }
     for (const auto &a : anims)
       d = std::max(d, a.t);
+    for (const auto &s : sounds)
+      d = std::max(d, s.t);
     for (const auto &dl : dialogue)
       d = std::max(d, dl.t + dl.duration);
     return d;
@@ -195,6 +207,7 @@ inline glm::quat look_rotation(const glm::vec3 &pos, const glm::vec3 &target,
 // rot   <t> <x> <y> <z> <ease>   # euler degrees
 // scale <t> <x> <y> <z> <ease>
 // anim  <t> <target> <clip>
+// sound <t> <event>              # fire a one-shot sound (game-defined event name)
 
 inline bool save_cutscene(const Cutscene &cs, const std::string &path) {
   std::ofstream out(path, std::ios::trunc);
@@ -222,6 +235,8 @@ inline bool save_cutscene(const Cutscene &cs, const std::string &path) {
   }
   for (const auto &a : cs.anims)
     out << "anim " << a.t << ' ' << a.target << ' ' << a.clip << '\n';
+  for (const auto &s : cs.sounds)
+    out << "sound " << s.t << ' ' << s.event << '\n';
   for (const auto &d : cs.dialogue)
     out << "dialogue " << d.t << ' ' << d.duration << ' ' << d.text << '\n';
   return true;
@@ -279,6 +294,13 @@ inline bool load_cutscene(Cutscene &cs, const std::string &path) {
       if (!a.clip.empty() && a.clip[0] == ' ')
         a.clip.erase(0, a.clip.find_first_not_of(' '));
       cs.anims.push_back(a);
+    } else if (tag == "sound") {
+      SoundCue s;
+      ss >> s.t;
+      std::getline(ss, s.event);             // event = rest of line
+      if (!s.event.empty() && s.event[0] == ' ')
+        s.event.erase(0, s.event.find_first_not_of(' '));
+      cs.sounds.push_back(s);
     } else if (tag == "dialogue") {
       DialogueLine d;
       ss >> d.t >> d.duration;

@@ -154,7 +154,13 @@ public:
   // }
 
   int cost(std::shared_ptr<Node> current, std::shared_ptr<Node> next) {
-    return (next->layer - current->layer) + 1;
+    int c = (next->layer - current->layer) + 1;
+    // Soft-avoid occupied cells (e.g. bods resting on towels): make crossing one
+    // far costlier than a short detour, but still finite so a boxed-in entity can
+    // path out rather than failing. taken is set/cleared by the rest lifecycle.
+    if (next->taken > 0)
+      c += 100;
+    return c;
   }
 
   typedef std::pair<int, std::shared_ptr<Node>> WeightedNode;

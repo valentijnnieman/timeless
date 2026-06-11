@@ -348,6 +348,10 @@ void Model::render(glm::mat4 global_model_matrix, float delta_time,
       glm::vec3 tinted = meshes[i]->diffuseColor * color_tint;
       glUniform3fv(glGetUniformLocation(shader->ID, "materialDiffuse"), 1,
                    glm::value_ptr(meshes[i]->diffuseColor));
+      // Flag the "Pants" mesh so the shader can apply the per-entity pantsColor
+      // (set by RenderingSystem) to just that mesh. No-op for shaders without it.
+      glUniform1f(glGetUniformLocation(shader->ID, "isPants"),
+                  (meshes[i]->nodeName == "Pants") ? 1.0f : 0.0f);
       // glUniform3fv(glGetUniformLocation(shader->ID, "albedo"), 1,
       //              glm::value_ptr(meshes[i]->diffuseColor));
       glUniform1f(glGetUniformLocation(shader->ID, "metallic"),

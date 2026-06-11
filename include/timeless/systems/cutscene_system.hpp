@@ -41,6 +41,11 @@ public:
   // which keeps this system font/shader-agnostic. Optional.
   std::function<void(const std::string &)> on_dialogue;
 
+  // Called with a sound-event name each time the playhead crosses a SoundCue.
+  // Playback is the game's job (its own audio system), keeping this system
+  // backend-agnostic. Optional.
+  std::function<void(const std::string &)> on_sound;
+
   CutsceneSystem() {}
 
   // Map a track's subject name (e.g. "camera", "bod") to an engine entity.
@@ -58,6 +63,22 @@ public:
   }
 
   void stop() { playing = false; }
+
+  // Fast-forward to the end: snap every controlled entity to its final pose
+  // (firing any triggers not yet crossed), then stop and fire on_complete —
+  // exactly as if playback had reached the end naturally. Use this to skip a
+  // cutscene without leaving actors frozen mid-motion. No-op if nothing plays.
+  void finish() {
+    if (!playing)
+      return;
+    float dur = cs_.duration();
+    apply(dur, prev_);
+    playhead_ = dur;
+    prev_ = dur;
+    playing = false;
+    if (on_complete)
+      on_complete();
+  }
 
   void update(ComponentManager & /*cm*/, float dt) {
     if (!playing)
@@ -137,6 +158,12 @@ private:
           }
         }
       }
+    }
+
+    // Sound cues crossed since the last frame (same edge rule as anim triggers).
+    for (const auto &s : cs_.sounds) {
+      if (s.t > prev && s.t <= t && on_sound)
+        on_sound(s.event);
     }
 
     // Report the currently-active dialogue line (empty clears it). Driven every

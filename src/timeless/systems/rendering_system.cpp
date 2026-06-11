@@ -614,6 +614,13 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           auto sheenIt = entity_sheen.find(entity);
           glUniform1f(shader->get_uniform("sheen"),
                       sheenIt != entity_sheen.end() ? sheenIt->second : 0.0f);
+          // Per-entity pants tint (white = unchanged); the model's per-mesh
+          // isPants uniform decides which mesh it actually affects.
+          auto pantsIt = entity_pants.find(entity);
+          glm::vec3 pantsCol = (pantsIt != entity_pants.end()) ? pantsIt->second
+                                                               : glm::vec3(1.0f);
+          glUniform3fv(shader->get_uniform("pantsColor"), 1,
+                       glm::value_ptr(pantsCol));
           // Per-entity translucency: output as fragment alpha, and for a
           // translucent entity drop depth writes so it doesn't occlude geometry
           // behind it (depth test stays on, so it's still hidden by nearer

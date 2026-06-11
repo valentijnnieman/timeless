@@ -21,6 +21,8 @@ uniform float tanAmount;       // 0..1 sun-tan intensity for this entity (0 = no
 uniform vec3  tanColor;        // albedo is multiplied toward this at full tan
 uniform float sheen;           // 0..1 freshly-oiled look (glossier + a bright rim)
 uniform float modelAlpha;      // 0..1 fragment alpha for translucent models (1 = opaque)
+uniform float isPants;         // 1.0 while drawing the bod's "Pants" mesh, else 0.0
+uniform vec3  pantsColor;      // per-bod swim-trunk tint (white = unchanged)
 
 #define MAX_POINT_LIGHTS 64
 uniform vec3 pointLightPositions[MAX_POINT_LIGHTS];
@@ -104,9 +106,12 @@ void main()
     float sunNdotL    = max(dot(N, Lsun), 0.0);
     float sunShadow   = shadowFactor(FragPosLightSpace, N, Lsun);
     float sunExposure = (1.0 - sunShadow) * sunNdotL;
+    // Per-bod swim-trunk colour: tint only the "Pants" mesh (isPants==1) by the
+    // entity's pantsColor; every other mesh keeps its own albedo.
+    vec3  baseAlbedo  = albedo * mix(vec3(1.0), pantsColor, isPants);
     // Tan browns the skin and burn reddens it; both only on sunlit fragments and
     // they stack (a bod that tanned then started burning reads reddish-brown).
-    vec3  albedoB     = albedo
+    vec3  albedoB     = baseAlbedo
                         * mix(vec3(1.0), tanColor,
                               clamp(tanAmount * sunExposure, 0.0, 1.0))
                         * mix(vec3(1.0), burnColor,

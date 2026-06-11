@@ -91,6 +91,13 @@ public:
   void set_entity_alpha(Entity e, float v) { entity_alpha[e] = v; }
   void clear_entity_alpha(Entity e) { entity_alpha.erase(e); }
 
+  // Per-entity "pants" colour — tints just the mesh named "Pants" (flagged by the
+  // model's isPants uniform), so each bod can wear different-coloured trunks while
+  // sharing one Model. Absent entities render the mesh's own colour (white tint).
+  std::unordered_map<Entity, glm::vec3> entity_pants;
+  void set_entity_pants_color(Entity e, glm::vec3 c) { entity_pants[e] = c; }
+  void clear_entity_pants(Entity e) { entity_pants.erase(e); }
+
   // Entities that should not cast directional shadows (skipped in the depth
   // pass) — e.g. a sky sun placed near the light, which otherwise drops a stray
   // shadow on the beach.
