@@ -17,8 +17,8 @@ uniform sampler2D shadowMap;
 
 uniform float burnAmount;      // 0..1 sun-burn intensity for this entity (0 = none)
 uniform vec3  burnColor;       // albedo is multiplied toward this at full burn
-uniform float tanAmount;       // 0..1 sun-tan intensity for this entity (0 = none)
-uniform vec3  tanColor;        // albedo is multiplied toward this at full tan
+uniform float tanAmount;       // 0..1 lotion-coat coverage for this entity (0 = none)
+uniform vec3  tanColor;        // coat color: albedo is lerped toward this at full coverage
 uniform float sheen;           // 0..1 freshly-oiled look (glossier + a bright rim)
 uniform float modelAlpha;      // 0..1 fragment alpha for translucent models (1 = opaque)
 uniform float isPants;         // 1.0 while drawing the bod's "Pants" mesh, else 0.0
@@ -109,13 +109,15 @@ void main()
     // Per-bod swim-trunk colour: tint only the "Pants" mesh (isPants==1) by the
     // entity's pantsColor; every other mesh keeps its own albedo.
     vec3  baseAlbedo  = albedo * mix(vec3(1.0), pantsColor, isPants);
-    // Tan browns the skin and burn reddens it; both only on sunlit fragments and
-    // they stack (a bod that tanned then started burning reads reddish-brown).
+    // Burn reddens the skin, but only on sunlit fragments (a bod half in shade
+    // burns only on the sunlit half).
     vec3  albedoB     = baseAlbedo
-                        * mix(vec3(1.0), tanColor,
-                              clamp(tanAmount * sunExposure, 0.0, 1.0))
                         * mix(vec3(1.0), burnColor,
                               clamp(burnAmount * sunExposure, 0.0, 1.0));
+    // Lotion coat: a layer ON TOP of the skin, so lerp toward the coat color
+    // rather than multiplying (a multiply by a near-white color can never
+    // lighten). Not gated by sunExposure — sunscreen is visible in shade too.
+    albedoB = mix(albedoB, tanColor, clamp(tanAmount, 0.0, 1.0));
 
     // Freshly-oiled "sheen": glossier (lower roughness) so the sun highlight
     // pops, plus a bright Fresnel rim — used as the "this bod is being lotioned"

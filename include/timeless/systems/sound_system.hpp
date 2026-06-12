@@ -16,8 +16,10 @@ private:
 	FMOD::Studio::System* fmodSystem = NULL;
 	FMOD::Studio::Bank* masterBank = NULL;
 	FMOD::Studio::Bank* stringsBank = NULL;
-  FMOD::Studio::EventInstance* looping_event_instance = NULL;
-  bool is_looping = false;
+
+  // Looping event instances, one per key, so several loops can play at once
+  // (e.g. a UI loop plus one spatialised loop per walking character).
+  std::unordered_map<std::string, FMOD::Studio::EventInstance*> looping_events;
 
   FMOD_3D_ATTRIBUTES* atrbs;
   FMOD_3D_ATTRIBUTES* listener_atrbs;
@@ -53,9 +55,23 @@ public:
   // Resolves an event and loads its sample data ahead of time so the first
   // play_oneshot() isn't silent while FMOD streams the sample in.
   void preload_event(std::string soundevent_path);
+  // Start a looping playback of an event. `key` identifies the loop for
+  // set_loop_position()/stop_loop() and defaults to the event path; pass an
+  // explicit key to run several instances of the same event at once (e.g. one
+  // per character). A no-op while a loop with this key is already playing.
   void start_loop(std::string soundevent_path, float delay = 0.0f,
-                  bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0));
-  void stop_looping_event();
+                  bool spatial = false, glm::vec2 spatial_pos = glm::vec2(0.0),
+                  std::string key = "");
+  // Move a playing spatial loop (no-op for unknown keys), so it can follow a
+  // moving emitter each frame.
+  void set_loop_position(const std::string &key, glm::vec2 spatial_pos);
+  // Stop and release a playing loop (allowing fadeout); no-op for unknown keys.
+  void stop_loop(const std::string &key);
+  // Stop every playing event — loops and in-flight one-shots alike — via the
+  // master bus, e.g. when skipping a cutscene or tearing down a scene. Loop
+  // bookkeeping is cleared, so loops whose conditions still hold simply
+  // restart on the next start_loop() call.
+  void stop_all_events();
   void stop_event(std::string soundevent_path);
   void unload();
   double half_to_time(int p, float speed);

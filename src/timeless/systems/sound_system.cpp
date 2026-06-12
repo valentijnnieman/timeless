@@ -142,32 +142,60 @@ void SoundSystem::play_oneshot(std::string soundevent_path, bool spatial,
 }
 
 void SoundSystem::start_loop(std::string soundevent_path, float delay,
-                              bool spatial, glm::vec2 spatial_pos) {
-    if (!is_looping) {
-        FMOD::Studio::EventDescription *new_event_description = NULL;
-        fmodSystem->getEvent(soundevent_path.c_str(), &new_event_description);
-        new_event_description->loadSampleData();
-        new_event_description->createInstance(&looping_event_instance);
+                              bool spatial, glm::vec2 spatial_pos,
+                              std::string key) {
+    if (key.empty())
+        key = soundevent_path;
+    if (looping_events.contains(key))
+        return;
 
-        if (spatial) {
-            atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
-            looping_event_instance->set3DAttributes(atrbs);
-        }
-        if (delay > 0)
-            looping_event_instance->setProperty(
-                FMOD_STUDIO_EVENT_PROPERTY_SCHEDULE_DELAY, delay);
+    FMOD::Studio::EventDescription *desc = NULL;
+    std::string e = "event:/" + soundevent_path;
+    if (fmodSystem->getEvent(e.c_str(), &desc) != FMOD_OK || desc == NULL)
+        return;
+    desc->loadSampleData();
+    FMOD::Studio::EventInstance *instance = NULL;
+    if (desc->createInstance(&instance) != FMOD_OK || instance == NULL)
+        return;
 
-        looping_event_instance->start();
-        is_looping = true;
+    if (spatial) {
+        atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
+        instance->set3DAttributes(atrbs);
     }
+    if (delay > 0)
+        instance->setProperty(FMOD_STUDIO_EVENT_PROPERTY_SCHEDULE_DELAY, delay);
+
+    instance->start();
+    looping_events.insert({key, instance});
 }
 
-void SoundSystem::stop_looping_event() {
-    if (is_looping) {
-        looping_event_instance->stop(FMOD_STUDIO_STOP_MODE(0));
-        looping_event_instance->release();
-        is_looping = false;
-    }
+void SoundSystem::set_loop_position(const std::string &key,
+                                     glm::vec2 spatial_pos) {
+    auto it = looping_events.find(key);
+    if (it == looping_events.end())
+        return;
+    atrbs->position = FMOD_VECTOR(spatial_pos.x, spatial_pos.y, 0);
+    it->second->set3DAttributes(atrbs);
+}
+
+void SoundSystem::stop_loop(const std::string &key) {
+    auto it = looping_events.find(key);
+    if (it == looping_events.end())
+        return;
+    it->second->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    it->second->release();
+    looping_events.erase(it);
+}
+
+void SoundSystem::stop_all_events() {
+    FMOD::Studio::Bus *master = NULL;
+    if (fmodSystem->getBus("bus:/", &master) == FMOD_OK && master != NULL)
+        master->stopAllEvents(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    // The bus stop already covers the loop instances; release our handles and
+    // forget the keys so start_loop() can create fresh instances.
+    for (auto &[key, instance] : looping_events)
+        instance->release();
+    looping_events.clear();
 }
 
 void SoundSystem::stop_event(std::string soundevent_path) {
@@ -178,6 +206,8 @@ void SoundSystem::stop_event(std::string soundevent_path) {
 
 void SoundSystem::unload() {
     for (auto &[event, instance] : events)
+        instance->release();
+    for (auto &[key, instance] : looping_events)
         instance->release();
     masterBank->unload();
     stringsBank->unload();
