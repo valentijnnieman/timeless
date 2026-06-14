@@ -1,5 +1,5 @@
 #pragma once
-#include <GLFW/glfw3.h>
+#include "timeless/input.hpp"
 #include <functional>
 
 class Timer
@@ -12,23 +12,23 @@ public:
     Timer()
     {
         secondsToWait = 1.0;
-        start = glfwGetTime();
+        start = te::now_seconds();
     }
     Timer(double secondsToWait)
         : secondsToWait(secondsToWait)
     {
-        start = glfwGetTime();
+        start = te::now_seconds();
     }
     void startTimer()
     {
-        start = glfwGetTime();
+        start = te::now_seconds();
     }
     bool pollTime()
     {
-        double current = glfwGetTime();
+        double current = te::now_seconds();
         if (current - start >= secondsToWait)
         {
-            start = glfwGetTime();
+            start = te::now_seconds();
             return true;
         }
         return false;

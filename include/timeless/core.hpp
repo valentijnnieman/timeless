@@ -33,7 +33,7 @@
 #include "timeless/event.hpp"           // MouseEvent, MouseMoveEvent
 #include "timeless/timer.hpp"           // TimerManager
 #include "timeless/managers/component_manager.hpp" // ComponentManager
-#include "timeless/managers/window_manager.hpp"    // WindowManager, glfwTerminate
+#include "timeless/managers/window_manager.hpp"    // WindowManager
 #include "timeless/systems/system.hpp"             // System
 #include "timeless/systems/mouse_input_system.hpp" // MouseInputSystem
 #include "timeless/algorithm/graph.hpp"            // Grid, Node
@@ -83,8 +83,6 @@ namespace TE
         wm.reset();
 
         std::cout << "TE Cleanup finished" << std::endl;
-        std::cout << "Terminating GLFW..." << std::endl;
-        glfwTerminate();
     }
 
     template <typename T>
@@ -211,9 +209,9 @@ namespace TE
         return wm;
     }
 
-    inline void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
+    inline void loop(std::function<void(WindowManager &wm, ComponentManager &cm)> loop_func)
     {
-        loop_func(wm->window, *cm, *wm);
+        loop_func(*wm, *cm);
     }
     inline void quit()
     {

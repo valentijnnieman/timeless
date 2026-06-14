@@ -87,7 +87,7 @@ void Sprite::set_shader_sprite_uniforms(int textureUnit) {
   glUniform2fv(glGetUniformLocation(slice_shader->ID, "spriteSize"), 1,
                glm::value_ptr(spriteSize));
   glUniform1f(glGetUniformLocation(slice_shader->ID, "time"),
-              static_cast<float>(glfwGetTime()));
+              static_cast<float>(te::now_seconds()));
   // glUniform1f(glGetUniformLocation(shader->ID, "jitter"),
   // ui_jitter); glUniform1f(glGetUniformLocation(shader->ID, "jitter_speed"),
   //             ui_jitter_speed);

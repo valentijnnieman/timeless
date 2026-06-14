@@ -1,5 +1,6 @@
 build
 wasm-build
+build-wasm
 
 # CodeQL analysis files
 _codeql_detected_source_root

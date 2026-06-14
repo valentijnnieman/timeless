@@ -1,52 +1,126 @@
 #include "timeless/managers/window_manager.hpp"
+#include <SDL.h>
 
-void WindowManager::error_callback(int error, const char *description) {
-  fprintf(stderr, "Error: %s\n", description);
+// Opaque platform handle (declared in the header). Holds the SDL window and
+// GL context; SDL types appear only inside this translation unit.
+struct PlatformWindow {
+  SDL_Window *window = nullptr;
+  SDL_GLContext gl_context = nullptr;
+  SDL_Cursor *cursor = nullptr;
+};
+
+namespace {
+// Map engine keys to SDL scancodes (used by is_key_pressed / SDL_GetKeyboardState).
+SDL_Scancode to_scancode(te::Key key) {
+  using K = te::Key;
+  switch (key) {
+    case K::A: return SDL_SCANCODE_A; case K::B: return SDL_SCANCODE_B;
+    case K::C: return SDL_SCANCODE_C; case K::D: return SDL_SCANCODE_D;
+    case K::E: return SDL_SCANCODE_E; case K::F: return SDL_SCANCODE_F;
+    case K::G: return SDL_SCANCODE_G; case K::H: return SDL_SCANCODE_H;
+    case K::I: return SDL_SCANCODE_I; case K::J: return SDL_SCANCODE_J;
+    case K::K: return SDL_SCANCODE_K; case K::L: return SDL_SCANCODE_L;
+    case K::M: return SDL_SCANCODE_M; case K::N: return SDL_SCANCODE_N;
+    case K::O: return SDL_SCANCODE_O; case K::P: return SDL_SCANCODE_P;
+    case K::Q: return SDL_SCANCODE_Q; case K::R: return SDL_SCANCODE_R;
+    case K::S: return SDL_SCANCODE_S; case K::T: return SDL_SCANCODE_T;
+    case K::U: return SDL_SCANCODE_U; case K::V: return SDL_SCANCODE_V;
+    case K::W: return SDL_SCANCODE_W; case K::X: return SDL_SCANCODE_X;
+    case K::Y: return SDL_SCANCODE_Y; case K::Z: return SDL_SCANCODE_Z;
+    case K::Num0: return SDL_SCANCODE_0; case K::Num1: return SDL_SCANCODE_1;
+    case K::Num2: return SDL_SCANCODE_2; case K::Num3: return SDL_SCANCODE_3;
+    case K::Num4: return SDL_SCANCODE_4; case K::Num5: return SDL_SCANCODE_5;
+    case K::Num6: return SDL_SCANCODE_6; case K::Num7: return SDL_SCANCODE_7;
+    case K::Num8: return SDL_SCANCODE_8; case K::Num9: return SDL_SCANCODE_9;
+    case K::Space: return SDL_SCANCODE_SPACE;
+    case K::Enter: return SDL_SCANCODE_RETURN;
+    case K::Escape: return SDL_SCANCODE_ESCAPE;
+    case K::Tab: return SDL_SCANCODE_TAB;
+    case K::Backspace: return SDL_SCANCODE_BACKSPACE;
+    case K::Delete: return SDL_SCANCODE_DELETE;
+    case K::Left: return SDL_SCANCODE_LEFT;
+    case K::Right: return SDL_SCANCODE_RIGHT;
+    case K::Up: return SDL_SCANCODE_UP;
+    case K::Down: return SDL_SCANCODE_DOWN;
+    case K::LeftControl: return SDL_SCANCODE_LCTRL;
+    case K::RightControl: return SDL_SCANCODE_RCTRL;
+    case K::LeftShift: return SDL_SCANCODE_LSHIFT;
+    case K::RightShift: return SDL_SCANCODE_RSHIFT;
+    case K::LeftAlt: return SDL_SCANCODE_LALT;
+    case K::RightAlt: return SDL_SCANCODE_RALT;
+    default: return SDL_SCANCODE_UNKNOWN;
+  }
+}
+} // namespace
+
+double te::now_seconds() {
+  static const Uint64 start = SDL_GetPerformanceCounter();
+  static const double freq = static_cast<double>(SDL_GetPerformanceFrequency());
+  return static_cast<double>(SDL_GetPerformanceCounter() - start) / freq;
 }
 
 WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
                              std::shared_ptr<MouseInputSystem> mis)
     : cm(cm), mis(mis) {
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  platform = std::make_unique<PlatformWindow>();
+
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
+    std::cout << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
+  }
+
+#ifdef __EMSCRIPTEN__
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+#endif
   // Request an alpha channel in the framebuffer so the canvas can be composited
   // transparently over the HTML page (emscripten maps this to WebGL alpha:true).
-  glfwWindowHint(GLFW_ALPHA_BITS, 8);
+  SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
   int width = TESettings::WINDOW_X;
   int height = TESettings::WINDOW_Y;
 
   if (TESettings::NATIVE_RESOLUTION) {
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    width = mode->width;
-    height = mode->height;
-    TESettings::WINDOW_X = width;
-    TESettings::WINDOW_Y = height;
+    SDL_DisplayMode mode;
+    if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
+      width = mode.w;
+      height = mode.h;
+      TESettings::WINDOW_X = width;
+      TESettings::WINDOW_Y = height;
+    }
   }
 
+  Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
   if (TESettings::FULLSCREEN)
-    window = glfwCreateWindow(width, height, "Timeless", glfwGetPrimaryMonitor(), NULL);
-  else
-    window = glfwCreateWindow(width, height, "Timeless", NULL, NULL);
+    flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-  if (window == NULL) {
-    std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
+  platform->window =
+      SDL_CreateWindow("Timeless", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                       width, height, flags);
+
+  if (platform->window == nullptr) {
+    std::cout << "Failed to create SDL window: " << SDL_GetError() << std::endl;
+    SDL_Quit();
   }
-  glfwMakeContextCurrent(window);
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-  glfwSetWindowUserPointer(window, this);
 
-  glfwSwapInterval(1);
+  platform->gl_context = SDL_GL_CreateContext(platform->window);
+  if (platform->gl_context == nullptr) {
+    std::cout << "Failed to create GL context: " << SDL_GetError() << std::endl;
+  }
+  SDL_GL_MakeCurrent(platform->window, platform->gl_context);
 
-  cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-  glfwSetCursor(window, cursor);
+  SDL_GL_SetSwapInterval(1); // vsync
+
+  platform->cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+  SDL_SetCursor(platform->cursor);
 
 #ifdef __EMSCRIPTEN__
 #else
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
   }
 #endif
@@ -54,10 +128,6 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   std::cout << "OpenGL Initialized!" << std::endl;
-
-  glfwSetMouseButtonCallback(window, &mouse_button_callback);
-  glfwSetCursorPosCallback(window, cursor_position_callback);
-  glfwSetScrollCallback(window, &scroll_callback);
 
   glGenVertexArrays(1, &ScreenVAO);
   glGenBuffers(1, &ScreenVBO);
@@ -72,15 +142,25 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+WindowManager::~WindowManager() = default;
+
 void WindowManager::cleanup() {
   std::cout << "Destroying WindowManager..." << std::endl;
-  glfwDestroyWindow(window);
-  glfwDestroyCursor(cursor);
   glDeleteVertexArrays(1, &ScreenVAO);
   glDeleteBuffers(1, &ScreenVBO);
   for (auto fbo : framebuffers) glDeleteFramebuffers(1, &fbo);
   for (auto tex : textures) glDeleteTextures(1, &tex);
   for (auto rbo : rbos) glDeleteRenderbuffers(1, &rbo);
+
+  if (platform) {
+    if (platform->cursor) SDL_FreeCursor(platform->cursor);
+    if (platform->gl_context) SDL_GL_DeleteContext(platform->gl_context);
+    if (platform->window) SDL_DestroyWindow(platform->window);
+    platform->cursor = nullptr;
+    platform->gl_context = nullptr;
+    platform->window = nullptr;
+  }
+  SDL_Quit();
 }
 
 void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, int height, bool add_screen_shader) {
@@ -184,7 +264,7 @@ void WindowManager::set_shader_time(std::shared_ptr<Shader> shader) {
 
   GLint timeLoc = glGetUniformLocation(shader->ID, "time");
   if (timeLoc != -1)
-    glUniform1f(timeLoc, glfwGetTime());
+    glUniform1f(timeLoc, static_cast<float>(te::now_seconds()));
 
   if (screen_shaders.size() > 0) {
     GLint resLoc = glGetUniformLocation(screen_shaders[0]->ID, "resolution");
@@ -198,18 +278,12 @@ void WindowManager::set_shader_mouse_position(glm::vec2 mouse_pos) {
   shader_mouse_position = mouse_pos;
 }
 
-void WindowManager::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void WindowManager::handle_resize(int width, int height) {
   TESettings::rescale_window(width, height);
-  WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
-  if (wm == nullptr) return;
   glm::vec2 new_size(width, height);
-  if (wm->es != nullptr) {
-    wm->es->create_event<glm::vec2>(*wm->cm, "ResizeWindow", &new_size);
+  if (es != nullptr) {
+    es->create_event<glm::vec2>(*cm, "ResizeWindow", &new_size);
   }
-}
-
-void WindowManager::window_size_callback(GLFWwindow *window, int width, int height) {
-  TESettings::rescale_window(width, height);
 }
 
 void WindowManager::mouse_move_handler(MouseMoveEvent *event) {
@@ -229,79 +303,122 @@ void WindowManager::mouse_scroll_handler(MouseEvent *event) {
   mis->mouse_scroll_handler(*cm, event);
 }
 
-void WindowManager::cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
-  WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+// --- Coordinate mapping helpers (preserve the original GLFW-callback math) ---
 
-  wm->set_shader_mouse_position(glm::vec2(xpos, ypos));
-
-  // Map cursor from window pixels to design-resolution world coordinates.
+// Cursor-move mapping: window pixels -> design-resolution world coords,
+// scaling by VIEWPORT/WINDOW then centering on the viewport.
+static glm::vec2 map_move_to_world(double xpos, double ypos) {
   double scale_x = double(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
   double scale_y = double(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
-  double fb_x = xpos * scale_x;
-  double fb_y = ypos * scale_y;
-
-  // Center the coordinates
-  fb_x -= TESettings::VIEWPORT_X * 0.5;
-  fb_y -= TESettings::VIEWPORT_Y * 0.5;
-
-  // Normalize and map to world coordinates
-  double xnorm = fb_x / TESettings::VIEWPORT_X;
-  double world_x = xnorm * TESettings::VIEWPORT_X;
-  double ynorm = fb_y / TESettings::VIEWPORT_Y;
-  double world_y = ynorm * TESettings::VIEWPORT_Y;
-
-  wm->mouse_move_handler(
-      new MouseMoveEvent("MouseMove", glm::vec2(world_x, world_y), glm::vec2(xpos, ypos)));
+  double fb_x = xpos * scale_x - TESettings::VIEWPORT_X * 0.5;
+  double fb_y = ypos * scale_y - TESettings::VIEWPORT_Y * 0.5;
+  double world_x = (fb_x / TESettings::VIEWPORT_X) * TESettings::VIEWPORT_X;
+  double world_y = (fb_y / TESettings::VIEWPORT_Y) * TESettings::VIEWPORT_Y;
+  return glm::vec2(world_x, world_y);
 }
 
-void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-  WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
-  wm->mouse_scroll_handler(
-      new MouseEvent("MouseScroll", wm->mouse_position, wm->raw_mouse_position, xoffset, yoffset));
+// Button mapping: window pixels -> design-resolution world coords, centering
+// on the window then scaling to the viewport.
+static glm::vec2 map_click_to_world(double xpos, double ypos) {
+  double cx = xpos - TESettings::WINDOW_X * 0.5;
+  double cy = ypos - TESettings::WINDOW_Y * 0.5;
+  double world_x = (cx / TESettings::WINDOW_X) * TESettings::VIEWPORT_X;
+  double world_y = (cy / TESettings::WINDOW_Y) * TESettings::VIEWPORT_Y;
+  return glm::vec2(world_x, world_y);
 }
 
-void WindowManager::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
-  WindowManager *wm = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
-  double xpos, ypos;
-  glfwGetCursorPos(window, &xpos, &ypos);
+void WindowManager::poll_events() {
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    switch (e.type) {
+      case SDL_QUIT:
+        quit_requested = true;
+        break;
 
-  double raw_xpos = xpos;
-  double raw_ypos = ypos;
+      case SDL_WINDOWEVENT:
+        if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
+            e.window.event == SDL_WINDOWEVENT_RESIZED) {
+          handle_resize(e.window.data1, e.window.data2);
+        } else if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+          quit_requested = true;
+        }
+        break;
 
-  // Map from window pixels to design-resolution world coordinates.
-  xpos -= TESettings::WINDOW_X * 0.5;
-  ypos -= TESettings::WINDOW_Y * 0.5;
+      case SDL_MOUSEMOTION: {
+        set_shader_mouse_position(glm::vec2(e.motion.x, e.motion.y));
+        glm::vec2 world = map_move_to_world(e.motion.x, e.motion.y);
+        mouse_move_handler(new MouseMoveEvent(
+            "MouseMove", world, glm::vec2(e.motion.x, e.motion.y)));
+        break;
+      }
 
-  double xnorm = xpos / TESettings::WINDOW_X;
-  double world_x = xnorm * TESettings::VIEWPORT_X;
-  double ynorm = ypos / TESettings::WINDOW_Y;
-  double world_y = ynorm * TESettings::VIEWPORT_Y;
+      case SDL_MOUSEWHEEL: {
+        float xoff = e.wheel.preciseX;
+        float yoff = e.wheel.preciseY;
+        mouse_scroll_handler(new MouseEvent(
+            "MouseScroll", mouse_position, raw_mouse_position, xoff, yoff));
+        break;
+      }
 
-  xpos = world_x;
-  ypos = world_y;
+      case SDL_MOUSEBUTTONDOWN:
+      case SDL_MOUSEBUTTONUP: {
+        glm::vec2 raw(e.button.x, e.button.y);
+        glm::vec2 world = map_click_to_world(e.button.x, e.button.y);
+        bool press = (e.type == SDL_MOUSEBUTTONDOWN);
+        const char *name = nullptr;
+        if (e.button.button == SDL_BUTTON_LEFT)
+          name = press ? "LeftMousePress" : "LeftMouseRelease";
+        else if (e.button.button == SDL_BUTTON_RIGHT)
+          name = press ? "RightMousePress" : "RightMouseRelease";
+        else if (e.button.button == SDL_BUTTON_MIDDLE)
+          name = press ? "MiddleMousePress" : "MiddleMouseRelease";
+        if (name) {
+          MouseEvent *ev = new MouseEvent(name, world, raw);
+          if (press)
+            mouse_click_handler(ev);
+          else
+            mouse_release_handler(ev);
+        }
+        break;
+      }
 
-  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-    wm->mouse_click_handler(
-        new MouseEvent("LeftMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
+      default:
+        break;
+    }
   }
-  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-    wm->mouse_release_handler(
-        new MouseEvent("LeftMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
+}
+
+void WindowManager::swap_buffers() {
+  SDL_GL_SwapWindow(platform->window);
+}
+
+bool WindowManager::should_close() {
+  return quit_requested || !running;
+}
+
+bool WindowManager::is_key_pressed(te::Key key) {
+  const Uint8 *state = SDL_GetKeyboardState(nullptr);
+  SDL_Scancode sc = to_scancode(key);
+  if (sc == SDL_SCANCODE_UNKNOWN) return false;
+  return state[sc] != 0;
+}
+
+bool WindowManager::is_mouse_button_pressed(te::MouseButton button) {
+  Uint32 state = SDL_GetMouseState(nullptr, nullptr);
+  switch (button) {
+    case te::MouseButton::Left:   return (state & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    case te::MouseButton::Right:  return (state & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+    case te::MouseButton::Middle: return (state & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
   }
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-    wm->mouse_click_handler(
-        new MouseEvent("RightMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
-  }
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-    wm->mouse_release_handler(
-        new MouseEvent("RightMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
-  }
-  if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
-    wm->mouse_click_handler(
-        new MouseEvent("MiddleMousePress", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
-  }
-  if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE) {
-    wm->mouse_release_handler(
-        new MouseEvent("MiddleMouseRelease", glm::vec2(xpos, ypos), glm::vec2(raw_xpos, raw_ypos)));
-  }
+  return false;
+}
+
+glm::vec2 WindowManager::get_cursor_position() {
+  int x = 0, y = 0;
+  SDL_GetMouseState(&x, &y);
+  return glm::vec2(x, y);
+}
+
+void WindowManager::set_cursor_visible(bool visible) {
+  SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
 }

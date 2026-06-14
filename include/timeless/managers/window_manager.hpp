@@ -6,16 +6,20 @@
 #else
 #include <glad/glad.h>
 #endif
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "timeless/input.hpp"
 #include "timeless/components/transform.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
 #include "timeless/systems/event_system.hpp"
+
+// Opaque platform handle: owns the backend window + GL context. Defined only
+// in window_manager.cpp so SDL never appears in a public header.
+struct PlatformWindow;
 
 class WindowManager {
 private:
@@ -46,14 +50,23 @@ public:
 
   unsigned int ScreenVAO, ScreenVBO;
 
-  GLFWwindow *window;
-  GLFWcursor *cursor;
-
-  static void error_callback(int error, const char *description);
+  // Backend window + GL context, hidden behind an opaque handle (PIMPL).
+  std::unique_ptr<PlatformWindow> platform;
+  bool quit_requested = false;
 
   WindowManager(std::shared_ptr<ComponentManager> cm,
                 std::shared_ptr<MouseInputSystem> mis);
+  ~WindowManager();
   void cleanup();
+
+  // --- Main-loop / platform surface (backend-agnostic) ---
+  void swap_buffers();
+  void poll_events();              // pumps backend events into engine handlers
+  bool should_close();             // SDL_QUIT or TE::quit() was called
+  bool is_key_pressed(te::Key key); // polling query (replaces glfwGetKey)
+  bool is_mouse_button_pressed(te::MouseButton button); // replaces glfwGetMouseButton
+  glm::vec2 get_cursor_position();  // current cursor in window pixels
+  void set_cursor_visible(bool visible); // show/hide the OS cursor
 
   void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true);
   void select_framebuffer(size_t idx, bool clear = true);
@@ -62,13 +75,9 @@ public:
   void set_shader_time(std::shared_ptr<Shader> shader);
   void set_shader_mouse_position(glm::vec2 mouse_pos);
 
-  static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-  static void window_size_callback(GLFWwindow *window, int width, int height);
+  void handle_resize(int width, int height);
   void mouse_move_handler(MouseMoveEvent *event);
   void mouse_click_handler(MouseEvent *event);
   void mouse_release_handler(MouseEvent *event);
   void mouse_scroll_handler(MouseEvent *event);
-  static void cursor_position_callback(GLFWwindow *window, double xpos, double ypos);
-  static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-  static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 };

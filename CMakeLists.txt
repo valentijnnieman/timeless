@@ -82,6 +82,12 @@ if(EMSCRIPTEN)
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/freetype2/include vendor/glm vendor/stb_image/)
 
+  # The Emscripten SDL2 port must be activated at COMPILE time too: its bundled
+  # <SDL.h> is a stub that errors unless -sUSE_SDL=2 is present while compiling
+  # (link-time alone is not enough). PUBLIC so consumers compiling against our
+  # headers (which pull in <SDL.h> transitively) get it as well.
+  target_compile_options(${PROJECT_NAME} PUBLIC -sUSE_SDL=2)
+
   if(EMSCRIPTEN_PTHREADS)
     target_compile_options(${PROJECT_NAME} PUBLIC
       -pthread
@@ -90,7 +96,7 @@ if(EMSCRIPTEN)
       -sALLOW_MEMORY_GROWTH=1
       -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
       -sUSE_FREETYPE=1
-      -sUSE_GLFW=3
+      -sUSE_SDL=2
       # --use-port=contrib.glfw3
       -sMIN_WEBGL_VERSION=2
       -sMAX_WEBGL_VERSION=2
@@ -105,7 +111,7 @@ if(EMSCRIPTEN)
       -sALLOW_MEMORY_GROWTH=1
       -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
       -sUSE_FREETYPE=1
-      -sUSE_GLFW=3
+      -sUSE_SDL=2
       # --use-port=contrib.glfw3
       -sMIN_WEBGL_VERSION=2
       -sMAX_WEBGL_VERSION=2
@@ -126,15 +132,11 @@ else()
     # SET(CMAKE_INSTALL_RPATH @loader_path/../Framework)
   endif()
 
-  if(LINUX)
-    set(GLFW_BUILD_WAYLAND OFF)
-    set(GLFW_BUILD_X11 ON)
-  endif()
-
-  # set(GLFW_LIBRARY_TYPE SHARED)
-
-  # add_executable(${PROJECT_NAME} MACOSX_BUNDLE src/main.cpp)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glfw)
+  # SDL2 (vendored) replaces GLFW for windowing/input. Build the static lib only.
+  set(SDL_STATIC ON CACHE BOOL "" FORCE)
+  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+  set(SDL_TEST OFF CACHE BOOL "" FORCE)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/sdl)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
@@ -143,7 +145,7 @@ else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
   # find_package(fmod)
-  include_directories("${PROJECT_BINARY_DIR}" glad/include glfw/include freetype2/include glm/include stb_image/ assimp/include)
+  include_directories("${PROJECT_BINARY_DIR}" glad/include sdl/include freetype2/include glm/include stb_image/ assimp/include)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -156,12 +158,12 @@ else()
 
   # set_target_properties(${PROJECT_NAME}
   # PROPERTIES SUFFIX ".html"
-  # LINK_FLAGS " -O3 -sFULL_ES3 -sUSE_GLFW=3 -sUSE_FREETYPE=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] --preload-file Assets")
+  # LINK_FLAGS " -O3 -sFULL_ES3 -sUSE_SDL=2 -sUSE_FREETYPE=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] --preload-file Assets")
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/glfw/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/sdl/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
 
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_link_libraries(${PROJECT_NAME} glad glfw glm freetype assimp)
+  target_link_libraries(${PROJECT_NAME} glad SDL2-static glm freetype assimp)
   # FMOD lives only in the audio module.
   target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
 
@@ -191,7 +193,7 @@ else()
 
   if(apple)
     install(TARGETS ${PROJECT_NAME}
-          glad freetype glm glfw DESTINATION ${PROJECT_BINARY_DIR}
+          glad freetype glm SDL2-static DESTINATION ${PROJECT_BINARY_DIR}
           BUNDLE DESTINATION ${PROJECT_BINARY_DIR}
       )
     install(IMPORTED_RUNTIME_ARTIFACTS ${PROJECT_NAME})

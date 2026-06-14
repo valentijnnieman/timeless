@@ -36,5 +36,5 @@ public:
     void move_left(ComponentManager &cm);
     void move_down(ComponentManager &cm);
     void move_up(ComponentManager &cm);
-    void update(ComponentManager &cm, GLFWwindow *window);
+    void update(ComponentManager &cm, WindowManager &wm);
 };

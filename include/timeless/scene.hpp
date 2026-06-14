@@ -2,6 +2,8 @@
 #include "timeless/entity.hpp"
 #include "timeless/managers/component_manager.hpp"
 
+class WindowManager; // forward decl: scenes receive it by reference
+
 // Generic scene lifecycle base.
 //
 // This is an engine-level concept: a Scene is just something with an
@@ -23,15 +25,15 @@ public:
   Scene(Entity main_cam) : main_camera(main_cam) {}
   virtual ~Scene() = default;
 
-  virtual void init(GLFWwindow * /*window*/) {}
+  virtual void init(WindowManager & /*wm*/) {}
   virtual void update(float /*dt*/) {}
   virtual void remove() {}
 
   // Advance one step of initialization. Returns true when fully done.
   // Default: run init() in a single blocking step (fine for simple scenes;
   // scenes with chunked/streamed loading override this).
-  virtual bool init_step(GLFWwindow *window) {
-    init(window);
+  virtual bool init_step(WindowManager &wm) {
+    init(wm);
     return true;
   }
 
@@ -39,7 +41,7 @@ public:
   // default is a no-op so scenes that don't draw a loading screen Just Work.
   // A subclass that wants a loading screen overrides these with its own
   // (asset-dependent) implementation.
-  virtual void setup_loading_screen(GLFWwindow * /*window*/,
+  virtual void setup_loading_screen(WindowManager & /*wm*/,
                                     ComponentManager & /*cm*/) {}
   virtual void remove_loading_screen() {}
 };
