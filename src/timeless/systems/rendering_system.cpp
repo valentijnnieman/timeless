@@ -393,7 +393,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
 
   // Cache per-frame values once — avoids redundant matrix computations and
   // system calls inside the per-entity loop.
-  const float time = (float)te::now_seconds();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view{}, projection{};
   glm::vec3 cam_pos{};
   Frustum frustum{};
@@ -752,7 +752,7 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
   glUniform2fv(shader->get_uniform("spriteSheetSize"), 1,
                glm::value_ptr(glm::vec2(texture->width, texture->height)));
 
-  const float time = (float)te::now_seconds();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view = cam->get_view_matrix();
   glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
   glUniformMatrix4fv(shader->get_uniform("projection"), 1,
@@ -869,7 +869,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
   if (cam != nullptr)
     pre_filter_lights(cam);
 
-  const float time = (float)te::now_seconds();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view{}, projection{};
   glm::vec3 cam_pos{};
   if (cam != nullptr) {

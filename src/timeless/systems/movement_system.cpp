@@ -122,25 +122,25 @@ void MovementSystem::move_up(ComponentManager &cm) {
 }
 
 void MovementSystem::update(ComponentManager &cm, WindowManager &wm) {
-    if (wm.is_key_pressed(te::Key::D)) { move_right(cm); keysPressed[d] = true; }
-    if (wm.is_key_pressed(te::Key::A)) { move_left(cm);  keysPressed[a] = true; }
-    if (wm.is_key_pressed(te::Key::W)) { move_up(cm);    keysPressed[w] = true; }
-    if (wm.is_key_pressed(te::Key::S)) { move_down(cm);  keysPressed[s] = true; }
-    if (wm.is_key_pressed(te::Key::Up))    { move_up(cm);    keysPressed[up]    = true; }
-    if (wm.is_key_pressed(te::Key::Down))  { move_down(cm);  keysPressed[down]  = true; }
-    if (wm.is_key_pressed(te::Key::Left))  { move_left(cm);  keysPressed[left]  = true; }
-    if (wm.is_key_pressed(te::Key::Right)) { move_right(cm); keysPressed[right] = true; }
-    if (wm.is_key_pressed(te::Key::Escape)) keysPressed[escape] = true;
+    if (wm.is_key_pressed(TE::Key::D)) { move_right(cm); keysPressed[d] = true; }
+    if (wm.is_key_pressed(TE::Key::A)) { move_left(cm);  keysPressed[a] = true; }
+    if (wm.is_key_pressed(TE::Key::W)) { move_up(cm);    keysPressed[w] = true; }
+    if (wm.is_key_pressed(TE::Key::S)) { move_down(cm);  keysPressed[s] = true; }
+    if (wm.is_key_pressed(TE::Key::Up))    { move_up(cm);    keysPressed[up]    = true; }
+    if (wm.is_key_pressed(TE::Key::Down))  { move_down(cm);  keysPressed[down]  = true; }
+    if (wm.is_key_pressed(TE::Key::Left))  { move_left(cm);  keysPressed[left]  = true; }
+    if (wm.is_key_pressed(TE::Key::Right)) { move_right(cm); keysPressed[right] = true; }
+    if (wm.is_key_pressed(TE::Key::Escape)) keysPressed[escape] = true;
 
-    if (!wm.is_key_pressed(te::Key::Escape) && keysPressed[escape]) keysPressed[escape] = false;
-    if (!wm.is_key_pressed(te::Key::A)      && keysPressed[a])      keysPressed[a]      = false;
-    if (!wm.is_key_pressed(te::Key::W)      && keysPressed[w])      keysPressed[w]      = false;
-    if (!wm.is_key_pressed(te::Key::S)      && keysPressed[s])      keysPressed[s]      = false;
-    if (!wm.is_key_pressed(te::Key::D)      && keysPressed[d])      keysPressed[d]      = false;
-    if (!wm.is_key_pressed(te::Key::Up)     && keysPressed[up])     keysPressed[up]     = false;
-    if (!wm.is_key_pressed(te::Key::Down)   && keysPressed[down])   keysPressed[down]   = false;
-    if (!wm.is_key_pressed(te::Key::Left)   && keysPressed[left])   keysPressed[left]   = false;
-    if (!wm.is_key_pressed(te::Key::Right)  && keysPressed[right])  keysPressed[right]  = false;
+    if (!wm.is_key_pressed(TE::Key::Escape) && keysPressed[escape]) keysPressed[escape] = false;
+    if (!wm.is_key_pressed(TE::Key::A)      && keysPressed[a])      keysPressed[a]      = false;
+    if (!wm.is_key_pressed(TE::Key::W)      && keysPressed[w])      keysPressed[w]      = false;
+    if (!wm.is_key_pressed(TE::Key::S)      && keysPressed[s])      keysPressed[s]      = false;
+    if (!wm.is_key_pressed(TE::Key::D)      && keysPressed[d])      keysPressed[d]      = false;
+    if (!wm.is_key_pressed(TE::Key::Up)     && keysPressed[up])     keysPressed[up]     = false;
+    if (!wm.is_key_pressed(TE::Key::Down)   && keysPressed[down])   keysPressed[down]   = false;
+    if (!wm.is_key_pressed(TE::Key::Left)   && keysPressed[left])   keysPressed[left]   = false;
+    if (!wm.is_key_pressed(TE::Key::Right)  && keysPressed[right])  keysPressed[right]  = false;
 
     // Edge scrolling
     {

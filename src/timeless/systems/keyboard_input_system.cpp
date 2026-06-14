@@ -16,42 +16,42 @@ glm::vec4 KeyboardInputSystem::calculate_collider(glm::vec3 position,
 }
 
 void KeyboardInputSystem::update(ComponentManager &cm, WindowManager &wm) {
-    if (wm.is_key_pressed(te::Key::Escape)) {
+    if (wm.is_key_pressed(TE::Key::Escape)) {
         keysPressed[escape] = true;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("PressEscape"), entity);
     }
-    if (!wm.is_key_pressed(te::Key::Escape) && keysPressed[escape]) {
+    if (!wm.is_key_pressed(TE::Key::Escape) && keysPressed[escape]) {
         keysPressed[escape] = false;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("ReleaseEscape"), entity);
     }
-    if (wm.is_key_pressed(te::Key::Space) && !keysPressed[space]) {
+    if (wm.is_key_pressed(TE::Key::Space) && !keysPressed[space]) {
         keysPressed[space] = true;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("PressSpace"), entity);
     }
-    if (!wm.is_key_pressed(te::Key::Space) && keysPressed[space]) {
+    if (!wm.is_key_pressed(TE::Key::Space) && keysPressed[space]) {
         keysPressed[space] = false;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("ReleaseSpace"), entity);
     }
-    if (wm.is_key_pressed(te::Key::Enter) && !keysPressed[enter]) {
+    if (wm.is_key_pressed(TE::Key::Enter) && !keysPressed[enter]) {
         keysPressed[enter] = true;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("PressEnter"), entity);
     }
-    if (!wm.is_key_pressed(te::Key::Enter) && keysPressed[enter]) {
+    if (!wm.is_key_pressed(TE::Key::Enter) && keysPressed[enter]) {
         keysPressed[enter] = false;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("ReleaseEnter"), entity);
     }
-    if (wm.is_key_pressed(te::Key::F) && !keysPressed[f]) {
+    if (wm.is_key_pressed(TE::Key::F) && !keysPressed[f]) {
         keysPressed[f] = true;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("PressF"), entity);
     }
-    if (!wm.is_key_pressed(te::Key::F) && keysPressed[f]) {
+    if (!wm.is_key_pressed(TE::Key::F) && keysPressed[f]) {
         keysPressed[f] = false;
         for (auto &entity : registered_entities)
             notify_listener(cm, new KeyboardEvent("ReleaseF"), entity);

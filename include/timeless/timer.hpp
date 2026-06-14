@@ -12,23 +12,23 @@ public:
     Timer()
     {
         secondsToWait = 1.0;
-        start = te::now_seconds();
+        start = TE::now_seconds();
     }
     Timer(double secondsToWait)
         : secondsToWait(secondsToWait)
     {
-        start = te::now_seconds();
+        start = TE::now_seconds();
     }
     void startTimer()
     {
-        start = te::now_seconds();
+        start = TE::now_seconds();
     }
     bool pollTime()
     {
-        double current = te::now_seconds();
+        double current = TE::now_seconds();
         if (current - start >= secondsToWait)
         {
-            start = te::now_seconds();
+            start = TE::now_seconds();
             return true;
         }
         return false;

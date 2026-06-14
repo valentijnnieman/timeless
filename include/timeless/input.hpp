@@ -9,7 +9,7 @@
 // Translation to the underlying backend's scancodes lives in the platform .cpp.
 // ===========================================================================
 
-namespace te {
+namespace TE {
 
 // Engine key identifiers. Values are arbitrary (the backend mapping is internal);
 // the contiguous A..Z and Num0..Num9 runs are guaranteed so callers can index
@@ -49,4 +49,4 @@ inline Key key_digit(int n) {
 // Defined in src/timeless/managers/window_manager.cpp via the SDL backend.
 double now_seconds();
 
-} // namespace te
+} // namespace TE

@@ -63,8 +63,8 @@ public:
   void swap_buffers();
   void poll_events();              // pumps backend events into engine handlers
   bool should_close();             // SDL_QUIT or TE::quit() was called
-  bool is_key_pressed(te::Key key); // polling query (replaces glfwGetKey)
-  bool is_mouse_button_pressed(te::MouseButton button); // replaces glfwGetMouseButton
+  bool is_key_pressed(TE::Key key); // polling query (replaces glfwGetKey)
+  bool is_mouse_button_pressed(TE::MouseButton button); // replaces glfwGetMouseButton
   glm::vec2 get_cursor_position();  // current cursor in window pixels
   void set_cursor_visible(bool visible); // show/hide the OS cursor
 

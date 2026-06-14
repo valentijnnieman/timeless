@@ -11,8 +11,8 @@ struct PlatformWindow {
 
 namespace {
 // Map engine keys to SDL scancodes (used by is_key_pressed / SDL_GetKeyboardState).
-SDL_Scancode to_scancode(te::Key key) {
-  using K = te::Key;
+SDL_Scancode to_scancode(TE::Key key) {
+  using K = TE::Key;
   switch (key) {
     case K::A: return SDL_SCANCODE_A; case K::B: return SDL_SCANCODE_B;
     case K::C: return SDL_SCANCODE_C; case K::D: return SDL_SCANCODE_D;
@@ -53,7 +53,7 @@ SDL_Scancode to_scancode(te::Key key) {
 }
 } // namespace
 
-double te::now_seconds() {
+double TE::now_seconds() {
   static const Uint64 start = SDL_GetPerformanceCounter();
   static const double freq = static_cast<double>(SDL_GetPerformanceFrequency());
   return static_cast<double>(SDL_GetPerformanceCounter() - start) / freq;
@@ -264,7 +264,7 @@ void WindowManager::set_shader_time(std::shared_ptr<Shader> shader) {
 
   GLint timeLoc = glGetUniformLocation(shader->ID, "time");
   if (timeLoc != -1)
-    glUniform1f(timeLoc, static_cast<float>(te::now_seconds()));
+    glUniform1f(timeLoc, static_cast<float>(TE::now_seconds()));
 
   if (screen_shaders.size() > 0) {
     GLint resLoc = glGetUniformLocation(screen_shaders[0]->ID, "resolution");
@@ -336,8 +336,10 @@ void WindowManager::poll_events() {
         break;
 
       case SDL_WINDOWEVENT:
-        if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
-            e.window.event == SDL_WINDOWEVENT_RESIZED) {
+        // SIZE_CHANGED covers both API- and user-driven resizes; RESIZED is a
+        // subset SDL also posts for user resizes, so handling it too would fire
+        // a duplicate "ResizeWindow" and rebuild framebuffers twice.
+        if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           handle_resize(e.window.data1, e.window.data2);
         } else if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
           quit_requested = true;
@@ -396,19 +398,19 @@ bool WindowManager::should_close() {
   return quit_requested || !running;
 }
 
-bool WindowManager::is_key_pressed(te::Key key) {
+bool WindowManager::is_key_pressed(TE::Key key) {
   const Uint8 *state = SDL_GetKeyboardState(nullptr);
   SDL_Scancode sc = to_scancode(key);
   if (sc == SDL_SCANCODE_UNKNOWN) return false;
   return state[sc] != 0;
 }
 
-bool WindowManager::is_mouse_button_pressed(te::MouseButton button) {
+bool WindowManager::is_mouse_button_pressed(TE::MouseButton button) {
   Uint32 state = SDL_GetMouseState(nullptr, nullptr);
   switch (button) {
-    case te::MouseButton::Left:   return (state & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-    case te::MouseButton::Right:  return (state & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    case te::MouseButton::Middle: return (state & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+    case TE::MouseButton::Left:   return (state & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    case TE::MouseButton::Right:  return (state & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+    case TE::MouseButton::Middle: return (state & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
   }
   return false;
 }
