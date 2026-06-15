@@ -384,10 +384,65 @@ void WindowManager::poll_events() {
         break;
       }
 
+      // Touch fingers. SDL reports normalized [0,1] coords; scale to window
+      // pixels so pan deltas share units with mouse handling. With two fingers
+      // down this drives camera pan (centroid) + pinch-zoom (spread). Single
+      // taps are still delivered as synthesized mouse clicks by SDL, so simple
+      // click interactions keep working without touching this path.
+      case SDL_FINGERDOWN:
+      case SDL_FINGERMOTION: {
+        long long id = (long long)e.tfinger.fingerId;
+        active_touches[id] = glm::vec2(e.tfinger.x * TESettings::WINDOW_X,
+                                       e.tfinger.y * TESettings::WINDOW_Y);
+        update_touch_gesture();
+        break;
+      }
+
+      case SDL_FINGERUP: {
+        active_touches.erase((long long)e.tfinger.fingerId);
+        update_touch_gesture();
+        break;
+      }
+
       default:
         break;
     }
   }
+}
+
+// Recompute the two-finger gesture baseline after any finger event. While
+// exactly two fingers are down we accumulate centroid movement (pan) and the
+// change in their separation (pinch) relative to the previous update; anything
+// other than two fingers resets the baseline so the next pinch starts clean.
+void WindowManager::update_touch_gesture() {
+  if (active_touches.size() == 2) {
+    auto it = active_touches.begin();
+    glm::vec2 a = it->second;
+    glm::vec2 b = (++it)->second;
+    glm::vec2 centroid = (a + b) * 0.5f;
+    float spread = glm::length(a - b);
+    if (two_finger_active) {
+      touch_pan_accum += centroid - gesture_centroid;
+      touch_pinch_accum += spread - gesture_spread;
+    }
+    gesture_centroid = centroid;
+    gesture_spread = spread;
+    two_finger_active = true;
+  } else {
+    two_finger_active = false;
+  }
+}
+
+glm::vec2 WindowManager::consume_touch_pan() {
+  glm::vec2 v = touch_pan_accum;
+  touch_pan_accum = glm::vec2(0.0f);
+  return v;
+}
+
+float WindowManager::consume_touch_pinch() {
+  float v = touch_pinch_accum;
+  touch_pinch_accum = 0.0f;
+  return v;
 }
 
 void WindowManager::swap_buffers() {

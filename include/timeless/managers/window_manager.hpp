@@ -7,6 +7,7 @@
 #include <glad/glad.h>
 #endif
 #include <iostream>
+#include <map>
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
@@ -48,6 +49,18 @@ public:
   glm::vec2 raw_mouse_position;
   glm::vec2 shader_mouse_position;
 
+  // --- Touch gestures (iOS / any SDL touch device) ---
+  // Active fingers keyed by SDL_FingerID (stored as long long so SDL types stay
+  // out of this header), in window pixels. When exactly two are down we treat
+  // it as a pan+pinch gesture and accumulate the deltas below; callers drain
+  // them each frame via consume_touch_pan()/consume_touch_pinch().
+  std::map<long long, glm::vec2> active_touches;
+  bool two_finger_active = false;       // had exactly 2 fingers last update
+  glm::vec2 gesture_centroid{0.0f};     // last two-finger midpoint (pixels)
+  float gesture_spread = 0.0f;          // last distance between the two fingers
+  glm::vec2 touch_pan_accum{0.0f};      // unconsumed centroid movement (pixels)
+  float touch_pinch_accum = 0.0f;       // unconsumed spread change (pixels)
+
   unsigned int ScreenVAO, ScreenVBO;
 
   // Backend window + GL context, hidden behind an opaque handle (PIMPL).
@@ -68,6 +81,13 @@ public:
   glm::vec2 get_cursor_position();  // current cursor in window pixels
   void set_cursor_visible(bool visible); // show/hide the OS cursor
 
+  // Two-finger gesture deltas accumulated since the last call (and reset by it).
+  // Pan is centroid movement in window pixels; pinch is the change in finger
+  // spread (positive = fingers moved apart). Zero when fewer than two fingers
+  // are down. Poll these once per frame, like is_key_pressed.
+  glm::vec2 consume_touch_pan();
+  float consume_touch_pinch();
+
   void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true);
   void select_framebuffer(size_t idx, bool clear = true);
   void resize_framebuffers(int new_width, int new_height);
@@ -76,6 +96,7 @@ public:
   void set_shader_mouse_position(glm::vec2 mouse_pos);
 
   void handle_resize(int width, int height);
+  void update_touch_gesture(); // recompute two-finger pan/pinch from active_touches
   void mouse_move_handler(MouseMoveEvent *event);
   void mouse_click_handler(MouseEvent *event);
   void mouse_release_handler(MouseEvent *event);
