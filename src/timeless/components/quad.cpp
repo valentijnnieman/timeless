@@ -36,7 +36,6 @@ Quad::~Quad()
 }
 
 void Quad::attributes() {
-    std::cout << "Setting up quad attributes" << std::endl;
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
