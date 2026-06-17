@@ -28,7 +28,7 @@ void SoundSystem::init() {
     }
 }
 
-void SoundSystem::load_bank_files(std::string master_bank_filename,
+bool SoundSystem::load_bank_files(std::string master_bank_filename,
                                    std::string strings_bank_filename) {
     if (masterBank == NULL) {
         FMOD_RESULT result = fmodSystem->loadBankFile(
@@ -36,7 +36,7 @@ void SoundSystem::load_bank_files(std::string master_bank_filename,
             &masterBank);
         if (result != FMOD_OK) {
             printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-            exit(-1);
+            return false;
         }
     }
     if (stringsBank == NULL) {
@@ -45,10 +45,11 @@ void SoundSystem::load_bank_files(std::string master_bank_filename,
             &stringsBank);
         if (result != FMOD_OK) {
             printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-            exit(-1);
+            return false;
         }
     }
     std::cout << "[TIMELESS] Sound banks loaded!" << std::endl;
+    return true;
 }
 
 void SoundSystem::update(ComponentManager &cm) {

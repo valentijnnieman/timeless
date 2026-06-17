@@ -40,7 +40,7 @@ public:
   float sampling_rate = 48000;
   void register_camera(Entity c);
   void init();
-  void load_bank_files(std::string master_bank_filename = "Assets/sound/Master.bank",
+  bool load_bank_files(std::string master_bank_filename = "Assets/sound/Master.bank",
                        std::string strings_bank_filename = "Assets/sound/Master.strings.bank");
   void update(ComponentManager &cm);
   void set_parameter(const std::string &name, int value);
