@@ -94,6 +94,11 @@ if(EMSCRIPTEN)
     )
     target_link_options(${PROJECT_NAME} PUBLIC
       -sALLOW_MEMORY_GROWTH=1
+      # With --shared-memory (pthreads) the ~20MB of --embed-file Assets pushes
+      # static data past the default 16MB initial-memory floor, so raise it.
+      # 64MB = ~21.5MB static + headroom for the runtime heap; growth covers the
+      # rest. (Not needed in the single-threaded branch, which grows cheaply.)
+      -sINITIAL_MEMORY=67108864
       -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
       -sUSE_FREETYPE=1
       -sUSE_SDL=2
@@ -120,6 +125,14 @@ if(EMSCRIPTEN)
       --embed-file Assets
     )
   endif()
+
+  # Default web shell (canvas scaling, fullscreen, audio start-gate) for every
+  # game that links timeless. PUBLIC so it propagates to the consuming
+  # executable's link; a game can override it by adding its own --shell-file
+  # later (the last --shell-file wins). See web/README.md.
+  target_link_options(${PROJECT_NAME} PUBLIC
+    --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+
   target_link_libraries(${PROJECT_NAME} glm assimp)
   # FMOD lives only in the audio module.
   target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
