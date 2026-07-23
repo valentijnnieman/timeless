@@ -30,6 +30,13 @@ public:
   std::string currentAnimation;
   float currentTime = 0.0f;
   bool playing = true;
+  // Per-play loop control, set by setAnimation. Overrides the clip's own loop
+  // flag so the same clip can be looped or played once depending on the caller.
+  bool loop = true;
+  // For one-shot (loop == false) clips: when true, drop the clip once it
+  // finishes so the skeleton snaps back to the Blender rest (bind) pose instead
+  // of freezing on the last frame.
+  bool restWhenFinished = false;
 
   // Animation name -> AnimationData
   std::unordered_map<std::string, SkeletalAnimationData> animations;
@@ -57,11 +64,14 @@ public:
     }
   }
 
-  void setAnimation(const std::string &name) {
+  void setAnimation(const std::string &name, bool loop = true,
+                    bool restWhenFinished = false) {
     if (animations.find(name) != animations.end() && currentAnimation != name) {
       currentAnimation = name;
       currentTime = 0.0f;
       playing = true;
+      this->loop = loop;
+      this->restWhenFinished = restWhenFinished;
     }
   }
 
@@ -78,10 +88,19 @@ public:
 
     const SkeletalAnimationData &anim = animations.at(currentAnimation);
     currentTime += dt;
-    if (anim.loop && anim.duration > 0.0f)
+    if (loop && anim.duration > 0.0f) {
       currentTime = fmod(currentTime, anim.duration);
-    else if (currentTime > anim.duration)
+    } else if (currentTime > anim.duration) {
       currentTime = anim.duration;
+      if (restWhenFinished) {
+        // One-shot finished: clear the clip and stop advancing so the pose
+        // below is computed with no active animation, i.e. the bind/rest pose.
+        // We still fall through this frame to compute that pose once; later
+        // frames early-return on !playing and hold the rest pose.
+        currentAnimation = "";
+        playing = false;
+      }
+    }
 
     poseMatrices.resize(model->boneInfos.size(), glm::mat4(1.0f));
 
