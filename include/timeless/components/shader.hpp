@@ -45,6 +45,12 @@ public:
         attrib_cache[name] = loc;
         return loc;
     }
+
+    // Caller must have called use() first — this only uploads to whichever
+    // program is currently bound, same as every other raw glUniform* call.
+    void set_vec3(const std::string& name, const glm::vec3& v) {
+        glUniform3f(get_uniform(name), v.x, v.y, v.z);
+    }
 };
 
 #endif

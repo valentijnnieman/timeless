@@ -178,6 +178,26 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void WindowManager::render_background_quad(std::shared_ptr<Shader> shader) {
+  if (!shader) return;
+  // Depth-mask off: this is a screen-space quad drawn at the start of the
+  // scene pass, so it must not leave depth values behind that would occlude
+  // the 3D scene drawn right after it.
+  glDepthMask(GL_FALSE);
+
+  shader->use();
+  glBindVertexArray(ScreenVAO);
+
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::VIEWPORT_X);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::VIEWPORT_Y);
+  set_shader_time(shader);
+
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBindVertexArray(0);
+
+  glDepthMask(GL_TRUE);
+}
+
 void WindowManager::set_shader_time(std::shared_ptr<Shader> shader) {
   if (!shader)
     return;
