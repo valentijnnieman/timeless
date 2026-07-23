@@ -59,6 +59,7 @@ public:
   void select_framebuffer(size_t idx, bool clear = true);
   void resize_framebuffers(int new_width, int new_height);
   void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false);
+  void render_background_quad(std::shared_ptr<Shader> shader);
   void set_shader_time(std::shared_ptr<Shader> shader);
   void set_shader_mouse_position(glm::vec2 mouse_pos);
 
