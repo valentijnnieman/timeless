@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!-- Default Emscripten shell for timeless games (see web/README.md). Wired
+         in automatically via timeless's PUBLIC --shell-file link option. A game
+         that wants its own branding can point --shell-file at its own copy. -->
+    <style>
+    body {
+      font-family: arial;
+      margin: 0;
+      padding: 0;
+      background-color: #0d0d0d;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    h1, p{ text-align: center;}
+
+    .emscripten { padding-right: 0; display: block; }
+    div.emscripten { text-align: center; }
+    div.emscripten_border { border: 1px solid black; }
+    canvas.emscripten { border: 0px none; background-color: black; }
+
+    #fullscreen-btn {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    #fullscreen-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Click-to-start overlay: the browser blocks audio until a user gesture, so
+       the game's main loop holds its simulation until #start-overlay is clicked.
+       This covers the canvas so the player knows to click and so nothing of the
+       intro is seen before audio is unlocked. */
+    #start-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0d0d0d;
+      cursor: pointer;
+      font-size: 28px;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.85);
+      user-select: none;
+    }
+    #start-overlay.hidden { display: none; }
+    </style>
+</head>
+
+<body>
+    <!-- Create the canvas that the C++ code will draw into -->
+    <div id="canvas-wrapper">
+      <canvas width="1920" height="1080" class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+    <input id="fullscreen-btn" type="button" value="⛶ Fullscreen" onclick="goFullscreen()">
+    <div id="start-overlay">Loading…</div>
+
+    <!-- Allow the C++ to access the canvas element -->
+    <script type='text/javascript'>
+        // Track every AudioContext the page creates. FMOD makes its own context
+        // during init; to unlock audio we must resume *that* exact context, not a
+        // throwaway one. Patch the constructor here — before the Emscripten module
+        // (and thus FMOD) loads — so every instance is recorded in _audioContexts.
+        (function() {
+            var Native = window.AudioContext || window.webkitAudioContext;
+            if (!Native) return;
+            window._audioContexts = [];
+            var Patched = new Proxy(Native, {
+                construct: function(target, args) {
+                    var ctx = new target(...args);
+                    window._audioContexts.push(ctx);
+                    return ctx;
+                }
+            });
+            window.AudioContext = Patched;
+            if (window.webkitAudioContext) window.webkitAudioContext = Patched;
+        })();
+
+        var Module = {
+            canvas: (function() { return document.getElementById('canvas'); })(),
+            // Marks when the wasm runtime is up (FMOD initialises just after, in
+            // main()). The start gate uses this — not time-since-click — to decide
+            // audio is unavailable, so a slow (large) download doesn't trip the
+            // fallback before FMOD has had a chance to create its context.
+            onRuntimeInitialized: function() { window._runtimeReady = Date.now(); }
+        };
+
+        function applyCanvasScale() {
+            var canvas = document.getElementById('canvas');
+            // Use the actual canvas buffer size as the reference so that platforms
+            // like itch.io (which constrain the iframe to e.g. 1280x720 and have
+            // Emscripten set canvas.width/height accordingly) are handled correctly.
+            // Fall back to 1920x1080 only before the canvas is initialised.
+            var canvasW = canvas.width > 0 ? canvas.width : 1920;
+            var canvasH = canvas.height > 0 ? canvas.height : 1080;
+            // Fit the fixed-resolution canvas into the available space, preserving
+            // aspect ratio (letterbox). No upper cap: timeless renders at a fixed
+            // backing store, so to actually fill a fullscreen (or larger) viewport
+            // we must be allowed to scale ABOVE 1.0 — capping at 1.0 left the canvas
+            // at native size with black bars filling the rest.
+            var scale = Math.min(window.innerWidth / canvasW, window.innerHeight / canvasH);
+            var wrapper = document.getElementById('canvas-wrapper');
+            var targetTransform = 'scale(' + scale + ')';
+            var targetW = Math.round(canvasW * scale) + 'px';
+            var targetH = Math.round(canvasH * scale) + 'px';
+
+            // Size the wrapper to the visual dimensions for correct page layout.
+            wrapper.style.width = targetW;
+            wrapper.style.height = targetH;
+            wrapper.style.overflow = 'hidden';
+
+            // Scale the canvas visually via transform, NOT via style.width/height.
+            // Reason: Emscripten overrides Browser.calculateMouseCoords with a
+            // version that uses canvas.clientWidth (CSS layout size). If we change
+            // style.width, clientWidth shrinks and the ratio clientWidth/rect.width = 1
+            // — no correction, mouse coords are in CSS pixels not buffer pixels.
+            // With transform: scale(), clientWidth stays at the buffer width but
+            // getBoundingClientRect().width = visual size, so the ratio correctly
+            // maps visual clicks back to buffer coordinates.
+            if (canvas.style.transform !== targetTransform) {
+                canvas.style.transform = targetTransform;
+                canvas.style.transformOrigin = 'top left';
+            }
+        }
+        applyCanvasScale();
+        window.addEventListener('resize', applyCanvasScale);
+
+        // Use the native Fullscreen API on the document root rather than
+        // Module.requestFullscreen: Emscripten's version resizes/repositions the
+        // canvas backing store and fights applyCanvasScale, which left the canvas
+        // at native size on a black screen. The body is flex-centered on black, so
+        // fullscreening the root and letting applyCanvasScale upscale the canvas
+        // gives a centered, letterboxed, full-screen image.
+        function goFullscreen() {
+            var el = document.documentElement;
+            var req = el.requestFullscreen || el.webkitRequestFullscreen ||
+                      el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (req) {
+                var r = req.call(el);
+                if (r && r.catch) r.catch(function() {});
+            }
+        }
+        // The fullscreen transition fires resize, but re-apply explicitly too in
+        // case innerWidth/Height settle a frame late.
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(function(ev) {
+            document.addEventListener(ev, function() { setTimeout(applyCanvasScale, 50); });
+        });
+
+        // Emscripten's canvas setup sets canvas.style.width/height, triggering this
+        // observer. Re-apply our scale transform each time. The transform-equality
+        // guard above prevents loops.
+        (function() {
+            var canvas = document.getElementById('canvas');
+            var obs = new MutationObserver(function() {
+                applyCanvasScale();
+            });
+            obs.observe(canvas, { attributes: true, attributeFilter: ['style'] });
+        })();
+
+        // Resume every tracked AudioContext that's still suspended. Safe to call
+        // repeatedly; once the page has a user gesture (sticky activation), these
+        // resume() calls succeed even outside an event handler.
+        function resumeAllAudio() {
+            (window._audioContexts || []).forEach(function(ctx) {
+                if (ctx && ctx.state !== 'running' && ctx.resume) {
+                    ctx.resume().catch(function() {});
+                }
+            });
+        }
+        document.addEventListener('click', resumeAllAudio);
+        document.addEventListener('keydown', resumeAllAudio);
+
+        // FMOD's output AudioContext, once the module has created it.
+        function fmodContext() {
+            var M = window.Module || {};
+            return M.mContext || M.context || (M.SDL2 && M.SDL2.audioContext) || null;
+        }
+
+        // Start gate. The game's main loop must freeze its simulation until
+        // window._timelessStarted is true (poll it via emscripten_run_script_int;
+        // see beach/app.hpp for the reference implementation). Two hard browser
+        // rules drive the design here:
+        //   1. Audio can only be unlocked by a user gesture in THIS iframe's
+        //      document. itch's "Run game" click is in the parent page and does
+        //      not count, so we need our own click.
+        //   2. AudioContext.resume() must be called *synchronously inside* that
+        //      gesture handler. Resuming from a timer/promise later does NOT work
+        //      in a cross-origin iframe even after a prior gesture — that was why
+        //      audio stayed silent until a second manual click.
+        // So we can't start on the first click if FMOD hasn't created its context
+        // yet (a fast click beats the large wasm load). Instead we wait until the
+        // context exists, THEN enable the prompt, so the click that starts the game
+        // also resumes the context in-handler.
+        var overlay = document.getElementById('start-overlay');
+        window._timelessStarted = false;
+        var audioReady = false;
+
+        var waitAudio = setInterval(function() {
+            var ctx = fmodContext();
+            // No context yet, but the runtime has been up a while → audio is
+            // unavailable (e.g. no sound banks); allow starting without it.
+            var noAudio = !ctx && window._runtimeReady &&
+                          Date.now() - window._runtimeReady > 5000;
+            if (ctx || noAudio) {
+                clearInterval(waitAudio);
+                audioReady = true;
+                overlay.textContent = '▶ Click to start';
+            }
+        }, 100);
+
+        function startGame() {
+            if (window._timelessStarted) return;
+            if (!audioReady) return; // still loading — ignore early clicks
+            function begin() {
+                window._timelessStarted = true;
+                overlay.classList.add('hidden');
+            }
+            var ctx = fmodContext();
+            // Must call resume() right here, in the gesture, for the iframe to
+            // actually unlock audio. begin() either way so a no-audio build starts.
+            if (ctx && ctx.resume) ctx.resume().then(begin, begin);
+            else begin();
+        }
+        overlay.addEventListener('click', startGame);
+
+</script>
+
+    <!-- Add the javascript glue code (index.js) as generated by Emscripten -->
+    {{{ SCRIPT }}}
+</body>
+
+</html>

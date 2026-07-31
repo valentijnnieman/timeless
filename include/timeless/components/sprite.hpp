@@ -5,7 +5,7 @@
 #else
 #include <glad/glad.h>
 #endif
-#include <GLFW/glfw3.h>
+#include "timeless/input.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>

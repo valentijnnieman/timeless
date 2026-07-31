@@ -79,6 +79,18 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     glBindAttribLocation(ID, 1, "aTexCoords");
     glBindAttribLocation(ID, 2, "aTexCoord");
     glLinkProgram(ID);
+    {
+        // A program that fails to link (e.g. too many uniform vectors on WebGL2,
+        // where MAX_VERTEX_UNIFORM_VECTORS may be as low as 256) otherwise fails
+        // silently and renders nothing. Surface it.
+        GLint linked = 0;
+        glGetProgramiv(ID, GL_LINK_STATUS, &linked);
+        if (!linked) {
+            char infoLog[1024];
+            glGetProgramInfoLog(ID, 1024, NULL, infoLog);
+            std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+        }
+    }
     glUseProgram(ID);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(vertex);
@@ -131,6 +143,18 @@ Shader::Shader(const std::vector<uint8_t>& vertexBuffer, const std::vector<uint8
     glBindAttribLocation(ID, 1, "aTexCoords");
     glBindAttribLocation(ID, 2, "aTexCoord");
     glLinkProgram(ID);
+    {
+        // A program that fails to link (e.g. too many uniform vectors on WebGL2,
+        // where MAX_VERTEX_UNIFORM_VECTORS may be as low as 256) otherwise fails
+        // silently and renders nothing. Surface it.
+        GLint linked = 0;
+        glGetProgramiv(ID, GL_LINK_STATUS, &linked);
+        if (!linked) {
+            char infoLog[1024];
+            glGetProgramInfoLog(ID, 1024, NULL, infoLog);
+            std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+        }
+    }
     glUseProgram(ID);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(vertex);

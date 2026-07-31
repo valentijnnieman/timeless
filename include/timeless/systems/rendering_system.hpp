@@ -59,45 +59,6 @@ public:
   // of the day-cycle formula (cos(angle)*0.5+0.1).
   float ambientStrength = -1.0f;
 
-  // Per-entity sun-burn, applied as shader uniforms around the model draw, so
-  // entities sharing one Model burn individually. xyz = burn colour (albedo
-  // multiply target), w = amount 0..1. The fragment shader reddens only sunlit
-  // fragments (shadowed parts are spared). Absent entities render unburnt.
-  std::unordered_map<Entity, glm::vec4> entity_burn;
-  void set_entity_burn(Entity e, glm::vec3 color, float amount) {
-    entity_burn[e] = glm::vec4(color, amount);
-  }
-  void clear_entity_burn(Entity e) { entity_burn.erase(e); }
-
-  // Per-entity sun-tan — same mechanism as burn (xyz = tan colour, w = amount).
-  // Tan and burn stack in the shader; both only show on sunlit fragments.
-  std::unordered_map<Entity, glm::vec4> entity_tan;
-  void set_entity_tan(Entity e, glm::vec3 color, float amount) {
-    entity_tan[e] = glm::vec4(color, amount);
-  }
-  void clear_entity_tan(Entity e) { entity_tan.erase(e); }
-
-  // Per-entity "sheen" (0..1) — a freshly-oiled gloss + selection rim, used to
-  // show which bod is being lotioned. Same per-draw-uniform mechanism as burn.
-  std::unordered_map<Entity, float> entity_sheen;
-  void set_entity_sheen(Entity e, float v) { entity_sheen[e] = v; }
-  void clear_entity_sheen(Entity e) { entity_sheen.erase(e); }
-
-  // Per-entity alpha (0..1) for translucent models — the shader outputs this as
-  // the fragment alpha and the renderer drops depth writes for translucent
-  // entities so they don't occlude geometry behind them (e.g. an umbrella faded
-  // to reveal the bod underneath). Absent entities render fully opaque.
-  std::unordered_map<Entity, float> entity_alpha;
-  void set_entity_alpha(Entity e, float v) { entity_alpha[e] = v; }
-  void clear_entity_alpha(Entity e) { entity_alpha.erase(e); }
-
-  // Per-entity "pants" colour — tints just the mesh named "Pants" (flagged by the
-  // model's isPants uniform), so each bod can wear different-coloured trunks while
-  // sharing one Model. Absent entities render the mesh's own colour (white tint).
-  std::unordered_map<Entity, glm::vec3> entity_pants;
-  void set_entity_pants_color(Entity e, glm::vec3 c) { entity_pants[e] = c; }
-  void clear_entity_pants(Entity e) { entity_pants.erase(e); }
-
   // Entities that should not cast directional shadows (skipped in the depth
   // pass) — e.g. a sky sun placed near the light, which otherwise drops a stray
   // shadow on the beach.
@@ -107,6 +68,15 @@ public:
       no_shadow_cast.erase(e);
     else
       no_shadow_cast.insert(e);
+  }
+
+  // Entity IDs are recycled (see create_entity's free list), so a stale entry
+  // left here would bleed onto whatever reuses the id. Drop this entity's
+  // shadow opt-out on destruction; game-owned per-entity state cleans itself up
+  // the same way (a System whose remove_entity is called by TE::remove_entity).
+  void remove_entity(Entity e) override {
+    no_shadow_cast.erase(e);
+    System::remove_entity(e);
   }
 
   // Shadow mapping (directional light only)

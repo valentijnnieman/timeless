@@ -186,13 +186,13 @@ public:
 		// here we can define how and when to update our systems, and call rendering functions.
 		// we can also define some boilerplate frame limiting stuff (more to come soon)
     TE::loop(
-      [&](GLFWwindow *window, ComponentManager &cm, WindowManager &wm)
+      [&](WindowManager &wm, ComponentManager &cm)
       {
           // update certain systems here, so the framerate for these are smoother.
-          // for the AI system, this is especially important, because we don't want the 
-          // ticks to update variably based on a users system. 
-          TE::get_system<MovementSystem>("MovementSystem")->update(cm, window);
-          TE::get_system<KeyboardInputSystem>("KeyboardInputSystem")->update(cm, window);
+          // for the AI system, this is especially important, because we don't want the
+          // ticks to update variably based on a users system.
+          TE::get_system<MovementSystem>("MovementSystem")->update(cm, wm);
+          TE::get_system<KeyboardInputSystem>("KeyboardInputSystem")->update(cm, wm);
           TE::get_system<NpcAiSystem>("NpcAiSystem")->update(cm);
           // TE::get_system<AnimationSystem>("AnimationSystem")->update(cm);
 
@@ -213,8 +213,8 @@ public:
           TE::get_system<RenderingSystem>("UIRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
           TE::get_system<RenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 
-          glfwSwapBuffers(window);
-          glfwPollEvents();
+          wm.swap_buffers();
+          wm.poll_events();
       });
   }
 };
@@ -228,13 +228,11 @@ int main()
   // Receives a function to call and some user data to provide it.
   emscripten_set_main_loop(game.loop, 0, 1);
 #else
-    while (!glfwWindowShouldClose(wm->window) && wm->running)
+    while (!wm->should_close())
     {
       game.loop();
     }
 #endif
-
-	glfwTerminate();
 
 	return 0;
 }

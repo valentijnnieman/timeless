@@ -1,5 +1,8 @@
 #include "timeless/systems/rendering_system.hpp"
+#include "timeless/components/shader_uniforms.hpp"
+#include "timeless/input.hpp"
 #include <cmath>
+#include <glm/gtc/type_ptr.hpp>
 
 // ---------------------------------------------------------------------------
 // Shadow map setup
@@ -392,7 +395,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
 
   // Cache per-frame values once — avoids redundant matrix computations and
   // system calls inside the per-entity loop.
-  const float time = (float)glfwGetTime();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view{}, projection{};
   glm::vec3 cam_pos{};
   Frustum frustum{};
@@ -591,45 +594,20 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
           if (texture != nullptr)
             texture->render();
 
-          // Per-entity sun-burn uniforms — the fragment shader reddens only the
-          // sunlit fragments. Set 0 for entities without a burn so the previous
-          // entity's value doesn't leak (get_uniform is a no-op == -1 for
-          // shaders without these uniforms).
-          auto burnIt = entity_burn.find(entity);
-          float burnAmt = (burnIt != entity_burn.end()) ? burnIt->second.w : 0.0f;
-          glm::vec3 burnCol = (burnIt != entity_burn.end())
-                                  ? glm::vec3(burnIt->second)
-                                  : glm::vec3(1.0f);
-          glUniform1f(shader->get_uniform("burnAmount"), burnAmt);
-          glUniform3fv(shader->get_uniform("burnColor"), 1,
-                       glm::value_ptr(burnCol));
-          auto tanIt = entity_tan.find(entity);
-          float tanAmt = (tanIt != entity_tan.end()) ? tanIt->second.w : 0.0f;
-          glm::vec3 tanCol = (tanIt != entity_tan.end())
-                                 ? glm::vec3(tanIt->second)
-                                 : glm::vec3(1.0f);
-          glUniform1f(shader->get_uniform("tanAmount"), tanAmt);
-          glUniform3fv(shader->get_uniform("tanColor"), 1,
-                       glm::value_ptr(tanCol));
-          auto sheenIt = entity_sheen.find(entity);
-          glUniform1f(shader->get_uniform("sheen"),
-                      sheenIt != entity_sheen.end() ? sheenIt->second : 0.0f);
-          // Per-entity pants tint (white = unchanged); the model's per-mesh
-          // isPants uniform decides which mesh it actually affects.
-          auto pantsIt = entity_pants.find(entity);
-          glm::vec3 pantsCol = (pantsIt != entity_pants.end()) ? pantsIt->second
-                                                               : glm::vec3(1.0f);
-          glUniform3fv(shader->get_uniform("pantsColor"), 1,
-                       glm::value_ptr(pantsCol));
-          // Per-entity translucency: output as fragment alpha, and for a
-          // translucent entity drop depth writes so it doesn't occlude geometry
-          // behind it (depth test stays on, so it's still hidden by nearer
-          // opaque geometry). Restore the depth mask afterwards.
-          auto alphaIt = entity_alpha.find(entity);
-          float modelAlpha =
-              (alphaIt != entity_alpha.end()) ? alphaIt->second : 1.0f;
-          glUniform1f(shader->get_uniform("modelAlpha"), modelAlpha);
-          bool translucent = modelAlpha < 0.999f;
+          // Per-entity shader uniform overrides (game-specific tints,
+          // translucency, ...) live on an optional ShaderUniforms component, so
+          // the engine stays ignorant of what they mean — it just uploads the
+          // name/value pairs. For a translucent entity drop depth writes so it
+          // doesn't occlude geometry behind it (depth test stays on, so it's
+          // still hidden by nearer opaque geometry). Restore the mask afterwards.
+          bool translucent = false;
+          if (auto su = cm.get_component<ShaderUniforms>(entity)) {
+            for (auto &[name, v] : su->floats)
+              glUniform1f(shader->get_uniform(name), v);
+            for (auto &[name, v] : su->vec3s)
+              glUniform3fv(shader->get_uniform(name), 1, glm::value_ptr(v));
+            translucent = su->translucent;
+          }
           if (translucent)
             glDepthMask(GL_FALSE);
           model->render(transform->model, delta_time,
@@ -751,7 +729,7 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
   glUniform2fv(shader->get_uniform("spriteSheetSize"), 1,
                glm::value_ptr(glm::vec2(texture->width, texture->height)));
 
-  const float time = (float)glfwGetTime();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view = cam->get_view_matrix();
   glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
   glUniformMatrix4fv(shader->get_uniform("projection"), 1,
@@ -868,7 +846,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
   if (cam != nullptr)
     pre_filter_lights(cam);
 
-  const float time = (float)glfwGetTime();
+  const float time = (float)TE::now_seconds();
   glm::mat4 view{}, projection{};
   glm::vec3 cam_pos{};
   if (cam != nullptr) {

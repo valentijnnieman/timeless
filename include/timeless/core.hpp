@@ -21,6 +21,9 @@
 #include <string>
 #include <functional>
 #include <iostream>
+#include <algorithm> // std::swap, std::max/min in the slab test
+#include <cmath>     // std::abs
+#include <limits>    // infinity sentinels in the slab test
 
 // --- glm used by the hit-testing helpers ---
 #include <glm/glm.hpp>
@@ -33,13 +36,14 @@
 #include "timeless/event.hpp"           // MouseEvent, MouseMoveEvent
 #include "timeless/timer.hpp"           // TimerManager
 #include "timeless/managers/component_manager.hpp" // ComponentManager
-#include "timeless/managers/window_manager.hpp"    // WindowManager, glfwTerminate
+#include "timeless/managers/window_manager.hpp"    // WindowManager
 #include "timeless/systems/system.hpp"             // System
 #include "timeless/systems/mouse_input_system.hpp" // MouseInputSystem
 #include "timeless/algorithm/graph.hpp"            // Grid, Node
 #include "timeless/components/transform.hpp"       // Transform
 #include "timeless/components/camera.hpp"          // Camera
 #include "timeless/components/animation.hpp"       // Animation
+#include "timeless/components/model.hpp"           // Model bounds for picking
 #include "timeless/components/mouse_input_listener.hpp" // add_component<MouseInputListener<...>>
 
 namespace TE
@@ -83,8 +87,6 @@ namespace TE
         wm.reset();
 
         std::cout << "TE Cleanup finished" << std::endl;
-        std::cout << "Terminating GLFW..." << std::endl;
-        glfwTerminate();
     }
 
     template <typename T>
@@ -211,9 +213,9 @@ namespace TE
         return wm;
     }
 
-    inline void loop(std::function<void(GLFWwindow *window, ComponentManager &cm, WindowManager &wm)> loop_func)
+    inline void loop(std::function<void(WindowManager &wm, ComponentManager &cm)> loop_func)
     {
-        loop_func(wm->window, *cm, *wm);
+        loop_func(*wm, *cm);
     }
     inline void quit()
     {
@@ -246,33 +248,88 @@ namespace TE
       }
       return false;
     }
+    // Slab test of an infinite line (not a half-ray — callers rely on hits
+    // behind the origin, because the orthographic path below starts the line at
+    // the ortho near plane, which sits 10000 units *behind* the camera).
     //
+    // Axis-by-axis rather than the classic 1/dir form: the orthographic camera
+    // produces direction components that are exactly 0, and dividing by those
+    // yields inf (or 0/0 = NaN when the origin lands exactly on a slab face).
+    // Handling the zero case explicitly keeps degenerate axes exact.
     inline bool intersect_ray_aabb(const glm::vec3 &origin, const glm::vec3 &dir,
                                   const glm::vec3 &aabb_min, const glm::vec3 &aabb_max) {
-      float tmin = (aabb_min.x - origin.x) / dir.x;
-      float tmax = (aabb_max.x - origin.x) / dir.x;
-      if (tmin > tmax) std::swap(tmin, tmax);
+      float tmin = -std::numeric_limits<float>::infinity();
+      float tmax = std::numeric_limits<float>::infinity();
 
-      float tymin = (aabb_min.y - origin.y) / dir.y;
-      float tymax = (aabb_max.y - origin.y) / dir.y;
-      if (tymin > tymax) std::swap(tymin, tymax);
-
-      if ((tmin > tymax) || (tymin > tmax))
-        return false;
-
-      if (tymin > tmin)
-        tmin = tymin;
-      if (tymax < tmax)
-        tmax = tymax;
-
-      float tzmin = (aabb_min.z - origin.z) / dir.z;
-      float tzmax = (aabb_max.z - origin.z) / dir.z;
-      if (tzmin > tzmax) std::swap(tzmin, tzmax);
-
-      if ((tmin > tzmax) || (tzmin > tmax))
-        return false;
-
+      for (int i = 0; i < 3; ++i) {
+        if (std::abs(dir[i]) < 1e-8f) {
+          // Line is parallel to this pair of slabs: it either sits between them
+          // for its whole length or misses entirely.
+          if (origin[i] < aabb_min[i] || origin[i] > aabb_max[i])
+            return false;
+          continue;
+        }
+        float inv = 1.0f / dir[i];
+        float t1 = (aabb_min[i] - origin[i]) * inv;
+        float t2 = (aabb_max[i] - origin[i]) * inv;
+        if (t1 > t2) std::swap(t1, t2);
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        if (tmin > tmax)
+          return false;
+      }
       return true;
+    }
+
+    // World-space box to pick against. Entities carrying a 3D Model are picked
+    // against the model's real bounds pushed through transform->model — the very
+    // matrix RenderingSystem draws them with — so the hit area covers the whole
+    // model (full height included) rather than a flat quad at its origin.
+    // Sprites and anything without model bounds keep the old width/height box.
+    inline void picking_aabb(Entity entity, const std::shared_ptr<Transform>& transform,
+                             glm::vec3 &out_min, glm::vec3 &out_max) {
+      auto model = TE::get_component<Model>(entity);
+      if (model != nullptr && model->has_local_aabb) {
+        glm::vec3 lo = model->local_aabb_min;
+        glm::vec3 hi = model->local_aabb_max;
+
+        // Slack is applied in the model's own space so it scales and rotates
+        // with the model instead of skewing the world-space box.
+        glm::vec3 center = (lo + hi) * 0.5f;
+        glm::vec3 extent = (hi - lo) * 0.5f *
+                           glm::vec3(transform->hit_scale_x, transform->hit_scale_y,
+                                     transform->hit_scale_z);
+        lo = center - extent;
+        hi = center + extent;
+
+        // Bound the 8 transformed corners: the model matrix carries the
+        // isometric 45° spin and per-axis scale, so the local box is not
+        // axis-aligned once it lands in the world.
+        out_min = glm::vec3(std::numeric_limits<float>::max());
+        out_max = glm::vec3(std::numeric_limits<float>::lowest());
+        for (int i = 0; i < 8; ++i) {
+          glm::vec3 corner((i & 1) ? hi.x : lo.x,
+                           (i & 2) ? hi.y : lo.y,
+                           (i & 4) ? hi.z : lo.z);
+          glm::vec3 world = glm::vec3(transform->model * glm::vec4(corner, 1.0f));
+          out_min = glm::min(out_min, world);
+          out_max = glm::max(out_max, world);
+        }
+        return;
+      }
+
+      // peek_position(), not get_position(): the latter pops a frame off the
+      // transform's animation queue, so hit-testing would fast-forward every
+      // animated entity the mouse passes over.
+      glm::vec3 box_center = transform->peek_position();
+      float w = transform->width;
+      float h = transform->height;
+      if (transform->width == 0.0f && transform->height == 0.0f) {
+        w = transform->scale.x * transform->hit_scale_x;
+        h = transform->scale.y * transform->hit_scale_y;
+      }
+      out_min = box_center - glm::vec3(w, h, 0.0f);
+      out_max = box_center + glm::vec3(w, h, 0.0f);
     }
 
     inline bool clicked_on_perspective(MouseEvent* event, Entity entity, float zoom = 1.0f)
@@ -313,16 +370,8 @@ namespace TE
             ray_dir = -glm::normalize(camera->get_forward());
           }
 
-          // Entity bounding box (centered position, width, height)
-          glm::vec3 box_center = transform->get_position();
-          float w = transform->width;
-          float h = transform->height;
-          if(transform->width == 0.0f && transform->height == 0.0f) {
-            w = transform->scale.x * transform->hit_scale_x;
-            h = transform->scale.y * transform->hit_scale_y;
-          }
-          glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
-          glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
+          glm::vec3 box_min, box_max;
+          picking_aabb(entity, transform, box_min, box_max);
 
           return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
         }
@@ -355,6 +404,13 @@ namespace TE
     inline bool hovered_over_perspective(MouseMoveEvent *event, Entity entity,
                                          float zoom = 1.0f) {
       auto transform = TE::get_component<Transform>(entity);
+      // Match clicked_on_perspective: while an animation is playing it is the
+      // animation's root copy that gets rendered, so pick against that one or
+      // hover and click disagree mid-animation.
+      auto animation = TE::get_component<Animation>(entity);
+      if (animation != nullptr && animation->playing) {
+        transform = animation->root->transform;
+      }
       if (transform != nullptr) {
         // Get camera matrices and viewport
         auto camera = transform->camera;
@@ -384,16 +440,8 @@ namespace TE
             ray_dir = -glm::normalize(camera->get_forward());
           }
 
-          // Entity bounding box (centered position, width, height)
-          glm::vec3 box_center = transform->get_position();
-          float w = transform->width;
-          float h = transform->height;
-          if(transform->width == 0.0f && transform->height == 0.0f) {
-            w = transform->scale.x * transform->hit_scale_x;
-            h = transform->scale.y * transform->hit_scale_y;
-          }
-          glm::vec3 box_min = box_center - glm::vec3(w, h, 0.0f);
-          glm::vec3 box_max = box_center + glm::vec3(w, h, 0.0f);
+          glm::vec3 box_min, box_max;
+          picking_aabb(entity, transform, box_min, box_max);
 
           return intersect_ray_aabb(near_point, ray_dir, box_min, box_max);
         }

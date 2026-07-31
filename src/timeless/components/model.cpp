@@ -3,6 +3,7 @@
 #include "assimp/postprocess.h"
 #include "glm/gtc/type_ptr.hpp"
 #include <algorithm>
+#include <limits>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -68,6 +69,32 @@ void Model::processLoadedScene() {
     if (parentIdx != -1 && parentIdx < (int)skeletonBones.size()) {
       skeletonBones[parentIdx].childrenIndices.push_back(i);
     }
+  }
+
+  compute_local_aabb();
+}
+
+void Model::compute_local_aabb() {
+  // Vertices are stored exactly as Assimp gave them (processMesh does not bake
+  // nodeTransform in), and render() feeds them to the shader under
+  // transform->model — for skinned meshes via bone matrices that are identity
+  // at rest. So the raw vertex extents are the model-space bounds, and the
+  // result is the bind pose for animated models. Poses that reach outside it
+  // (a wide stride, a raised arm) are covered by Transform::hit_scale_*.
+  glm::vec3 lo(std::numeric_limits<float>::max());
+  glm::vec3 hi(std::numeric_limits<float>::lowest());
+  bool any = false;
+  for (const auto &mesh : meshes) {
+    for (const auto &v : mesh->vertices) {
+      lo = glm::min(lo, v.Position);
+      hi = glm::max(hi, v.Position);
+      any = true;
+    }
+  }
+  if (any) {
+    local_aabb_min = lo;
+    local_aabb_max = hi;
+    has_local_aabb = true;
   }
 }
 

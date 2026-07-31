@@ -19,5 +19,4 @@ public:
   void mouse_release_handler(ComponentManager &cm, MouseEvent *event);
   void mouse_move_handler(ComponentManager &cm, MouseMoveEvent *event);
   void mouse_scroll_handler(ComponentManager &cm, MouseEvent *event);
-  void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 };

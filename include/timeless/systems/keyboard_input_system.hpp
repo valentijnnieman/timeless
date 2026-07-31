@@ -24,5 +24,5 @@ public:
 
     void notify_listener(ComponentManager &cm, KeyboardEvent *event, Entity entity);
     glm::vec4 calculate_collider(glm::vec3 position, float width, float height);
-    void update(ComponentManager &cm, GLFWwindow *window);
+    void update(ComponentManager &cm, WindowManager &wm);
 };

@@ -15,6 +15,7 @@
 #include "timeless/components/node.hpp"
 #include "timeless/components/particle.hpp"
 #include "timeless/components/shader.hpp"
+#include "timeless/components/shader_uniforms.hpp"
 #include "timeless/components/sprite.hpp"
 #include "timeless/components/text.hpp"
 #include "timeless/components/texture.hpp"
@@ -38,6 +39,7 @@ private:
   auto& map_for(Model*)                              { return models; }
   auto& map_for(Texture*)                            { return textures; }
   auto& map_for(Shader*)                             { return shaders; }
+  auto& map_for(ShaderUniforms*)                     { return shader_uniforms; }
   auto& map_for(Sprite*)                             { return sprites; }
   auto& map_for(Transform*)                          { return transforms; }
   auto& map_for(MouseInputListener<MouseEvent>*)     { return mouse_input_listeners; }
@@ -63,6 +65,7 @@ public:
   std::unordered_map<Entity, std::shared_ptr<Model>> models;
   std::unordered_map<Entity, std::shared_ptr<Texture>> textures;
   std::unordered_map<Entity, std::shared_ptr<Shader>> shaders;
+  std::unordered_map<Entity, std::shared_ptr<ShaderUniforms>> shader_uniforms;
   std::unordered_map<Entity, std::shared_ptr<Sprite>> sprites;
   std::unordered_map<Entity, std::shared_ptr<Transform>> transforms;
   std::unordered_map<Entity, std::shared_ptr<MouseInputListener<MouseEvent>>>
@@ -148,6 +151,7 @@ public:
       models.erase(entity);
       textures.erase(entity);
       shaders.erase(entity);
+      shader_uniforms.erase(entity);
       sprites.erase(entity);
       transforms.erase(entity);
       mouse_input_listeners.erase(entity);
@@ -181,6 +185,7 @@ public:
     models.clear();
     textures.clear();
     shaders.clear();
+    shader_uniforms.clear();
     sprites.clear();
     transforms.clear();
     mouse_input_listeners.clear();

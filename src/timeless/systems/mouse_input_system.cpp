@@ -86,10 +86,3 @@ void MouseInputSystem::mouse_scroll_handler(ComponentManager &cm,
     }
     delete event;
 }
-
-void MouseInputSystem::scroll_callback(GLFWwindow *window, double xoffset,
-                                        double yoffset) {
-    // ViewportSettings::SCR_VIEWPORT_X += (ViewportSettings::SCR_VIEWPORT_X *
-    // yoffset) * 0.5f; ViewportSettings::SCR_VIEWPORT_Y +=
-    // (ViewportSettings::SCR_VIEWPORT_Y * yoffset) * 0.5f;
-}
