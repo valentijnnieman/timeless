@@ -41,6 +41,17 @@ public:
   float index = 0.0f;
   glm::vec4 params = glm::vec4(0.1f, 0.1f, 0.0f, 0.0f); // Example: metallic, roughness, unused, unused
 
+  // Model-space axis-aligned bounds over every mesh vertex, computed once at
+  // load. render() draws each mesh with the entity's transform->model applied
+  // straight to these same vertex positions (skinned meshes additionally go
+  // through bone matrices, which are identity at rest), so transforming this
+  // box by transform->model bounds what is actually on screen. Used for mouse
+  // picking so a hit box can cover a whole 3D model instead of a flat quad.
+  // Only meaningful when has_local_aabb is true.
+  glm::vec3 local_aabb_min = glm::vec3(0.0f);
+  glm::vec3 local_aabb_max = glm::vec3(0.0f);
+  bool has_local_aabb = false;
+
   Model(const std::string &path, std::shared_ptr<Texture> texture,
         std::shared_ptr<Shader> shader)
       : texture(texture), shader(shader) {
@@ -94,6 +105,7 @@ private:
   std::string directory;
 
   void collectBones(const aiScene* scene);
+  void compute_local_aabb();
   void loadModel(const std::string &path, bool from_blender = false);
   void loadModelFromMemory(const std::vector<uint8_t> &data, bool from_blender = false);
   void processLoadedScene();

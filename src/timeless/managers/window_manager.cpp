@@ -256,6 +256,14 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Restore the engine's default straight-alpha blending. The premultiplied
+  // mode above is only correct for compositing the offscreen FBOs; overlays
+  // drawn straight to the screen afterwards (text, sprites, UI) output
+  // non-premultiplied colour and would otherwise render an opaque rectangle
+  // around every glyph because GL_ONE adds the source colour even where alpha
+  // is zero.
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void WindowManager::set_shader_time(std::shared_ptr<Shader> shader) {
@@ -478,4 +486,20 @@ glm::vec2 WindowManager::get_cursor_position() {
 
 void WindowManager::set_cursor_visible(bool visible) {
   SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
+}
+
+void WindowManager::set_fullscreen(bool enabled) {
+  TESettings::FULLSCREEN = enabled;
+  // The resulting SDL_WINDOWEVENT_SIZE_CHANGED is picked up in poll_events(),
+  // which rebuilds the framebuffers and rescales the viewport.
+  SDL_SetWindowFullscreen(platform->window,
+                          enabled ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+}
+
+void WindowManager::set_window_size(int width, int height) {
+  // As with fullscreen, the size change comes back as a window event that
+  // poll_events() turns into a resize.
+  SDL_SetWindowSize(platform->window, width, height);
+  SDL_SetWindowPosition(platform->window, SDL_WINDOWPOS_CENTERED,
+                        SDL_WINDOWPOS_CENTERED);
 }

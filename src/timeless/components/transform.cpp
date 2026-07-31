@@ -93,6 +93,10 @@ glm::vec3 Transform::get_position() {
   return p;
 }
 
+glm::vec3 Transform::peek_position() const {
+  return positions.empty() ? position : positions.front();
+}
+
 glm::vec3 Transform::get_position_minus_offset() {
   glm::vec3 p = get_position();
   return glm::vec3((p.x - offset.x), (p.y - offset.y), p.z);
@@ -135,6 +139,11 @@ void Transform::set_position_frames(glm::vec3 from, glm::vec3 to,
     double z_l = std::lerp(from.z, to.z, i);
     positions.push(glm::vec3(x_l, y_l, z_l));
   }
+}
+
+void Transform::clear_position_frames() {
+  while (!positions.empty())
+    positions.pop();
 }
 
 void Transform::append_position_frames(glm::vec3 from, glm::vec3 to,

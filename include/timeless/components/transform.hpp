@@ -45,8 +45,13 @@ public:
     glm::quat rotation;
 
     float width, height;
-    float hit_scale_x = 1.0f; // multiplier for hit-detection box only (does not affect rendering)
-    float hit_scale_y = 1.0f; // multiplier for hit-detection box only (does not affect rendering)
+    // Multipliers for the hit-detection box only (never affect rendering).
+    // Applied to the model's own local-space extents when the entity has a
+    // Model with bounds, so 1.0 means "exactly the model" and >1 adds slack for
+    // animated poses that reach outside the bind pose.
+    float hit_scale_x = 1.0f;
+    float hit_scale_y = 1.0f;
+    float hit_scale_z = 1.0f;
     float grid_x = 0;
     float grid_y = 0;
     bool flip = false;
@@ -81,6 +86,11 @@ public:
 
     glm::vec3 get_position();
 
+    /* Current position WITHOUT consuming a queued animation frame. get_position()
+    pops the frame queue as a side effect, so read-only callers (hit tests, debug
+    draw) must use this or they steal frames from the animation. */
+    glm::vec3 peek_position() const;
+
     glm::vec3 get_position_minus_offset();
 
     /* returns position minus camera - i.e. position as if looking from
@@ -92,6 +102,11 @@ public:
     void set_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 
     void append_position_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
+
+    /* Drop any queued position frames. get_position() prefers the queue over
+    `position`, so an owner that wants a direct write to `position` to actually
+    take effect has to discard leftovers from an animation that never drained. */
+    void clear_position_frames();
 
     void set_rotation_frames(glm::vec3 from, glm::vec3 to, float speed = 1.0);
 

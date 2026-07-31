@@ -70,9 +70,16 @@ set_property(
 
 if(EMSCRIPTEN)
   message(STATUS "EMSCIRPTEN BUILD!")
-  # 1. Force ALL sub-projects (Assimp, GLM, etc.) to use pthreads
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+  # Threading must be CONSISTENT across every translation unit (engine, vendored
+  # libs like Assimp/GLM, and the consuming game) and match the link mode.
+  # Emscripten forbids mixing -pthread and non-pthread objects: they disagree on
+  # the memory model (shared vs non-shared), atomics and TLS layout, which the
+  # optimizer turns into miscompiled code at -O2/-O3. So only add -pthread when
+  # actually building threaded; a single-threaded build must have it nowhere.
+  if(EMSCRIPTEN_PTHREADS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+  endif()
 
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
@@ -153,7 +160,7 @@ else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
+  # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
@@ -173,7 +180,8 @@ else()
   # PROPERTIES SUFFIX ".html"
   # LINK_FLAGS " -O3 -sFULL_ES3 -sUSE_SDL=2 -sUSE_FREETYPE=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue'] --preload-file Assets")
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/sdl/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
+  # target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/sdl/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/ vendor/cereal/include)
+  target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/sdl/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/)
 
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
   target_link_libraries(${PROJECT_NAME} glad SDL2-static glm freetype assimp)

@@ -80,6 +80,8 @@ public:
   bool is_mouse_button_pressed(TE::MouseButton button); // replaces glfwGetMouseButton
   glm::vec2 get_cursor_position();  // current cursor in window pixels
   void set_cursor_visible(bool visible); // show/hide the OS cursor
+  void set_fullscreen(bool enabled);     // borderless-desktop fullscreen toggle
+  void set_window_size(int width, int height); // resize + recenter the OS window
 
   // Two-finger gesture deltas accumulated since the last call (and reset by it).
   // Pan is centroid movement in window pixels; pinch is the change in finger
