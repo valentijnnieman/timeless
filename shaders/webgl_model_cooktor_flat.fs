@@ -17,6 +17,10 @@ uniform float ambientStrength;
 uniform vec3 cameraPos;
 uniform float alpha;
 uniform sampler2D shadowMap;
+// When > 0, written to the alpha channel instead of `alpha` so the dithering
+// pass can recognise these pixels (citizens) and tint them. Uniforms default to
+// 0, so scenes that never set it are unaffected.
+uniform float markerAlpha;
 
 #define MAX_POINT_LIGHTS 64
 uniform vec3 pointLightPositions[MAX_POINT_LIGHTS];
@@ -49,5 +53,5 @@ void main()
     // vec3 color = albedo * band;
 
     color = pow(color, vec3(1.0 / 2.2));
-    fragColor = vec4(color, alpha);
+    fragColor = vec4(color, markerAlpha > 0.0 ? markerAlpha : alpha);
 }
