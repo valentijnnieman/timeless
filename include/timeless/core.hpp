@@ -44,6 +44,7 @@
 #include "timeless/components/camera.hpp"          // Camera
 #include "timeless/components/animation.hpp"       // Animation
 #include "timeless/components/model.hpp"           // Model bounds for picking
+#include "timeless/components/skeletal_animation.hpp" // posed bounds for picking
 #include "timeless/components/mouse_input_listener.hpp" // add_component<MouseInputListener<...>>
 
 namespace TE
@@ -286,12 +287,60 @@ namespace TE
     // matrix RenderingSystem draws them with — so the hit area covers the whole
     // model (full height included) rather than a flat quad at its origin.
     // Sprites and anything without model bounds keep the old width/height box.
+    // Model-space bounds of an animated model in its *current* pose: each
+    // bone's bind-space box (Model::bone_aabb_*) pushed through the same pose
+    // matrix the renderer uploads as boneMatrices[i]. The bind-pose box alone
+    // can sit well off the drawn figure, since clips move and bend bones.
+    // Returns false when there is nothing to pose (no SkeletalAnimation, so
+    // the renderer doesn't skin either), leaving the bind box to the caller.
+    inline bool posed_local_aabb(Entity entity, const std::shared_ptr<Model> &model,
+                                 glm::vec3 &out_min, glm::vec3 &out_max) {
+      auto anim = TE::get_component<SkeletalAnimation>(entity);
+      if (anim == nullptr || model->bone_aabb_min.empty())
+        return false;
+
+      // Accumulate separately: on failure the caller keeps its bind box.
+      glm::vec3 posed_min(std::numeric_limits<float>::max());
+      glm::vec3 posed_max(std::numeric_limits<float>::lowest());
+      auto add_box = [&](const glm::mat4 &m, const glm::vec3 &lo, const glm::vec3 &hi) {
+        for (int c = 0; c < 8; ++c) {
+          glm::vec3 corner((c & 1) ? hi.x : lo.x, (c & 2) ? hi.y : lo.y,
+                           (c & 4) ? hi.z : lo.z);
+          glm::vec3 p = glm::vec3(m * glm::vec4(corner, 1.0f));
+          posed_min = glm::min(posed_min, p);
+          posed_max = glm::max(posed_max, p);
+        }
+      };
+      bool any = false;
+      for (size_t i = 0; i < model->bone_aabb_min.size(); ++i) {
+        const glm::vec3 &lo = model->bone_aabb_min[i];
+        const glm::vec3 &hi = model->bone_aabb_max[i];
+        if (lo.x > hi.x) continue; // bone drives no vertices
+        // Bones past poseMatrices are uploaded as identity (see
+        // RenderingSystem::upload_bone_matrices).
+        glm::mat4 pose = i < anim->poseMatrices.size() ? anim->poseMatrices[i]
+                                                       : glm::mat4(1.0f);
+        add_box(pose, lo, hi);
+        any = true;
+      }
+      if (model->has_unskinned_aabb) {
+        add_box(glm::mat4(1.0f), model->unskinned_aabb_min, model->unskinned_aabb_max);
+        any = true;
+      }
+      if (!any)
+        return false;
+      out_min = posed_min;
+      out_max = posed_max;
+      return true;
+    }
+
     inline void picking_aabb(Entity entity, const std::shared_ptr<Transform>& transform,
                              glm::vec3 &out_min, glm::vec3 &out_max) {
       auto model = TE::get_component<Model>(entity);
       if (model != nullptr && model->has_local_aabb) {
         glm::vec3 lo = model->local_aabb_min;
         glm::vec3 hi = model->local_aabb_max;
+        posed_local_aabb(entity, model, lo, hi);
 
         // Slack is applied in the model's own space so it scales and rotates
         // with the model instead of skewing the world-space box.
@@ -332,6 +381,45 @@ namespace TE
       out_max = box_center + glm::vec3(w, h, 0.0f);
     }
 
+    // Upright figures (Transform::pick_upright) are picked against a
+    // screen-space rectangle instead of the world box. The world-axis box
+    // around a figure turned 45 degrees is much wider than the figure, and the
+    // isometric camera projects the front of its ground footprint below the
+    // feet, so clicks and hovers under a citizen still hit. The rectangle runs
+    // from the projected feet to the projected head, as wide as the box's
+    // narrower horizontal extent. Needs real model bounds: the flat fallback
+    // box has no height.
+    inline bool picks_upright(Entity entity, const std::shared_ptr<Transform> &transform) {
+      if (!transform->pick_upright) return false;
+      auto model = TE::get_component<Model>(entity);
+      return model != nullptr && model->has_local_aabb;
+    }
+
+    inline bool hit_upright(float win_x, float win_y, Entity entity,
+                            const std::shared_ptr<Transform> &transform,
+                            const glm::mat4 &view, const glm::mat4 &proj,
+                            const glm::vec4 &viewport) {
+      glm::vec3 box_min, box_max;
+      picking_aabb(entity, transform, box_min, box_max);
+
+      glm::vec3 center = (box_min + box_max) * 0.5f;
+      float radius = 0.5f * std::min(box_max.x - box_min.x, box_max.y - box_min.y);
+      // Camera right in world space, to measure the figure's on-screen width.
+      glm::vec3 right = glm::normalize(glm::vec3(glm::inverse(view)[0]));
+
+      glm::vec3 feet_world(center.x, center.y, box_min.z);
+      glm::vec3 feet = glm::project(feet_world, view, proj, viewport);
+      glm::vec3 head = glm::project(glm::vec3(center.x, center.y, box_max.z), view, proj, viewport);
+      glm::vec3 side = glm::project(feet_world + right * radius, view, proj, viewport);
+      float half_w = std::abs(side.x - feet.x);
+
+      // win_x/win_y and glm::project share the same bottom-left origin.
+      return win_x >= std::min(feet.x, head.x) - half_w &&
+             win_x <= std::max(feet.x, head.x) + half_w &&
+             win_y >= std::min(feet.y, head.y) &&
+             win_y <= std::max(feet.y, head.y);
+    }
+
     inline bool clicked_on_perspective(MouseEvent* event, Entity entity, float zoom = 1.0f)
     {
     auto transform = TE::get_component<Transform>(entity);
@@ -369,6 +457,9 @@ namespace TE
           if(!camera->perspective) {
             ray_dir = -glm::normalize(camera->get_forward());
           }
+
+          if (picks_upright(entity, transform))
+            return hit_upright(win_x, win_y, entity, transform, view, proj, viewport);
 
           glm::vec3 box_min, box_max;
           picking_aabb(entity, transform, box_min, box_max);
@@ -439,6 +530,9 @@ namespace TE
           if(!camera->perspective) {
             ray_dir = -glm::normalize(camera->get_forward());
           }
+
+          if (picks_upright(entity, transform))
+            return hit_upright(win_x, win_y, entity, transform, view, proj, viewport);
 
           glm::vec3 box_min, box_max;
           picking_aabb(entity, transform, box_min, box_max);

@@ -17,13 +17,15 @@ private:
         up,
         down,
         left,
-        right
+        right,
+        q,
+        e
     };
 
     glm::vec2 x_bounds;
     glm::vec2 y_bounds;
     float walk_speed;
-    std::array<bool, 10> keysPressed = {false, false, false, false, false, false, false, false, false, false};
+    std::array<bool, 12> keysPressed = {};
 
     // Smoothed camera pan state. The camera is driven by a velocity that eases
     // toward the velocity the current input asks for, so key presses/releases
@@ -31,6 +33,15 @@ private:
     glm::vec2 pan_velocity = glm::vec2(0.0f);
     float zoom_target;
     float last_applied_zoom;
+
+    // Q/E camera turns: the yaw (degrees) the camera is easing toward, and
+    // whether a turn is in progress. The current yaw is always read back from
+    // the camera itself, so anything else moving the camera can't desync it.
+    float yaw_target = 0.0f;
+    bool rotating = false;
+
+    void turn_camera(float degrees, ComponentManager &cm);
+    void update_rotation(ComponentManager &cm, float dt);
 
 public:
     Entity camera;
@@ -45,6 +56,9 @@ public:
     // Exponential smoothing rates (1/seconds). Higher = snappier, lower = floatier.
     float pan_smoothing = 14.0f;
     float zoom_smoothing = 12.0f;
+    float rotate_smoothing = 10.0f;
+    // Degrees per Q/E press. Q turns one way, E the other.
+    float turn_step = 90.0f;
     // Multiplicative zoom per scroll notch, so every notch is the same
     // perceived step at any zoom level.
     float zoom_step = 1.12f;
