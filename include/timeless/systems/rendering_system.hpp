@@ -1,10 +1,12 @@
 #pragma once
 #include "timeless/components/animation.hpp"
+#include "timeless/components/camera.hpp"
 #include "timeless/components/quad.hpp"
 #include "timeless/components/shader.hpp"
 #include "timeless/components/transform.hpp"
 #include "timeless/managers/component_manager.hpp"
 #include "timeless/systems/system.hpp"
+#include <cmath>
 #include <memory>
 #include <string.h>
 #include <unordered_map>
@@ -37,6 +39,14 @@ private:
 
 public:
   Entity camera;
+  // Camera's turn about the vertical axis (radians), cached per render pass
+  // from its forward vector; 0 for the default view looking toward -Y.
+  float camera_yaw = 0.0f;
+  static float yaw_of(const std::shared_ptr<Camera> &cam) {
+    glm::vec3 f = cam->get_forward();
+    if (std::abs(f.x) < 1e-6f && std::abs(f.y) < 1e-6f) return 0.0f;
+    return std::atan2(f.x, -f.y);
+  }
 
   Entity debug_ligth_ent;
 

@@ -2,6 +2,24 @@
 #include "timeless/managers/window_manager.hpp"
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/quaternion.hpp>
+
+namespace {
+// Camera turn about the vertical axis in degrees: 0 for the default view
+// looking toward -Y (matches RenderingSystem::yaw_of).
+float camera_yaw_degrees(const std::shared_ptr<Camera> &cam) {
+    glm::vec3 f = cam->get_forward();
+    if (std::abs(f.x) < 1e-6f && std::abs(f.y) < 1e-6f) return 0.0f;
+    return glm::degrees(std::atan2(f.x, -f.y));
+}
+
+// Wrap an angle difference into [-180, 180) so turns take the short way.
+float wrap_degrees(float a) {
+    a = std::fmod(a + 180.0f, 360.0f);
+    if (a < 0.0f) a += 360.0f;
+    return a - 180.0f;
+}
+}
 
 MovementSystem::MovementSystem()
     : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)),
@@ -118,6 +136,42 @@ void MovementSystem::set_zoom(float zoom) {
     last_applied_zoom = zoom_target;
 }
 
+void MovementSystem::turn_camera(float degrees, ComponentManager &cm) {
+    auto cam = cm.get_component<Camera>(camera);
+    if (cam == nullptr) return;
+    // Stack presses during a turn; otherwise start from the nearest whole
+    // step so the view always lands square on the grid.
+    if (!rotating)
+        yaw_target = std::round(camera_yaw_degrees(cam) / turn_step) * turn_step;
+    yaw_target += degrees;
+    rotating = true;
+}
+
+void MovementSystem::update_rotation(ComponentManager &cm, float dt) {
+    if (!rotating) return;
+    auto cam = cm.get_component<Camera>(camera);
+    if (cam == nullptr) { rotating = false; return; }
+
+    float diff = wrap_degrees(yaw_target - camera_yaw_degrees(cam));
+    float step = diff * (1.0f - std::exp(-rotate_smoothing * dt));
+    if (std::abs(diff) < 0.05f) {
+        step = diff;
+        rotating = false;
+    }
+
+    // Turn about the ground point at the centre of the view, so whatever
+    // you're looking at stays put while the city swings around it.
+    glm::vec3 pos = cam->get_position();
+    glm::vec3 f = cam->get_forward();
+    glm::vec3 pivot = pos;
+    if (std::abs(f.z) > 1e-3f)
+        pivot = pos + f * (-pos.z / f.z);
+
+    glm::quat turn = glm::angleAxis(glm::radians(step), glm::vec3(0, 0, 1));
+    cam->set_rotation(turn * cam->get_rotation());
+    cam->set_position(pivot + turn * (pos - pivot));
+}
+
 void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
                             float delta_time) {
     // Guard against pauses/breakpoints producing a huge step.
@@ -136,6 +190,21 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
     if (wm.is_key_pressed(TE::Key::Left))  { move_left(cm);  dir.x -= 1.0f; keysPressed[left]  = true; }
     if (wm.is_key_pressed(TE::Key::Right)) { move_right(cm); dir.x += 1.0f; keysPressed[right] = true; }
     if (wm.is_key_pressed(TE::Key::Escape)) keysPressed[escape] = true;
+
+    // Q/E turn the camera one step per press (edge-triggered, not held).
+    if (wm.is_key_pressed(TE::Key::Q)) {
+        if (!keysPressed[q]) turn_camera(turn_step, cm);
+        keysPressed[q] = true;
+    } else {
+        keysPressed[q] = false;
+    }
+    if (wm.is_key_pressed(TE::Key::E)) {
+        if (!keysPressed[e]) turn_camera(-turn_step, cm);
+        keysPressed[e] = true;
+    } else {
+        keysPressed[e] = false;
+    }
+    update_rotation(cm, dt);
 
     if (!wm.is_key_pressed(TE::Key::Escape) && keysPressed[escape]) keysPressed[escape] = false;
     if (!wm.is_key_pressed(TE::Key::A)      && keysPressed[a])      keysPressed[a]      = false;
@@ -186,9 +255,22 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
         pan_velocity = glm::mix(pan_velocity, target_velocity, t);
         if (glm::length(pan_velocity) < 0.01f) pan_velocity = glm::vec2(0.0f);
 
+        // Pan relative to the camera's facing so W is always "up the screen"
+        // after a Q/E turn: back = away from where the camera looks (screen
+        // down), right = 90 degrees from that. In the default view these are
+        // world +Y and +X, the axes panning always used.
+        glm::vec2 right(1.0f, 0.0f), back(0.0f, 1.0f);
+        glm::vec3 f = main_camera->get_forward();
+        glm::vec2 flat(-f.x, -f.y);
+        if (glm::length(flat) > 1e-4f) {
+            back  = glm::normalize(flat);
+            right = glm::vec2(back.y, -back.x);
+        }
+        glm::vec2 world_velocity = pan_velocity.x * right + pan_velocity.y * back;
+
         glm::vec3 pos = main_camera->get_position();
-        main_camera->set_position(glm::vec3(pos.x + pan_velocity.x * dt,
-                                            pos.y + pan_velocity.y * dt,
+        main_camera->set_position(glm::vec3(pos.x + world_velocity.x * dt,
+                                            pos.y + world_velocity.y * dt,
                                             pos.z));
     }
 

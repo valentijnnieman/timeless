@@ -52,6 +52,14 @@ public:
     float hit_scale_x = 1.0f;
     float hit_scale_y = 1.0f;
     float hit_scale_z = 1.0f;
+    // Pick as an upright figure: a screen-space rectangle from the model's
+    // projected feet to its head (see TE::hit_upright) instead of its world
+    // box, which overshoots below rotated figures in the isometric view.
+    bool pick_upright = false;
+    // Flat world-space quads (icons, name tags, ground items) that should stay
+    // upright on screen when the camera turns: the renderer rotates them about
+    // their anchor by the camera's yaw (see RenderingSystem::camera_yaw).
+    bool face_camera_yaw = false;
     float grid_x = 0;
     float grid_y = 0;
     bool flip = false;

@@ -96,6 +96,42 @@ void Model::compute_local_aabb() {
     local_aabb_max = hi;
     has_local_aabb = true;
   }
+
+  // Per-bone bind-space bounds (see model.hpp). Mirrors the skinning shader:
+  // a mesh is skinned only when it has bones, a vertex only when its weights
+  // sum above 0.0001, and boneData.ids index the model-wide bone list.
+  const glm::vec3 empty_min(std::numeric_limits<float>::max());
+  const glm::vec3 empty_max(std::numeric_limits<float>::lowest());
+  bone_aabb_min.clear();
+  bone_aabb_max.clear();
+  has_unskinned_aabb = false;
+  unskinned_aabb_min = empty_min;
+  unskinned_aabb_max = empty_max;
+  for (const auto &mesh : meshes) {
+    for (const auto &v : mesh->vertices) {
+      const auto &bd = v.boneData;
+      float wsum = bd.weights[0] + bd.weights[1] + bd.weights[2] + bd.weights[3];
+      if (mesh->boneInfos.empty() || wsum <= 0.0001f) {
+        unskinned_aabb_min = glm::min(unskinned_aabb_min, v.Position);
+        unskinned_aabb_max = glm::max(unskinned_aabb_max, v.Position);
+        has_unskinned_aabb = true;
+        continue;
+      }
+      // Assign the vertex to the bone that drives it most; blended vertices
+      // land close to it, which is plenty for a hit box.
+      int dominant = 0;
+      for (int k = 1; k < 4; ++k)
+        if (bd.weights[k] > bd.weights[dominant]) dominant = k;
+      int id = (int)bd.ids[dominant];
+      if (id < 0) continue;
+      if ((size_t)id >= bone_aabb_min.size()) {
+        bone_aabb_min.resize(id + 1, empty_min);
+        bone_aabb_max.resize(id + 1, empty_max);
+      }
+      bone_aabb_min[id] = glm::min(bone_aabb_min[id], v.Position);
+      bone_aabb_max[id] = glm::max(bone_aabb_max[id], v.Position);
+    }
+  }
 }
 
 void Model::loadModel(const std::string &path, bool from_blender) {

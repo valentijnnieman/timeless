@@ -194,6 +194,12 @@ void RenderingSystem::update_transform(std::shared_ptr<Transform> transform,
   transform->model =
       glm::translate(transform->model, transform->get_position_minus_offset());
 
+  // Turn upright-on-screen quads with the camera, about their anchor, before
+  // any centering so centered text and sprites turn as a whole.
+  if (transform->face_camera_yaw && camera_yaw != 0.0f)
+    transform->model =
+        glm::rotate(transform->model, camera_yaw, glm::vec3(0, 0, 1));
+
   if (!transform->isometric) {
     if (transform->center) {
       transform->model = glm::translate(
@@ -401,6 +407,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
   Frustum frustum{};
   if (cam != nullptr) {
     view       = cam->get_view_matrix();
+    camera_yaw = yaw_of(cam);
     projection = cam->get_projection_matrix(x, y, zoom);
     cam_pos    = cam->get_position();
     frustum    = cam->get_frustum(x, y, zoom);
@@ -731,6 +738,7 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
 
   const float time = (float)TE::now_seconds();
   glm::mat4 view = cam->get_view_matrix();
+  camera_yaw = yaw_of(cam);
   glm::mat4 projection = cam->get_projection_matrix(x, y, zoom);
   glUniformMatrix4fv(shader->get_uniform("projection"), 1,
                      GL_FALSE, glm::value_ptr(projection));
@@ -851,6 +859,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
   glm::vec3 cam_pos{};
   if (cam != nullptr) {
     view       = cam->get_view_matrix();
+    camera_yaw = yaw_of(cam);
     projection = cam->get_projection_matrix(x, y, zoom);
     cam_pos    = cam->get_position();
   }

@@ -52,6 +52,20 @@ public:
   glm::vec3 local_aabb_max = glm::vec3(0.0f);
   bool has_local_aabb = false;
 
+  // The box above is the bind pose, but an animated model is never drawn in
+  // it: clips move and bend bones, so the drawn figure can sit off that box.
+  // For picking against the *current* pose, these hold the bind-space bounds
+  // of the vertices each bone mainly drives (indexed like the shader's
+  // boneMatrices; min > max marks a bone that drives none). Transforming each
+  // box by its bone's pose matrix bounds the posed figure. Vertices the shader
+  // leaves unskinned (no bones on the mesh, or zero total weight) go in
+  // unskinned_aabb_* instead.
+  std::vector<glm::vec3> bone_aabb_min;
+  std::vector<glm::vec3> bone_aabb_max;
+  glm::vec3 unskinned_aabb_min = glm::vec3(0.0f);
+  glm::vec3 unskinned_aabb_max = glm::vec3(0.0f);
+  bool has_unskinned_aabb = false;
+
   Model(const std::string &path, std::shared_ptr<Texture> texture,
         std::shared_ptr<Shader> shader)
       : texture(texture), shader(shader) {
