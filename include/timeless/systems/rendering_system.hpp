@@ -59,6 +59,9 @@ public:
   float ui_jitter_speed = 0.0f;
 
   float maxDistance = 2000.0f; // max distance for light calculations, beyond which light contribution is negligible
+  // How many point lights the shaders hold (MAX_POINT_LIGHTS in the model
+  // shaders). When more are in range, the nearest to the camera are sent.
+  static constexpr size_t maxPointLights = 32;
 
   // Directional light (sun). lightPos is the direction the light points toward
   // (shader uses normalize(-lightPos) as L).

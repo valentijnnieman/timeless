@@ -37,6 +37,12 @@ public:
   std::vector<unsigned int> textures;
   std::vector<unsigned int> rbos;
   std::vector<std::shared_ptr<Shader>> screen_shaders;
+  // Colour attachments past the first, per framebuffer (GL_COLOR_ATTACHMENT1
+  // onwards), and how many each framebuffer asked for so a resize recreates
+  // them. render_framebuffer_as_quad binds them to texture units 1.. as
+  // screenTexture1, screenTexture2, ...
+  std::vector<std::vector<unsigned int>> extra_textures;
+  std::vector<int> extra_attachment_counts;
   bool running = true;
 
   int selected_screen_shader = 0;
@@ -90,8 +96,13 @@ public:
   glm::vec2 consume_touch_pan();
   float consume_touch_pinch();
 
-  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true);
+  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
+  // Clearing also zeroes the extra colour attachments (not SCREEN_COLOR).
   void select_framebuffer(size_t idx, bool clear = true);
+  // Which colour attachments of the bound framebuffer draws write to: the
+  // first `count` (1 = only the main colour). Shaders that don't write an
+  // attachment must not draw with it enabled, or its contents are undefined.
+  void set_draw_attachments(size_t idx, int count);
   void resize_framebuffers(int new_width, int new_height);
   void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false);
   void render_background_quad(std::shared_ptr<Shader> shader);

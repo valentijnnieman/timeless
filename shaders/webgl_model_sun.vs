@@ -10,6 +10,10 @@ uniform mat4 view;
 out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPos;
+// World position in camera axes, without the pan: the 1-bit dither pattern
+// is laid out on this (see world_dither in webgl_model_sun.fs).
+out vec2 DitherPos;
+uniform vec3 ditherOffset;
 
 void main()
 {
@@ -19,5 +23,6 @@ void main()
     Normal = normalize(Normal);
     // Compute fragment position in world space
     FragPos = vec3(model * vec4(aPos, 1.0));
+    DitherPos = (mat3(view) * (FragPos + ditherOffset)).xy;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

@@ -163,7 +163,7 @@ void WindowManager::cleanup() {
   SDL_Quit();
 }
 
-void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, int height, bool add_screen_shader) {
+void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, int height, bool add_screen_shader, int extra_color_attachments) {
   unsigned int fbo, tex, rbo;
   glGenFramebuffers(1, &fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -179,6 +179,34 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
+  // On a resize (add_screen_shader false) recreate whatever this framebuffer
+  // had before.
+  size_t fb_idx = framebuffers.size();
+  if (add_screen_shader)
+    extra_attachment_counts.push_back(extra_color_attachments);
+  else if (fb_idx < extra_attachment_counts.size())
+    extra_color_attachments = extra_attachment_counts[fb_idx];
+
+  // Data attachments (e.g. a per-pixel dither threshold): nearest filtering so
+  // values are read back exactly, never blended between neighbours.
+  std::vector<unsigned int> extras;
+  for (int i = 0; i < extra_color_attachments; ++i) {
+    unsigned int extra;
+    glGenTextures(1, &extra);
+    glBindTexture(GL_TEXTURE_2D, extra);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_2D, extra, 0);
+    extras.push_back(extra);
+  }
+  // Draws write only the main colour until set_draw_attachments says otherwise.
+  GLenum first = GL_COLOR_ATTACHMENT0;
+  glDrawBuffers(1, &first);
+
   glGenRenderbuffers(1, &rbo);
   glBindRenderbuffer(GL_RENDERBUFFER, rbo);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
@@ -191,6 +219,7 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
   framebuffers.push_back(fbo);
   textures.push_back(tex);
   rbos.push_back(rbo);
+  extra_textures.push_back(extras);
   if (add_screen_shader)
     screen_shaders.push_back(shader);
 }
@@ -203,8 +232,33 @@ void WindowManager::select_framebuffer(size_t idx, bool clear) {
       glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
                    TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      // glClear only reaches the enabled draw buffers, and data attachments
+      // want zero rather than the screen colour anyway. glClearBufferfv(i)
+      // clears whatever draw buffer i points at, and does nothing while it's
+      // GL_NONE (as set_draw_attachments leaves it), so enable them all for
+      // the clear, then go back to drawing only the main colour.
+      if (!extra_textures[idx].empty()) {
+        set_draw_attachments(idx, 1 + (int)extra_textures[idx].size());
+        const GLfloat zero[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        for (size_t i = 0; i < extra_textures[idx].size(); ++i)
+          glClearBufferfv(GL_COLOR, (GLint)(i + 1), zero);
+        set_draw_attachments(idx, 1);
+      }
     }
   }
+}
+
+void WindowManager::set_draw_attachments(size_t idx, int count) {
+  if (idx >= framebuffers.size()) return;
+  int available = 1 + (int)extra_textures[idx].size();
+  if (count > available) count = available;
+  if (count < 1) count = 1;
+  // glClearBufferfv(GL_COLOR, i) targets draw buffer i, so keep the slots
+  // past `count` as GL_NONE rather than shrinking the list.
+  GLenum bufs[8];
+  for (int i = 0; i < available && i < 8; ++i)
+    bufs[i] = i < count ? (GLenum)(GL_COLOR_ATTACHMENT0 + i) : GL_NONE;
+  glDrawBuffers(available < 8 ? available : 8, bufs);
 }
 
 void WindowManager::resize_framebuffers(int new_width, int new_height) {
@@ -212,10 +266,13 @@ void WindowManager::resize_framebuffers(int new_width, int new_height) {
     glDeleteFramebuffers(1, &framebuffers[i]);
     glDeleteTextures(1, &textures[i]);
     glDeleteRenderbuffers(1, &rbos[i]);
+    for (auto extra : extra_textures[i])
+      glDeleteTextures(1, &extra);
   }
   framebuffers.clear();
   textures.clear();
   rbos.clear();
+  extra_textures.clear();
 
   for (size_t i = 0; i < screen_shaders.size(); ++i) {
     add_framebuffer(screen_shaders[i], new_width, new_height, false);
@@ -241,6 +298,13 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   glBindVertexArray(ScreenVAO);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textures[idx]);
+  for (size_t i = 0; i < extra_textures[idx].size(); ++i) {
+    glActiveTexture(GL_TEXTURE1 + i);
+    glBindTexture(GL_TEXTURE_2D, extra_textures[idx][i]);
+    std::string name = "screenTexture" + std::to_string(i + 1);
+    glUniform1i(glGetUniformLocation(screen_shaders[idx]->ID, name.c_str()), (GLint)(i + 1));
+  }
+  glActiveTexture(GL_TEXTURE0);
 
   glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::VIEWPORT_X);
   glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::VIEWPORT_Y);
@@ -255,6 +319,11 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);
+  for (size_t i = 0; i < extra_textures[idx].size(); ++i) {
+    glActiveTexture(GL_TEXTURE1 + i);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, 0);
 
   // Restore the engine's default straight-alpha blending. The premultiplied

@@ -1,6 +1,7 @@
 #include "timeless/systems/rendering_system.hpp"
 #include "timeless/components/shader_uniforms.hpp"
 #include "timeless/input.hpp"
+#include <algorithm>
 #include <cmath>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -349,11 +350,23 @@ void RenderingSystem::pre_filter_lights(std::shared_ptr<Camera> cam) {
   filteredLightPositions.clear();
   filteredLightColors.clear();
   glm::vec3 camPos = cam->get_position();
+  std::vector<std::pair<float, size_t>> in_range;
   for (size_t i = 0; i < lightPositions.size(); ++i) {
-    if (glm::distance(lightPositions[i], camPos) <= maxDistance) {
-      filteredLightPositions.push_back(lightPositions[i]);
-      filteredLightColors.push_back(lightColors[i]);
-    }
+    float d = glm::distance(lightPositions[i], camPos);
+    if (d <= maxDistance)
+      in_range.push_back({d, i});
+  }
+  // The shaders only hold maxPointLights; beyond that, extra lights would be
+  // dropped arbitrarily (and the shader loop would read past its arrays), so
+  // keep the nearest.
+  if (in_range.size() > maxPointLights) {
+    std::partial_sort(in_range.begin(), in_range.begin() + maxPointLights,
+                      in_range.end());
+    in_range.resize(maxPointLights);
+  }
+  for (auto &[d, i] : in_range) {
+    filteredLightPositions.push_back(lightPositions[i]);
+    filteredLightColors.push_back(lightColors[i]);
   }
 }
 
