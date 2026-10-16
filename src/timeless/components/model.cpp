@@ -238,6 +238,7 @@ void Model::processNode(aiNode *node, const aiScene *scene,
     mesh->metallic = meshMetallic;
     mesh->roughness = meshRoughness;
     mesh->nodeName = node->mName.C_Str();
+    mesh->materialName = material->GetName().C_Str();
     mesh->nodeParentTransform = parentTransform;
     meshNodeMap[node->mName.C_Str()] = meshIndex;
     meshes.push_back(mesh);

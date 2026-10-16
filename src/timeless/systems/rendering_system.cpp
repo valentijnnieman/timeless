@@ -370,18 +370,37 @@ void RenderingSystem::pre_filter_lights(std::shared_ptr<Camera> cam) {
   }
 }
 
+float RenderingSystem::daylight(int tick) const {
+  // Smooth 0 -> 1 across a twilight window centred on `edge`.
+  auto rise = [&](int edge) {
+    float half = std::max(twilightTicks, 1) * 0.5f;
+    return glm::smoothstep(edge - half, edge + half, (float)tick);
+  };
+  float up = sunriseTick >= 0 ? rise(sunriseTick) : 1.0f;
+  float down = sunsetTick >= 0 ? 1.0f - rise(sunsetTick) : 1.0f;
+  return up * down;
+}
+
 void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
                                          const glm::vec3& cam_pos,
                                          int tick) {
   int dayTick = (tick >= 16) ? tick - 16 : 0;
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
                          (float)dayTick / (TESettings::MAX_TICKS / 2.0));
-  float ambient = (ambientStrength >= 0.0f) ? ambientStrength : cos(angle) * 0.5f + 0.1f;
+  float day = daylight(tick);
+  float ambient = ambientStrength;
+  if (ambient < 0.0f) {
+    // The day curve dips below zero late in the day (cos past pi/2), so keep
+    // it at least the night level, and blend to that level as the sun sets.
+    float day_ambient = std::max((float)cos(angle) * 0.5f + 0.1f, nightAmbient);
+    ambient = glm::mix(nightAmbient, day_ambient, day);
+  }
+  glm::vec3 sun = dirLightColor * day;
   glUniform1f(shader->get_uniform("ambientStrength"), ambient);
   glUniform3fv(shader->get_uniform("lightPos"), 1,
                glm::value_ptr(dirLightPos));
   glUniform3fv(shader->get_uniform("lightColor"), 1,
-               glm::value_ptr(dirLightColor));
+               glm::value_ptr(sun));
   glUniform3fv(shader->get_uniform("cameraPos"), 1,
                glm::value_ptr(cam_pos));
 
@@ -986,6 +1005,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
                     modelPtr->roughness.value_or(mesh->roughness.value_or(0.1f)));
         glUniform3fv(shader->get_uniform("materialSpecular"), 1,
                      glm::value_ptr(mesh->specularColor));
+        glUniform1i(shader->get_uniform("materialKind"), mesh->kind);
         glUniform1i(shader->get_uniform("texture1"), 0);
         glDrawElementsInstanced(GL_TRIANGLES,
                                 static_cast<unsigned int>(mesh->indices.size()),

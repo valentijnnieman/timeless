@@ -45,7 +45,7 @@ varying vec2 TexCoords;
 
 // Size of one 1-bit pixel in framebuffer pixels. 1.0 dithers at full
 // resolution; 2.0 or 3.0 gives chunkier, more visible pixels.
-const float PIXEL_SIZE = 1.0;
+const float PIXEL_SIZE = 2.0;
 // Tone curve for outlines and citizens. 1-bit has no midtones to spare, so a
 // bit of extra contrast keeps shapes readable instead of a uniform 50% grey.
 const float CONTRAST = 1.35;

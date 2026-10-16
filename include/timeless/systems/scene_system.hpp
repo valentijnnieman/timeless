@@ -49,6 +49,17 @@ public:
     pending_index = static_cast<int>(it - scenes.begin());
   }
 
+  // Restart the current scene as `fresh`, a newly built copy of it, in its
+  // place: unlike switch_to(fresh), the scenes after it stay next, so
+  // next_scene() carries on as before. Deferred to apply_pending() too.
+  void restart(std::shared_ptr<Scene> fresh) {
+    auto it = std::find(scenes.begin(), scenes.end(), current_scene);
+    if (it == scenes.end()) return;
+    *it = fresh;
+    transition_pending = true;
+    pending_index = static_cast<int>(it - scenes.begin());
+  }
+
   // Drop every registered scene except the current one. A scene that restarts
   // itself via switch_to(fresh) keeps spawning new instances; without this the
   // spent ones sit in `scenes` forever, pinning their shaders/fonts. Call it from

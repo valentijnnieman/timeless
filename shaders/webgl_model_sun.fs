@@ -34,6 +34,37 @@ const float POINT_LIGHT_STRENGTH = 1.0;
 // In between, dark materials are lifted while light and dark keep their order,
 // so details keep some contrast and every building responds to light.
 const float ALBEDO_INFLUENCE = 1.0;
+// Water: meshes the game tags with materialKind 1 (Mesh::kind; the canals'
+// "water" material, and the canal bed seen under bridges). Instead of its
+// material colour it gets WATER_TONE: light enough to read near-white by day,
+// black at night. Lamps hardly light it (WATER_LAMP_DIFFUSE: water reflects
+// rather than scatters), so at night their light shows as glints on dark
+// water. Two animated effects, sized in screen pixels and laid out along the
+// screen (horizontal whatever way the camera faces):
+//   - ripples: short wavy lines, RIPPLE_SPACING px apart, drifting: ink on the
+//     light daytime water; on dark water they catch the lamps instead, as
+//     white streaks fading out with each lamp's light (RIPPLE_LAMP_REACH)
+//   - glints: twinkling white sparkles where a lamp (or a low sun) reflects
+//     off the rippled surface (they show on the dark night water)
+uniform int materialKind;
+uniform float time; // seconds, set by the render
+const float WATER_TONE = 0.45;
+const float WATER_LAMP_DIFFUSE = 0.15;
+const float RIPPLE_SPACING = 7.0;  // px between ripple lines
+const float RIPPLE_WIDTH = 1.0;    // px
+const float RIPPLE_WAVE = 2.0;     // px the lines wave up and down
+const float RIPPLE_SPEED = 0.6;    // how fast they move
+const float RIPPLE_GAPS = 0.35;    // share of each line broken into gaps
+const float RIPPLE_LAMP_REACH = 1.0; // how far lit ripples reach (x lamp radius)
+const float GLINT_SHARPNESS = 60.0; // higher = smaller, rarer reflections
+const float GLINT_TILT = 0.35;     // how choppy the surface is for glints
+const float GLINT_TWINKLE = 0.25;  // share of 2px cells that may sparkle
+const float GLINT_RATE = 5.0;      // sparkle changes per second
+// Street: meshes tagged materialKind 2 (the ground tiles). Neither sun nor
+// ambient light reaches it, so it stays black all day, keeping whatever's
+// drawn on it (the follow arrow, footprints) readable; but the lamps light it
+// as if it were STREET_LAMP_TONE, leaving pools of light around them.
+const float STREET_LAMP_TONE = 0.8;
 // Fake ambient occlusion on walls: they darken toward the ground, so a facade
 // shades gradually instead of being one flat tone (which dithers into an even
 // field of dots). WALL_GROUND_Z is where the map's tiles stand; walls are at
@@ -64,7 +95,7 @@ uniform highp sampler2D ditherNoise;
 
 // Side of one dither cell, in framebuffer pixels.
 // Whole numbers keep the cells on whole pixels at zoom 1.
-const float DITHER_CELL = 1.0;
+const float DITHER_CELL = 2.0;
 // The camera zoom (set by the game each frame). One framebuffer pixel is
 // `zoom` world units, so scaling the cells by this keeps the dots DITHER_CELL
 // pixels on screen however far you zoom, instead of growing like a texture.
@@ -143,16 +174,76 @@ vec2 encode_normal(vec3 n) {
     return p * 0.5 + 0.5;
 }
 
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// Ripple lines and glints on top of the water's lit colour (see WATER_TONE).
+vec3 water_surface(vec3 color, vec3 sunDir) {
+    // Screen-aligned position in pixels: DitherPos is the world position in
+    // camera axes (fixed to the map when panning), / zoom = pixels.
+    float scale = ditherScale > 0.0 ? ditherScale : 1.0;
+    vec2 p = DitherPos / scale;
+
+    // Ripples: rows of wavy lines, each row with its own phase, broken
+    // into dashes that drift sideways.
+    float row = floor(p.y / RIPPLE_SPACING);
+    float wave = sin(p.x * 0.05 + row * 1.7 + time * RIPPLE_SPEED) * RIPPLE_WAVE;
+    bool on_line = mod(p.y + wave, RIPPLE_SPACING) < RIPPLE_WIDTH;
+    bool in_dash = sin(p.x * 0.11 + row * 3.1 - time * RIPPLE_SPEED * 0.7)
+                   > RIPPLE_GAPS * 2.0 - 1.0;
+    // How much lamp light reaches this bit of water (0..1), for the night
+    // ripples below.
+    float lamp = 0.0;
+    for (int i = 0; i < numPointLights; ++i) {
+        float d = clamp(length(pointLightPositions[i] - FragPos)
+                        / (POINT_LIGHT_RADIUS * RIPPLE_LAMP_REACH), 0.0, 1.0);
+        lamp += (1.0 - d * d) * (1.0 - d * d);
+    }
+    lamp = clamp(lamp * POINT_LIGHT_STRENGTH, 0.0, 1.0);
+    if (on_line && in_dash) {
+        // Light water: an ink line. Dark water: the line catches the lamps.
+        bool dark = dot(color, vec3(0.299, 0.587, 0.114)) < 0.5;
+        color = dark ? mix(color, vec3(1.0), lamp) : color * 0.15;
+    }
+
+    // Glints: a choppy normal from a few moving sine waves, lit with a sharp
+    // specular from the sun and the lamps, shown only on twinkling cells.
+    vec2 q = p * 0.2;
+    vec2 tilt = vec2(sin(q.x * 1.1 + time * 1.3) * cos(q.y * 0.9 - time * 0.9),
+                     cos(q.x * 0.7 - time * 1.1) * sin(q.y * 1.2 + time * 0.7));
+    vec3 n = normalize(vec3(tilt * GLINT_TILT, 1.0));
+    vec3 v = normalize(cameraPos - FragPos);
+    float spec = pow(max(dot(n, normalize(sunDir + v)), 0.0), GLINT_SHARPNESS)
+                 * dot(lightColor, vec3(0.333));
+    for (int i = 0; i < numPointLights; ++i) {
+        vec3 toLight = pointLightPositions[i] - FragPos;
+        float d = clamp(length(toLight) / POINT_LIGHT_RADIUS, 0.0, 1.0);
+        float falloff = (1.0 - d * d) * (1.0 - d * d);
+        vec3 l = normalize(toLight);
+        spec += pow(max(dot(n, normalize(l + v)), 0.0), GLINT_SHARPNESS * 0.5)
+                * falloff * POINT_LIGHT_STRENGTH;
+    }
+    float twinkle = hash(floor(p / 2.0) + floor(time * GLINT_RATE) * 17.0);
+    if (twinkle < GLINT_TWINKLE && spec > 0.3)
+        color = vec3(1.0);
+    return color;
+}
+
 void main()
 {
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(-lightPos);
-    vec3 albedo = mix(vec3(1.0), materialDiffuse, ALBEDO_INFLUENCE);
+    bool water = materialKind == 1;
+    bool street = materialKind == 2;
+    vec3 albedo = water ? vec3(WATER_TONE)
+                        : mix(vec3(1.0), materialDiffuse, ALBEDO_INFLUENCE);
+    vec3 lampAlbedo = street ? vec3(STREET_LAMP_TONE) : albedo;
 
-    vec3 ambient = ambientStrength * albedo;
+    vec3 ambient = street ? vec3(0.0) : ambientStrength * albedo;
 
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * albedo * lightColor;
+    vec3 diffuse = street ? vec3(0.0) : diff * albedo * lightColor;
 
     vec3 pointDiffuse = vec3(0.0);
     for (int i = 0; i < numPointLights; ++i) {
@@ -166,9 +257,11 @@ void main()
         float attenuation = falloff * falloff * POINT_LIGHT_STRENGTH;
         vec3 plDir = normalize(toLight);
         float plDiff = max(dot(norm, plDir), 0.0);
-        pointDiffuse += plDiff * attenuation * albedo * pointLightColors[i];
+        pointDiffuse += plDiff * attenuation * lampAlbedo * pointLightColors[i];
     }
 
+    if (water)
+        pointDiffuse *= WATER_LAMP_DIFFUSE;
     vec3 result = ambient + diffuse + pointDiffuse;
 
     // Walls only (weighted by how vertical the face is), so roofs and the
@@ -177,6 +270,8 @@ void main()
     float ao = mix(WALL_AO_DARK, 1.0, smoothstep(0.0, 1.0, height));
     result *= mix(1.0, ao, 1.0 - abs(norm.z));
     vec3 gammaCorrected = pow(result, vec3(1.0/2.2));
+    if (water)
+        gammaCorrected = water_surface(gammaCorrected, lightDir);
     FragColorOut = vec4(gammaCorrected, 1.0);
     // Window depth (linear for the ortho camera) as 16 bits over two bytes.
     float depth = floor(gl_FragCoord.z * 65535.0 + 0.5);

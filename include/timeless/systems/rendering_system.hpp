@@ -72,6 +72,18 @@ public:
   // of the day-cycle formula (cos(angle)*0.5+0.1).
   float ambientStrength = -1.0f;
 
+  // Day and night, in ticks (the tick passed to render). The sun shines at
+  // full strength between sunrise and sunset, fading in and out over
+  // twilightTicks centred on each, and ambient light drops to nightAmbient
+  // while it's down. -1 leaves that end of the day open: with both at -1
+  // (the default) it's always day, as before.
+  int sunriseTick = -1;
+  int sunsetTick = -1;
+  int twilightTicks = 12;
+  float nightAmbient = 0.05f;
+  // 0 (night) .. 1 (day) at this tick.
+  float daylight(int tick) const;
+
   // Entities that should not cast directional shadows (skipped in the depth
   // pass) — e.g. a sky sun placed near the light, which otherwise drops a stray
   // shadow on the beach.
