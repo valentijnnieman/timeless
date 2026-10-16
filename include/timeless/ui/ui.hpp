@@ -13,9 +13,12 @@ public:
   Entity bg_ent;
   bool hovering = false;
 
-  glm::vec3 position;
-  glm::vec2 anchor;
-  glm::vec2 margin;
+  // Zeroed: glm vectors aren't, and the default constructor doesn't set these
+  // (only update_position() does), so reading them before that got whatever
+  // was in memory.
+  glm::vec3 position{0.0f};
+  glm::vec2 anchor{0.0f};
+  glm::vec2 margin{0.0f};
 
   UIComponent(glm::vec2 anchor, glm::vec2 margin) : anchor(anchor), margin(margin) {
     main_ent = create_entity("uicomponent_main"); 

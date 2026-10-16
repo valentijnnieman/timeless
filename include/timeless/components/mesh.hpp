@@ -43,6 +43,11 @@ public:
   // Parent's global transform — needed to recompute nodeTransform from animated local transforms
   glm::mat4 nodeParentTransform = glm::mat4(1.0f);
   std::string nodeName;
+  // The mesh's material name from the model file, and a free-form tag the
+  // game can set from it (e.g. "this is water"); the instanced model render
+  // passes it to the shader as the materialKind uniform. 0 = nothing special.
+  std::string materialName;
+  int kind = 0;
 
   // Transform properties
   glm::vec3 position;

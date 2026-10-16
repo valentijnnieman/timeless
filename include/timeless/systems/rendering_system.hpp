@@ -59,6 +59,9 @@ public:
   float ui_jitter_speed = 0.0f;
 
   float maxDistance = 2000.0f; // max distance for light calculations, beyond which light contribution is negligible
+  // How many point lights the shaders hold (MAX_POINT_LIGHTS in the model
+  // shaders). When more are in range, the nearest to the camera are sent.
+  static constexpr size_t maxPointLights = 32;
 
   // Directional light (sun). lightPos is the direction the light points toward
   // (shader uses normalize(-lightPos) as L).
@@ -68,6 +71,18 @@ public:
   // Override ambient strength. When >= 0 this value is used directly instead
   // of the day-cycle formula (cos(angle)*0.5+0.1).
   float ambientStrength = -1.0f;
+
+  // Day and night, in ticks (the tick passed to render). The sun shines at
+  // full strength between sunrise and sunset, fading in and out over
+  // twilightTicks centred on each, and ambient light drops to nightAmbient
+  // while it's down. -1 leaves that end of the day open: with both at -1
+  // (the default) it's always day, as before.
+  int sunriseTick = -1;
+  int sunsetTick = -1;
+  int twilightTicks = 12;
+  float nightAmbient = 0.05f;
+  // 0 (night) .. 1 (day) at this tick.
+  float daylight(int tick) const;
 
   // Entities that should not cast directional shadows (skipped in the depth
   // pass) — e.g. a sky sun placed near the light, which otherwise drops a stray
