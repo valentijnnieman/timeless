@@ -15,11 +15,10 @@ precision highp float;
 // Where the scene has a world-space dither threshold (screenTexture1, written
 // by the building/floor shader webgl_model_sun.fs) the pixel is dithered
 // against that instead, Obra Dinn style: the pattern is fixed to the world,
-// so it stays on the buildings when the camera pans and scales with zoom
-// (SCREEN_ALIGNED there picks how it's laid out). Those pixels aren't snapped
-// to the PIXEL_SIZE grid; the world cell size (DITHER_CELL there) sets how
-// chunky they look. Everything else
-// (citizens, sprites, background) uses the screen pattern below.
+// so it stays on the buildings when the camera pans (see world_dither there).
+// Those pixels aren't snapped to the PIXEL_SIZE grid; the cell size
+// (DITHER_CELL there) sets how chunky they look. Everything else (citizens,
+// sprites, background) uses the screen pattern below.
 
 uniform sampler2D screenTexture;
 // Written by the building/floor shader (see DitherOut / GeomOut in
@@ -44,8 +43,9 @@ uniform vec2 ditherOrigin;
 varying vec2 TexCoords;
 
 // Size of one 1-bit pixel in framebuffer pixels. 1.0 dithers at full
-// resolution; 2.0 or 3.0 gives chunkier, more visible pixels.
-const float PIXEL_SIZE = 2.0;
+// resolution; 2.0 or 3.0 gives chunkier, more visible pixels. The search
+// layer (layer 1) uses the same dots but keeps its edges at full resolution.
+const float PIXEL_SIZE = 3.0;
 // Tone curve for outlines and citizens. 1-bit has no midtones to spare, so a
 // bit of extra contrast keeps shapes readable instead of a uniform 50% grey.
 const float CONTRAST = 1.35;
@@ -55,8 +55,8 @@ const float BRIGHTNESS = 0.05;
 // Flat-lit faces then read as solid black or white, and the dots are left for
 // the transitions (light falloff, shading), Obra Dinn style. Pull the two
 // together for harder black and white, apart for more dither.
-const float INK_LEVEL = 0.35;
-const float PAPER_LEVEL = 0.75;
+const float INK_LEVEL = 0.3;
+const float PAPER_LEVEL = 0.7;
 // Ink outlines where the (undithered) luminance changes sharply between
 // neighbouring pixels, so building edges and silhouettes survive the
 // dither. Set OUTLINE to false to turn them off. Buildings and floor use the
@@ -89,10 +89,21 @@ const int LINE_MODE = 1;
 //   1 — dithered between ink and their own colour: same pixel texture as the
 //       scene, but still colour-coded
 //   2 — dithered like everything else (pure 1-bit, colours lost)
-const int CITIZEN_MODE = 1;
+//   3 — no dither: solid ink where they're darker than CITIZEN_SPLIT, their
+//       own colour elsewhere. Citizens and bikes are flat-shaded, one tone
+//       per material, so dithering a mid-grey one covers it in even dots;
+//       this keeps each part solid instead.
+// The same goes for anything else drawn with the marker (bikes).
+const int CITIZEN_MODE = 3;
 // Mode 1: how far citizens' tone is lifted toward their colour before
 // dithering, so dark-ish picks still show enough coloured pixels.
 const float CITIZEN_LIFT = 0.35;
+// Mode 3: the brightness (after CONTRAST / BRIGHTNESS) below which a part
+// turns solid ink. Raise it to ink more of the darker greys.
+const float CITIZEN_SPLIT = 0.3;
+// An ink outline CITIZEN_OUTLINE framebuffer pixels wide around citizens (and
+// anything else with the marker), so they stand out from light ground.
+const float CITIZEN_OUTLINE = 1.0;
 
 // 2x2 Bayer threshold, nested to get 4x4 and 8x8 without a lookup table
 // (GLSL ES 1.00 has no const array initialisers).
@@ -164,6 +175,19 @@ bool geometry_edge(vec2 uv, vec2 px) {
     return dot(np, normal_at(r)) < NORMAL_EDGE || dot(np, normal_at(u)) < NORMAL_EDGE;
 }
 
+bool is_citizen(vec2 uv) {
+    return abs(texture2D(screenTexture, uv).a - 0.5) < 0.1;
+}
+
+// Whether a citizen pixel lies within CITIZEN_OUTLINE pixels of this one.
+bool near_citizen(vec2 uv, vec2 px) {
+    for (float y = -CITIZEN_OUTLINE; y <= CITIZEN_OUTLINE; y += 1.0)
+        for (float x = -CITIZEN_OUTLINE; x <= CITIZEN_OUTLINE; x += 1.0)
+            if (is_citizen(uv + vec2(x, y) * px))
+                return true;
+    return false;
+}
+
 vec4 sample_cell(vec2 cell, vec2 res, vec2 origin) {
     return texture2D(screenTexture, ((cell + 0.5) * PIXEL_SIZE + origin) / res);
 }
@@ -178,7 +202,11 @@ void main() {
     // numbers stay small (the pattern looks the same either way).
     vec2 origin = mod(ditherOrigin, 8.0 * PIXEL_SIZE);
     vec2 cell = floor((TexCoords * res - origin) / PIXEL_SIZE);
-    vec4 color = sample_cell(cell, res, origin);
+    // The search layer keeps the grid's dither threshold, so its citizens get
+    // the same dots as outside the spotlight, but reads its own pixel rather
+    // than the cell's centre, so its lines and silhouettes stay sharp.
+    vec4 color = layer < 0.5 ? sample_cell(cell, res, origin)
+                             : texture2D(screenTexture, TexCoords);
     // +0.5/64 centres the thresholds so pure black and pure white stay solid.
     float threshold = bayer8(cell) + 0.5 / 64.0;
 
@@ -195,6 +223,8 @@ void main() {
     if (CITIZEN_MODE != 2 && abs(color.a - 0.5) < 0.1) {
         if (CITIZEN_MODE == 0) {
             gl_FragColor = vec4(color.rgb, 1.0);
+        } else if (CITIZEN_MODE == 3) {
+            gl_FragColor = vec4(lum < CITIZEN_SPLIT ? palette0 : color.rgb, 1.0);
         } else {
             float citizen_tone = mix(lum, 1.0, CITIZEN_LIFT);
             gl_FragColor = vec4(citizen_tone < threshold ? palette0 : color.rgb, 1.0);
@@ -227,6 +257,9 @@ void main() {
                 ink = true;
         }
     }
+
+    if (layer < 0.5 && near_citizen(TexCoords, 1.0 / res))
+        ink = true;
 
     gl_FragColor = vec4(ink ? palette0 : palette3, color.a);
 }

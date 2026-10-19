@@ -10,10 +10,12 @@ uniform mat4 view;
 out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPos;
-// World position in camera axes, without the pan: the 1-bit dither pattern
-// is laid out on this (see world_dither in webgl_model_sun.fs).
+// World position in camera axes: the 1-bit dither pattern can be laid out
+// on this (see world_dither in webgl_model_sun.fs).
 out vec2 DitherPos;
-uniform vec3 ditherOffset;
+// The screen slope of the face's horizontal edges (0 on floors and roofs),
+// so the dither rows can run along walls (see world_dither in webgl_model_sun.fs).
+out float DitherShear;
 
 void main()
 {
@@ -23,6 +25,12 @@ void main()
     Normal = normalize(Normal);
     // Compute fragment position in world space
     FragPos = vec3(model * vec4(aPos, 1.0));
-    DitherPos = (mat3(view) * (FragPos + ditherOffset)).xy;
+    DitherPos = (mat3(view) * FragPos).xy;
+    // A wall's horizontal direction, and where the camera puts it on screen.
+    vec3 wallDir = vec3(-Normal.y, Normal.x, 0.0);
+    vec2 wallScreen = (mat3(view) * wallDir).xy;
+    DitherShear = abs(normalize(Normal).z) < 0.5 && abs(wallScreen.x) > 0.05
+                      ? clamp(wallScreen.y / wallScreen.x, -2.0, 2.0)
+                      : 0.0;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

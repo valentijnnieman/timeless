@@ -6,6 +6,9 @@ in vec3 Normal;
 in vec3 FragPos;
 // World position in camera axes, without the pan (set by the vertex shader).
 in vec2 DitherPos;
+// The screen slope of a wall's horizontal edges, 0 on floors and roofs (set by
+// the vertex shader, see world_dither).
+in float DitherShear;
 
 uniform vec3 materialDiffuse;
 uniform vec3 lightPos;
@@ -33,14 +36,14 @@ const float POINT_LIGHT_STRENGTH = 1.0;
 //   1 — the colours as modelled
 // In between, dark materials are lifted while light and dark keep their order,
 // so details keep some contrast and every building responds to light.
-const float ALBEDO_INFLUENCE = 1.0;
+const float ALBEDO_INFLUENCE = 0.3;
 // Water: meshes the game tags with materialKind 1 (Mesh::kind; the canals'
 // "water" material, and the canal bed seen under bridges). Instead of its
 // material colour it gets WATER_TONE: light enough to read near-white by day,
 // black at night. Lamps hardly light it (WATER_LAMP_DIFFUSE: water reflects
 // rather than scatters), so at night their light shows as glints on dark
-// water. Two animated effects, sized in screen pixels and laid out along the
-// screen (horizontal whatever way the camera faces):
+// water. Two animated effects, sized in world units (pixels at zoom 1) and
+// laid out along the screen (horizontal whatever way the camera faces):
 //   - ripples: short wavy lines, RIPPLE_SPACING px apart, drifting: ink on the
 //     light daytime water; on dark water they catch the lamps instead, as
 //     white streaks fading out with each lamp's light (RIPPLE_LAMP_REACH)
@@ -71,7 +74,7 @@ const float STREET_LAMP_TONE = 0.8;
 // WALL_AO_DARK of their light there, back to full by WALL_AO_HEIGHT above it.
 const float WALL_GROUND_Z = 10.0;
 const float WALL_AO_HEIGHT = 96.0;
-const float WALL_AO_DARK = 0.45;
+const float WALL_AO_DARK = 1.0;
 
 layout(location = 0) out vec4 FragColorOut;
 // Data for the 1-bit screen pass (webgl_screen_1bit.fs). Only lands when the
@@ -84,29 +87,22 @@ layout(location = 0) out vec4 FragColorOut;
 layout(location = 1) out vec4 DitherOut;
 layout(location = 2) out vec4 GeomOut;
 
-// Which threshold pattern the cells use:
-//   0 — 8x8 Bayer: regular, reads as a grid of + and x shapes
-//   1 — blue noise (ditherNoise, a 64x64 void-and-cluster map from
-//       tools/generate_blue_noise.py): evenly spread but irregular dots, more
-//       like grain or stippling
-const int PATTERN = 1;
-// The blue-noise map. Bound to texture unit 7 by the game every frame.
-uniform highp sampler2D ditherNoise;
-
-// Side of one dither cell, in framebuffer pixels.
-// Whole numbers keep the cells on whole pixels at zoom 1.
+// The dither: an 8x8 Bayer pattern of square cells DITHER_CELL framebuffer
+// pixels wide at every zoom, laid out on the world position seen along the
+// camera (DitherPos), Obra Dinn style. It's fixed to the map, so it stays put
+// on the buildings and floor when the camera pans; zooming scales the cells
+// so they stay the same size on screen. On walls the cells are sheared so
+// their rows run along the wall's horizontal edges (the iso diagonals) rather
+// than across the screen; their columns stay on the pixel columns, which
+// walls' vertical edges already follow.
 const float DITHER_CELL = 2.0;
-// The camera zoom (set by the game each frame). One framebuffer pixel is
-// `zoom` world units, so scaling the cells by this keeps the dots DITHER_CELL
-// pixels on screen however far you zoom, instead of growing like a texture.
+// World units per framebuffer pixel: the zoom (set by the game every frame).
 // 0 (never set) counts as 1.
-uniform float ditherScale;
-// World offset of the pattern (set by the game). It only changes while
-// zooming, so that the pattern scales about the middle of the view rather than
-// the world origin: zooming makes it breathe in place instead of sweeping
-// across the map. Panning and turning leave it alone, so the pattern stays on
-// the surfaces then. Also used by the vertex shaders for DitherPos.
-uniform vec3 ditherOffset;
+uniform float ditherZoom;
+// Added to DitherPos before it's divided into cells, so zooming scales the
+// cells about the middle of the view rather than the far-off world origin
+// (the game moves it, see set_dither_uniforms in main.cpp).
+uniform vec2 ditherOffset;
 
 // Same nested 2x2 Bayer matrix as the screen pass.
 float bayer2(vec2 a) {
@@ -122,42 +118,14 @@ float bayer8(vec2 a) {
     return bayer4(0.5 * a) * 0.25 + bayer2(a);
 }
 
-// Where the pattern is laid out. Either way it stays put on the buildings and
-// floor when the camera pans, and scales with zoom.
-//   true  — on the world position seen along the camera (Obra Dinn style):
-//           square cells lined up with the screen pixels, one continuous
-//           pattern across walls and floor. No moire from the iso skew, but
-//           the pattern slides over the buildings whenever the camera turns
-//           or orbits (Q/E, main menu).
-//   false — on each surface, from the world axes it faces (triplanar): the
-//           pattern is printed on every face and stays put through turns and
-//           orbits too, but the iso camera skews its cells, which can alias
-//           into diagonal stripes (bigger DITHER_CELL helps).
-const bool SCREEN_ALIGNED = false;
+float zoom() {
+    return ditherZoom > 0.0 ? ditherZoom : 1.0;
+}
 
-float world_dither(vec3 pos, vec3 n) {
-    pos += ditherOffset;
-    vec2 uv;
-    if (SCREEN_ALIGNED) {
-        uv = DitherPos;
-    } else {
-        vec3 an = abs(n);
-        if (an.z >= an.x && an.z >= an.y)
-            uv = pos.xy;
-        else if (an.x >= an.y)
-            uv = pos.yz;
-        else
-            uv = pos.xz;
-    }
-    float scale = ditherScale > 0.0 ? ditherScale : 1.0;
-    vec2 cell = floor(uv / (DITHER_CELL * scale));
-    if (PATTERN == 1) {
-        // The map tiles, so wrap the cell into it (mod is floor-based, so
-        // negative cells wrap correctly too). +0.5/256 centres the 256 levels
-        // like the Bayer offset below.
-        ivec2 texel = ivec2(mod(cell, 64.0));
-        return texelFetch(ditherNoise, texel, 0).r + 0.5 / 256.0;
-    }
+float world_dither() {
+    vec2 uv = DitherPos + ditherOffset;
+    uv.y -= DitherShear * uv.x;
+    vec2 cell = floor(uv / (DITHER_CELL * zoom()));
     // +0.5/64 centres the thresholds so pure black and white stay solid.
     return bayer8(cell) + 0.5 / 64.0;
 }
@@ -180,16 +148,20 @@ float hash(vec2 p) {
 
 // Ripple lines and glints on top of the water's lit colour (see WATER_TONE).
 vec3 water_surface(vec3 color, vec3 sunDir) {
-    // Screen-aligned position in pixels: DitherPos is the world position in
-    // camera axes (fixed to the map when panning), / zoom = pixels.
-    float scale = ditherScale > 0.0 ? ditherScale : 1.0;
-    vec2 p = DitherPos / scale;
+    // The world position in camera axes: fixed to the map and sized in world
+    // units, so the ripples scale with the canals like a texture while the
+    // dither dots keep their size on screen (ripples that kept theirs too
+    // read as looking through the water).
+    vec2 p = DitherPos;
+    // World units per pixel, at least 1: zoomed out, lines and glints are
+    // kept at least a pixel wide rather than thinning out into broken specks.
+    float px = max(zoom(), 1.0);
 
     // Ripples: rows of wavy lines, each row with its own phase, broken
     // into dashes that drift sideways.
     float row = floor(p.y / RIPPLE_SPACING);
     float wave = sin(p.x * 0.05 + row * 1.7 + time * RIPPLE_SPEED) * RIPPLE_WAVE;
-    bool on_line = mod(p.y + wave, RIPPLE_SPACING) < RIPPLE_WIDTH;
+    bool on_line = mod(p.y + wave, RIPPLE_SPACING) < RIPPLE_WIDTH * px;
     bool in_dash = sin(p.x * 0.11 + row * 3.1 - time * RIPPLE_SPEED * 0.7)
                    > RIPPLE_GAPS * 2.0 - 1.0;
     // How much lamp light reaches this bit of water (0..1), for the night
@@ -224,7 +196,7 @@ vec3 water_surface(vec3 color, vec3 sunDir) {
         spec += pow(max(dot(n, normalize(l + v)), 0.0), GLINT_SHARPNESS * 0.5)
                 * falloff * POINT_LIGHT_STRENGTH;
     }
-    float twinkle = hash(floor(p / 2.0) + floor(time * GLINT_RATE) * 17.0);
+    float twinkle = hash(floor(p / (2.0 * px)) + floor(time * GLINT_RATE) * 17.0);
     if (twinkle < GLINT_TWINKLE && spec > 0.3)
         color = vec3(1.0);
     return color;
@@ -277,6 +249,6 @@ void main()
     float depth = floor(gl_FragCoord.z * 65535.0 + 0.5);
     float depth_hi = floor(depth / 256.0);
     float depth_lo = depth - depth_hi * 256.0;
-    DitherOut = vec4(world_dither(FragPos, norm), 1.0, depth_hi / 255.0, 1.0);
+    DitherOut = vec4(world_dither(), 1.0, depth_hi / 255.0, 1.0);
     GeomOut = vec4(encode_normal(norm), depth_lo / 255.0, 1.0);
 }
