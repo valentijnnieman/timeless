@@ -19,4 +19,11 @@ public:
   void mouse_release_handler(ComponentManager &cm, MouseEvent *event);
   void mouse_move_handler(ComponentManager &cm, MouseMoveEvent *event);
   void mouse_scroll_handler(ComponentManager &cm, MouseEvent *event);
+
+private:
+  // `entities` in the order they hear an event: by their listener's layer,
+  // highest first, keeping their order within a layer.
+  template <typename T>
+  std::vector<Entity> in_layer_order(ComponentManager &cm,
+                                     const std::vector<Entity> &entities);
 };

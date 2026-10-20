@@ -28,6 +28,30 @@ void MouseInputSystem::sort(ComponentManager &cm) {
                      });
 }
 
+template <typename T>
+std::vector<Entity>
+MouseInputSystem::in_layer_order(ComponentManager &cm,
+                                 const std::vector<Entity> &entities) {
+    std::vector<std::pair<int, Entity>> layered;
+    layered.reserve(entities.size());
+    bool mixed = false;
+    for (const auto &entity : entities) {
+        auto listener = cm.get_component<MouseInputListener<T>>(entity);
+        int layer = listener != nullptr ? listener->layer : 0;
+        if (!layered.empty() && layer != layered.front().first)
+            mixed = true;
+        layered.push_back({layer, entity});
+    }
+    if (mixed)
+        std::stable_sort(layered.begin(), layered.end(),
+                         [](const auto &a, const auto &b) { return a.first > b.first; });
+    std::vector<Entity> ordered;
+    ordered.reserve(layered.size());
+    for (const auto &[layer, entity] : layered)
+        ordered.push_back(entity);
+    return ordered;
+}
+
 void MouseInputSystem::notify_listener(ComponentManager &cm, MouseEvent *event,
                                         Entity entity) {
     auto listener = cm.get_component<MouseInputListener<MouseEvent>>(entity);
@@ -49,10 +73,10 @@ void MouseInputSystem::mouse_click_handler(ComponentManager &cm,
     std::string et = event->eventType;
     event->eventType = "Global" + et;
 
-    // Copy the list so that handlers which remove entities (via TE::remove_entity)
-    // don't invalidate the iterator.  notify_listener already null-checks the
-    // component, so removed entities are silently skipped.
-    auto entities = registered_entities;
+    // A copy, in layer order, so that handlers which remove entities (via
+    // TE::remove_entity) don't invalidate the iterator.  notify_listener already
+    // null-checks the component, so removed entities are silently skipped.
+    auto entities = in_layer_order<MouseEvent>(cm, registered_entities);
     for (const auto &entity : entities)
         notify_listener(cm, event, entity);
     delete event;
@@ -60,7 +84,7 @@ void MouseInputSystem::mouse_click_handler(ComponentManager &cm,
 
 void MouseInputSystem::mouse_release_handler(ComponentManager &cm,
                                               MouseEvent *event) {
-    auto entities = registered_entities;
+    auto entities = in_layer_order<MouseEvent>(cm, registered_entities);
     for (const auto &entity : entities)
         notify_listener(cm, event, entity);
     delete event;
@@ -68,7 +92,8 @@ void MouseInputSystem::mouse_release_handler(ComponentManager &cm,
 
 void MouseInputSystem::mouse_move_handler(ComponentManager &cm,
                                            MouseMoveEvent *event) {
-    for (const auto &entity : this->registered_move_entities) {
+    auto entities = in_layer_order<MouseMoveEvent>(cm, registered_move_entities);
+    for (const auto &entity : entities) {
         notify_listener(cm, event, entity);
         if (event->picked_up)
             break;
@@ -78,7 +103,7 @@ void MouseInputSystem::mouse_move_handler(ComponentManager &cm,
 
 void MouseInputSystem::mouse_scroll_handler(ComponentManager &cm,
                                              MouseEvent *event) {
-    auto entities = registered_entities;
+    auto entities = in_layer_order<MouseEvent>(cm, registered_entities);
     for (const auto &entity : entities) {
         notify_listener(cm, event, entity);
         if (event->picked_up)
