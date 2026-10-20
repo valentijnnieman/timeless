@@ -1,6 +1,6 @@
 /*==============================================================================
 FMOD Example Framework
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 ==============================================================================*/
 #include "common.h"
 #include "fmod_errors.h"

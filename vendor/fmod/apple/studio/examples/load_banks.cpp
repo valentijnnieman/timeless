@@ -1,6 +1,6 @@
 /*==============================================================================
 Load Banks Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates loading banks via file, memory, and user callbacks.
 
@@ -68,7 +68,7 @@ static const char* BANK_LOAD_METHOD_NAMES[] =
 //
 // Custom callbacks that just wrap fopen
 //
-FMOD_RESULT F_CALLBACK customFileOpen(const char *name, unsigned int *filesize, void **handle, void *userdata)
+FMOD_RESULT F_CALL customFileOpen(const char *name, unsigned int *filesize, void **handle, void *userdata)
 {
 #ifdef ENABLE_FILE_OPEN
     // We pass the filename into our callbacks via userdata in the custom info struct
@@ -94,7 +94,7 @@ FMOD_RESULT F_CALLBACK customFileOpen(const char *name, unsigned int *filesize, 
 #endif
 }
 
-FMOD_RESULT F_CALLBACK customFileClose(void *handle, void *userdata)
+FMOD_RESULT F_CALL customFileClose(void *handle, void *userdata)
 {
 #ifdef ENABLE_FILE_OPEN
     FILE* file = (FILE*)handle;
@@ -103,7 +103,7 @@ FMOD_RESULT F_CALLBACK customFileClose(void *handle, void *userdata)
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK customFileRead(void *handle, void *buffer, unsigned int sizebytes, unsigned int *bytesread, void *userdata)
+FMOD_RESULT F_CALL customFileRead(void *handle, void *buffer, unsigned int sizebytes, unsigned int *bytesread, void *userdata)
 {
     *bytesread = 0;
 #ifdef ENABLE_FILE_OPEN
@@ -119,7 +119,7 @@ FMOD_RESULT F_CALLBACK customFileRead(void *handle, void *buffer, unsigned int s
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK customFileSeek(void *handle, unsigned int pos, void *userdata)
+FMOD_RESULT F_CALL customFileSeek(void *handle, unsigned int pos, void *userdata)
 {
 #ifdef ENABLE_FILE_OPEN
     FILE* file = (FILE*)handle;
@@ -290,7 +290,7 @@ const char* getHandleStateString(FMOD::Studio::Bank* bank)
 //
 // Callback to free memory-point allocation when it is safe to do so
 //
-FMOD_RESULT F_CALLBACK studioCallback(FMOD_STUDIO_SYSTEM *system, FMOD_STUDIO_SYSTEM_CALLBACK_TYPE type, void *commanddata, void *userdata)
+FMOD_RESULT F_CALL studioCallback(FMOD_STUDIO_SYSTEM *system, FMOD_STUDIO_SYSTEM_CALLBACK_TYPE type, void *commanddata, void *userdata)
 {
     if (type == FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)
     {
@@ -388,7 +388,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Bank Load Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw("Name            Handle  Bank-State  Sample-State");
 

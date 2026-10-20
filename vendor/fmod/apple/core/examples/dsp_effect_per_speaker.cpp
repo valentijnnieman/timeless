@@ -1,6 +1,6 @@
 /*==============================================================================
 DSP Effect Per Speaker Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to manipulate a DSP network and as an example, creates 2
 DSP effects, splitting a single sound into 2 audio paths, which it then filters
@@ -166,7 +166,7 @@ int FMOD_Main()
         /* 
             Upgrade the signal coming from the channel mixer from mono to stereo.  Otherwise the lowpass and highpass will get mono signals 
         */
-        result = dspchannelmixer->setChannelFormat(0, 0, FMOD_SPEAKERMODE_STEREO);
+        result = dspchannelmixer->setInputChannelFormat(0, FMOD_SPEAKERMODE_STEREO);
         ERRCHECK(result);
 
         /*
@@ -239,7 +239,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("DSP Effect Per Speaker Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Press %s to toggle lowpass (left speaker)", Common_BtnStr(BTN_ACTION1));

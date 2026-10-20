@@ -1,6 +1,6 @@
 /*==============================================================================
 Event 3D Multi-Listener Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates how use listener weighting to crossfade listeners
 in and out.
@@ -166,7 +166,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Event 3D Multi-Listener Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw(screenBuffer);
 

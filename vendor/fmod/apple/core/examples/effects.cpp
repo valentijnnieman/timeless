@@ -1,6 +1,6 @@
 /*==============================================================================
 Effects Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to apply some of the built in software effects to sounds
 by applying them to the master channel group. All software sounds played here
@@ -182,7 +182,7 @@ int FMOD_Main()
 
             Common_Draw("==================================================");
             Common_Draw("Effects Example.");
-            Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+            Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
             Common_Draw("==================================================");
             Common_Draw("");
             Common_Draw("Press %s to pause/unpause sound", Common_BtnStr(BTN_MORE));

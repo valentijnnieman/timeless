@@ -1,6 +1,6 @@
 /*==============================================================================
 Play Stream Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to simply play a stream such as an MP3 or WAV. The stream
 behaviour is achieved by specifying FMOD_CREATESTREAM in the call to 
@@ -115,7 +115,7 @@ int FMOD_Main()
 
             Common_Draw("==================================================");
             Common_Draw("Play Stream Example.");
-            Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+            Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
             Common_Draw("==================================================");
             Common_Draw("");
             Common_Draw("Press %s to toggle pause", Common_BtnStr(BTN_ACTION1));

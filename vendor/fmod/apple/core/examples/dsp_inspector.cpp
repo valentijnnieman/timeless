@@ -1,6 +1,6 @@
 /*==============================================================================
 Plug-in Inspector Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to enumerate loaded plug-ins and their parameters.
 
@@ -38,7 +38,7 @@ void drawTitle()
 {
     Common_Draw("==================================================");
     Common_Draw("Plug-in Inspector Example.");
-    Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+    Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
     Common_Draw("==================================================");
     Common_Draw("");
 }
@@ -60,7 +60,7 @@ void drawDSPInfo(const FMOD_DSP_DESCRIPTION *desc)
 {
     Common_Draw("Name (Version) : %s (%x)", desc->name, desc->version);
     Common_Draw("SDK Version    : %d", desc->pluginsdkversion);
-    Common_Draw("Type           : %s", desc->numinputbuffers ? "Effect" : "Sound Generator");
+    Common_Draw("Type           : %s", desc->mode == FMOD_DSP_MODE_FILTER ? "Effect" : "Sound Generator");
     Common_Draw("Parameters     : %d", desc->numparameters);
     Common_Draw("Audio Callback : %s", desc->process ? "process()" : "read()");
     Common_Draw("");
@@ -121,7 +121,7 @@ void drawDSPParameters(ParameterViewerState *state)
     Common_Draw("Press %s to return to the plug-in list", Common_BtnStr(BTN_LEFT));
     Common_Draw("");
     
-    result = state->dsp->getInfo(pluginname, 0, 0, 0, 0);
+    result = state->dsp->getInfo(pluginname, nullptr, nullptr, nullptr);
     ERRCHECK(result);
 
     Common_Draw("%s Parameters:", pluginname);

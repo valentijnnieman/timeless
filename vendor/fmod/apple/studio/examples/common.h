@@ -1,6 +1,6 @@
 /*==============================================================================
 FMOD Example Framework
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 ==============================================================================*/
 #ifndef FMOD_EXAMPLES_COMMON_H
 #define FMOD_EXAMPLES_COMMON_H

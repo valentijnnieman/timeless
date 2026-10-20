@@ -1,6 +1,6 @@
 /*==============================================================================
 Simple Event Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates the various ways of playing an event.
 
@@ -102,7 +102,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Simple Event Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Press %s to fire and forget the explosion", Common_BtnStr(BTN_ACTION1));

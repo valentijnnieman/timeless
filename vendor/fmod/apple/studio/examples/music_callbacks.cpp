@@ -1,6 +1,6 @@
 /*==============================================================================
 Music Callback Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates beat and named marker callbacks when playing music.
 
@@ -26,7 +26,7 @@ struct CallbackInfo
     std::vector<std::string> mEntries;
 };
 
-FMOD_RESULT F_CALLBACK markerCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters);
+FMOD_RESULT F_CALL markerCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters);
 
 int FMOD_Main()
 {
@@ -97,7 +97,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Music Callback Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Timeline = %d", position);
@@ -143,7 +143,7 @@ void markerAddString(CallbackInfo* info, const char* format, ...)
 }
 
 // Callback from Studio - Remember these callbacks will occur in the Studio update thread, NOT the game thread.
-FMOD_RESULT F_CALLBACK markerCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters)
+FMOD_RESULT F_CALL markerCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters)
 {
     CallbackInfo* callbackInfo;
     ERRCHECK(((FMOD::Studio::EventInstance*)event)->getUserData((void**)&callbackInfo));

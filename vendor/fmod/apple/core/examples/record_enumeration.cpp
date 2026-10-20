@@ -1,6 +1,6 @@
 /*==============================================================================
 Record enumeration example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to enumerate the available recording drivers on this
 device. It demonstrates how the enumerated list changes as microphones are
@@ -26,7 +26,7 @@ struct RECORD_STATE
     FMOD::Channel *channel;
 };
 
-FMOD_RESULT F_CALLBACK SystemCallback(FMOD_SYSTEM* /*system*/, FMOD_SYSTEM_CALLBACK_TYPE /*type*/, void *, void *, void *userData)
+FMOD_RESULT F_CALL SystemCallback(FMOD_SYSTEM* /*system*/, FMOD_SYSTEM_CALLBACK_TYPE /*type*/, void *, void *, void *userData)
 {
     int *recordListChangedCount = (int *)userData;
     *recordListChangedCount = *recordListChangedCount + 1;
@@ -156,7 +156,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Record Enumeration Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Record list has updated %d time(s).", recordListChangedCount);

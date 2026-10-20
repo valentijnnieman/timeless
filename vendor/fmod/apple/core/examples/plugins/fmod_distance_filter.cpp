@@ -1,6 +1,6 @@
 /*==============================================================================
 Distance Filter DSP Plugin Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to create a distance filter DSP effect.
 ==============================================================================*/
@@ -35,74 +35,73 @@ enum
     FMOD_DISTANCE_FILTER_NUM_PARAMETERS
 };
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspcreate       (FMOD_DSP_STATE *dsp_state);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dsprelease      (FMOD_DSP_STATE *dsp_state);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspreset        (FMOD_DSP_STATE *dsp_state);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspread         (FMOD_DSP_STATE *dsp_state, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int *outchannels);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspprocess      (FMOD_DSP_STATE *dsp_state, unsigned int length, const FMOD_DSP_BUFFER_ARRAY *inbufferarray, FMOD_DSP_BUFFER_ARRAY *outbufferarray, FMOD_BOOL inputsidle, FMOD_DSP_PROCESS_OPERATION op);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float value);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamint  (FMOD_DSP_STATE *dsp_state, int index, int value);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparambool (FMOD_DSP_STATE *dsp_state, int index, FMOD_BOOL value);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamdata (FMOD_DSP_STATE *dsp_state, int index, void *data, unsigned int length);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valuestr);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamint  (FMOD_DSP_STATE *dsp_state, int index, int *value, char *valuestr);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparambool (FMOD_DSP_STATE *dsp_state, int index, FMOD_BOOL *value, char *valuestr);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamdata (FMOD_DSP_STATE *dsp_state, int index, void **value, unsigned int *length, char *valuestr);
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_shouldiprocess  (FMOD_DSP_STATE *dsp_state, FMOD_BOOL inputsidle, unsigned int length, FMOD_CHANNELMASK inmask, int inchannels, FMOD_SPEAKERMODE speakermode);
-
-static FMOD_DSP_PARAMETER_DESC p_max_distance;
-static FMOD_DSP_PARAMETER_DESC p_bandpass_frequency;
-static FMOD_DSP_PARAMETER_DESC p_3d_attributes;
-
-FMOD_DSP_PARAMETER_DESC *FMOD_DistanceFilter_dspparam[FMOD_DISTANCE_FILTER_NUM_PARAMETERS] =
-{
-    &p_max_distance,
-    &p_bandpass_frequency,
-    &p_3d_attributes
-};
-
-FMOD_DSP_DESCRIPTION FMOD_DistanceFilter_Desc =
-{
-    FMOD_PLUGIN_SDK_VERSION,
-    "FMOD Distance Filter",                 // name
-    0x00010000,                             // plugin version
-    1,                                      // number of input buffers to process
-    1,                                      // number of output buffers to process
-    FMOD_DistanceFilter_dspcreate,
-    FMOD_DistanceFilter_dsprelease,
-    FMOD_DistanceFilter_dspreset,
-    FMOD_DistanceFilter_dspread,
-    0,  // FMOD_DistanceFilter_dspprocess,  // *** declare this callback instead of FMOD_DistanceFilter_dspread if the plugin sets the output channel count ***
-    0,
-    FMOD_DISTANCE_FILTER_NUM_PARAMETERS,
-    FMOD_DistanceFilter_dspparam,
-    FMOD_DistanceFilter_dspsetparamfloat,
-    0, // FMOD_DistanceFilter_dspsetparamint,
-    0, // FMOD_DistanceFilter_dspsetparambool,
-    FMOD_DistanceFilter_dspsetparamdata,
-    FMOD_DistanceFilter_dspgetparamfloat,
-    0, // FMOD_DistanceFilter_dspgetparamint,
-    0, // FMOD_DistanceFilter_dspgetparambool,
-    FMOD_DistanceFilter_dspgetparamdata,
-    FMOD_DistanceFilter_shouldiprocess,
-    0,                                      // userdata
-    0,                                      // sys_register
-    0,                                      // sys_deregister
-    0                                       // sys_mix
-};
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspcreate       (FMOD_DSP_STATE *dsp_state);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dsprelease      (FMOD_DSP_STATE *dsp_state);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspreset        (FMOD_DSP_STATE *dsp_state);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspprocess      (FMOD_DSP_STATE *dsp_state, unsigned int length, const FMOD_DSP_BUFFER *inbuffer, const FMOD_DSP_BUFFER *outbuffer);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float value);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparamint  (FMOD_DSP_STATE *dsp_state, int index, int value);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparambool (FMOD_DSP_STATE *dsp_state, int index, FMOD_BOOL value);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparamdata (FMOD_DSP_STATE *dsp_state, int index, void *data, unsigned int length);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valuestr);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparamint  (FMOD_DSP_STATE *dsp_state, int index, int *value, char *valuestr);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparambool (FMOD_DSP_STATE *dsp_state, int index, FMOD_BOOL *value, char *valuestr);
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparamdata (FMOD_DSP_STATE *dsp_state, int index, void **value, unsigned int *length, char *valuestr);
 
 extern "C"
 {
     F_EXPORT FMOD_DSP_DESCRIPTION* F_CALL FMODGetDSPDescription()
     {
-	    static float distance_mapping_values[] = { 0, 1, 5, 20, 100, 500, 10000 };
-	    static float distance_mapping_scale[] = { 0, 1, 2, 3, 4, 4.5, 5 };
+        static float distance_mapping_values[] = { 0, 1, 5, 20, 100, 500, 10000 };
+        static float distance_mapping_scale[] = { 0, 1, 2, 3, 4, 4.5, 5 };
 
-        FMOD_DSP_INIT_PARAMDESC_FLOAT_WITH_MAPPING(p_max_distance,       "Max Dist",      "",    "Distance at which bandpass stops narrowing. 0 to 1000000000. Default = 100", FMOD_DISTANCE_FILTER_PARAM_MAX_DISTANCE_DEFAULT, distance_mapping_values, distance_mapping_scale);
-        FMOD_DSP_INIT_PARAMDESC_FLOAT(p_bandpass_frequency, "Frequency",     "Hz",  "Bandpass target frequency. 100 to 10,000Hz. Default = 2000Hz",               FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_MIN, FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_MAX, FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_DEFAULT);
-        FMOD_DSP_INIT_PARAMDESC_DATA(p_3d_attributes,       "3D Attributes", "",    "",                                                                           FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES);
+        // Initialize float parameter for max distance, using a differernt mapping to create a non linear envelope. (Piecewise linear mode).
+        FMOD_DSP_DECLARE_PARAMDESC_FLOAT_PIECEWISE_LINEAR(
+            p_max_distance,
+            "Max Dist",
+            "Distance at which bandpass stops narrowing. 0 to 1000000000. Default = 100",
+            "",
+            FMOD_DISTANCE_FILTER_PARAM_MAX_DISTANCE_MIN,
+            FMOD_DISTANCE_FILTER_PARAM_MAX_DISTANCE_MAX,
+            FMOD_DISTANCE_FILTER_PARAM_MAX_DISTANCE_DEFAULT,
+            distance_mapping_values,
+            distance_mapping_scale);
 
-        return &FMOD_DistanceFilter_Desc;
+        // Initialize linear float parameter for badpass frequency value.
+        FMOD_DSP_DECLARE_PARAMDESC_FLOAT(
+            p_bandpass_frequency,
+            "Frequency", "Bandpass target frequency. 100 to 10,000Hz. Default = 2000Hz", "Hz",
+            FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_MIN,
+            FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_MAX,
+            FMOD_DISTANCE_FILTER_PARAM_BANDPASS_FREQUENCY_DEFAULT);
+
+        // Initialize data parameter for 3d positioning. This parameter is registered to be called automatically by an FMOD spatializer thansk to FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES type.
+        FMOD_DSP_DECLARE_PARAMDESC_DATA(
+            p_3d_attributes,
+            "3D Attributes",
+            "",
+            FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES);
+
+        static FMOD_DSP_PARAMETER_DESC *FMOD_DistanceFilter_dspparam[FMOD_DISTANCE_FILTER_NUM_PARAMETERS] =
+        {
+            &p_max_distance,
+            &p_bandpass_frequency,
+            &p_3d_attributes
+        };
+
+        static FMOD_DSP_DESCRIPTION desc = { FMOD_PLUGIN_SDK_VERSION, "FMOD Distance Filter", 0x00010000, FMOD_DSP_MODE_FILTER };
+        desc.create             = FMOD_DistanceFilter_dspcreate;
+        desc.release            = FMOD_DistanceFilter_dsprelease;
+        desc.reset              = FMOD_DistanceFilter_dspreset;
+        desc.process            = FMOD_DistanceFilter_dspprocess;
+        desc.numparameters      = FMOD_DISTANCE_FILTER_NUM_PARAMETERS;
+        desc.paramdesc          = FMOD_DistanceFilter_dspparam;
+        desc.setparameterfloat  = FMOD_DistanceFilter_dspsetparamfloat;
+        desc.setparameterdata   = FMOD_DistanceFilter_dspsetparamdata;
+        desc.getparameterfloat  = FMOD_DistanceFilter_dspgetparamfloat;
+        desc.getparameterdata   = FMOD_DistanceFilter_dspgetparamdata;
+
+        return &desc;
     }
 }
 
@@ -114,7 +113,6 @@ class FMODDistanceFilterState
     void        init                (FMOD_DSP_STATE *dsp_state);
     void        release             (FMOD_DSP_STATE *dsp_state);
     FMOD_RESULT process             (float *inbuffer, float *outbuffer, unsigned int length, int channels);
-    FMOD_RESULT process             (unsigned int length, const FMOD_DSP_BUFFER_ARRAY *inbufferarray, FMOD_DSP_BUFFER_ARRAY *outbufferarray, FMOD_BOOL inputsidle, FMOD_DSP_PROCESS_OPERATION op);
     void        reset               ();
     void        setMaxDistance      (float);
     void        setBandpassFrequency(float);
@@ -232,53 +230,6 @@ FMOD_RESULT FMODDistanceFilterState::process(float *inbuffer, float *outbuffer, 
     return FMOD_OK;
 }
 
-FMOD_RESULT FMODDistanceFilterState::process(unsigned int length, const FMOD_DSP_BUFFER_ARRAY *inbufferarray, FMOD_DSP_BUFFER_ARRAY *outbufferarray, FMOD_BOOL inputsidle, FMOD_DSP_PROCESS_OPERATION op)
-{
-    if (op == FMOD_DSP_PROCESS_QUERY)
-    {
-        FMOD_SPEAKERMODE outmode;
-        int outchannels;
-
-        #if 1 // For stereo output
-        {
-            outmode = FMOD_SPEAKERMODE_STEREO;
-            outchannels = 2;
-        }
-        #else // For 5.1 output
-        {
-            outmode = FMOD_SPEAKERMODE_5POINT1;
-            outchannels = 6;
-        }
-        #endif
-
-        if (outbufferarray)
-        {
-            outbufferarray->speakermode = outmode;
-            outbufferarray->buffernumchannels[0] = outchannels;
-        }
-
-        if (inputsidle)
-        {
-            return FMOD_ERR_DSP_DONTPROCESS;
-        }
-
-        return FMOD_OK;
-    }
-
-    // Do processing here
-    float *inbuffer    = inbufferarray->buffers[0];
-    float *outbuffer   = outbufferarray->buffers[0];
-    int    inchannels  = inbufferarray->buffernumchannels[0];
-    int    outchannels = outbufferarray->buffernumchannels[0];
-    
-    while(length--)
-    {
-        // MAIN DSP LOOP...
-    }
-
-    return FMOD_OK;
-}
-
 void FMODDistanceFilterState::reset()
 {
     m_current_lowpass_time_const = m_target_lowpass_time_const;
@@ -352,7 +303,7 @@ void FMODDistanceFilterState::updateTimeConstants()
     m_ramp_samples_left = 256;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspcreate(FMOD_DSP_STATE *dsp_state)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspcreate(FMOD_DSP_STATE *dsp_state)
 {
     FMODDistanceFilterState* state = (FMODDistanceFilterState *)FMOD_DSP_ALLOC(dsp_state, sizeof(FMODDistanceFilterState));
     state->init(dsp_state);
@@ -364,7 +315,7 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspcreate(FMOD_DSP_STATE *dsp_state)
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dsprelease(FMOD_DSP_STATE *dsp_state)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dsprelease(FMOD_DSP_STATE *dsp_state)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
     state->release(dsp_state);
@@ -372,26 +323,20 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dsprelease(FMOD_DSP_STATE *dsp_state)
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspread(FMOD_DSP_STATE *dsp_state, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int * /*outchannels*/)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspprocess(FMOD_DSP_STATE *dsp_state, unsigned int length, const FMOD_DSP_BUFFER *inbuffer, const FMOD_DSP_BUFFER *outbuffer)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
-    return state->process(inbuffer, outbuffer, length, inchannels); // input and output channels count match for this effect
+    return state->process(inbuffer->buffer, outbuffer->buffer, length, inbuffer->numchannels); // as an example for plugins which set the output channel count
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspprocess(FMOD_DSP_STATE *dsp_state, unsigned int length, const FMOD_DSP_BUFFER_ARRAY *inbufferarray, FMOD_DSP_BUFFER_ARRAY *outbufferarray, FMOD_BOOL inputsidle, FMOD_DSP_PROCESS_OPERATION op)
-{
-    FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
-    return state->process(length, inbufferarray, outbufferarray, inputsidle, op); // as an example for plugins which set the output channel count
-}
-
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspreset(FMOD_DSP_STATE *dsp_state)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspreset(FMOD_DSP_STATE *dsp_state)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
     state->reset();
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float value)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float value)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
 
@@ -409,7 +354,7 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamfloat(FMOD_DSP_STATE *dsp_
     return FMOD_ERR_INVALID_PARAM;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valuestr)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparamfloat(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valuestr)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
 
@@ -429,7 +374,7 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamfloat(FMOD_DSP_STATE *dsp_
     return FMOD_ERR_INVALID_PARAM;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamdata(FMOD_DSP_STATE *dsp_state, int index, void *data, unsigned int /*length*/)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspsetparamdata(FMOD_DSP_STATE *dsp_state, int index, void *data, unsigned int /*length*/)
 {
     FMODDistanceFilterState *state = (FMODDistanceFilterState *)dsp_state->plugindata;
 
@@ -444,7 +389,7 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspsetparamdata(FMOD_DSP_STATE *dsp_s
     return FMOD_ERR_INVALID_PARAM;
 }
 
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamdata(FMOD_DSP_STATE * /*dsp_state*/, int index, void ** /*value*/, unsigned int * /*length*/, char * /*valuestr*/)
+FMOD_RESULT F_CALL FMOD_DistanceFilter_dspgetparamdata(FMOD_DSP_STATE * /*dsp_state*/, int index, void ** /*value*/, unsigned int * /*length*/, char * /*valuestr*/)
 {
     switch (index)
     {
@@ -453,14 +398,4 @@ FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_dspgetparamdata(FMOD_DSP_STATE * /*ds
     }
 
     return FMOD_ERR_INVALID_PARAM;
-}
-
-FMOD_RESULT F_CALLBACK FMOD_DistanceFilter_shouldiprocess(FMOD_DSP_STATE * /*dsp_state*/, FMOD_BOOL inputsidle, unsigned int /*length*/, FMOD_CHANNELMASK /*inmask*/, int /*inchannels*/, FMOD_SPEAKERMODE /*speakermode*/)
-{
-    if (inputsidle)
-    {
-        return FMOD_ERR_DSP_DONTPROCESS;
-    }
-
-    return FMOD_OK;
 }

@@ -1,6 +1,6 @@
 /*===============================================================================================
 Raw Codec Plugin Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to create a codec that reads raw PCM data.
 
@@ -41,10 +41,10 @@ This example shows how to create a codec that reads raw PCM data.
 
 #include "fmod.h"
 
-FMOD_RESULT F_CALLBACK rawopen(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
-FMOD_RESULT F_CALLBACK rawclose(FMOD_CODEC_STATE *codec);
-FMOD_RESULT F_CALLBACK rawread(FMOD_CODEC_STATE *codec, void *buffer, unsigned int size, unsigned int *read);
-FMOD_RESULT F_CALLBACK rawsetposition(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
+FMOD_RESULT F_CALL rawopen(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
+FMOD_RESULT F_CALL rawclose(FMOD_CODEC_STATE *codec);
+FMOD_RESULT F_CALL rawread(FMOD_CODEC_STATE *codec, void *buffer, unsigned int size, unsigned int *read);
+FMOD_RESULT F_CALL rawsetposition(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
 
 FMOD_CODEC_DESCRIPTION rawcodec =
 {
@@ -97,7 +97,7 @@ static FMOD_CODEC_WAVEFORMAT    rawwaveformat;
     If you want FMOD to use your own filesystem (and potentially lose the above benefits) use System::setFileSystem.
 */
 
-FMOD_RESULT F_CALLBACK rawopen(FMOD_CODEC_STATE *codec, FMOD_MODE /*usermode*/, FMOD_CREATESOUNDEXINFO * /*userexinfo*/)
+FMOD_RESULT F_CALL rawopen(FMOD_CODEC_STATE *codec, FMOD_MODE /*usermode*/, FMOD_CREATESOUNDEXINFO * /*userexinfo*/)
 {          
     rawwaveformat.channels     = 2;
     rawwaveformat.format       = FMOD_SOUND_FORMAT_PCM16;
@@ -116,17 +116,17 @@ FMOD_RESULT F_CALLBACK rawopen(FMOD_CODEC_STATE *codec, FMOD_MODE /*usermode*/, 
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK rawclose(FMOD_CODEC_STATE * /*codec*/)
+FMOD_RESULT F_CALL rawclose(FMOD_CODEC_STATE * /*codec*/)
 {
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK rawread(FMOD_CODEC_STATE *codec, void *buffer, unsigned int size, unsigned int *read)
+FMOD_RESULT F_CALL rawread(FMOD_CODEC_STATE *codec, void *buffer, unsigned int size, unsigned int *read)
 {
     return FMOD_CODEC_FILE_READ(codec, buffer, size, read);
 }
 
-FMOD_RESULT F_CALLBACK rawsetposition(FMOD_CODEC_STATE *codec, int /*subsound*/, unsigned int position, FMOD_TIMEUNIT /*postype*/)
+FMOD_RESULT F_CALL rawsetposition(FMOD_CODEC_STATE *codec, int /*subsound*/, unsigned int position, FMOD_TIMEUNIT /*postype*/)
 {
     return FMOD_CODEC_FILE_SEEK(codec, position, 0);
 }
