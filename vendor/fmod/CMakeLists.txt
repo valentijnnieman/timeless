@@ -1,9 +1,17 @@
 project(fmod)
 
-add_library(fmod STATIC IMPORTED GLOBAL)
-add_library(fmod_studio STATIC IMPORTED GLOBAL)
+# On macOS the dylibs are SHARED imports, so CMake puts their folder on the
+# binaries' build RPATH and the game finds them at launch (their install name
+# is @rpath/libfmod*.dylib). Elsewhere they stay STATIC imports, as before.
+if(APPLE)
+  add_library(fmod SHARED IMPORTED GLOBAL)
+  add_library(fmod_studio SHARED IMPORTED GLOBAL)
+else()
+  add_library(fmod STATIC IMPORTED GLOBAL)
+  add_library(fmod_studio STATIC IMPORTED GLOBAL)
+endif()
 
-if(apple)
+if(APPLE)
 set_property(TARGET fmod PROPERTY
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/apple/core/lib/libfmod.dylib")
 set_property(TARGET fmod PROPERTY

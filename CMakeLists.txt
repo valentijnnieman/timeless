@@ -20,7 +20,13 @@ set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON)
 set(ASSIMP_BUILD_FBX_IMPORTER ON)
-set(ASSIMP_BUILD_ZLIB ON)
+if(APPLE)
+  # assimp's bundled zlib defines fdopen() away on macOS, which breaks against
+  # current SDKs; macOS ships zlib, so use that instead.
+  set(ASSIMP_BUILD_ZLIB OFF)
+else()
+  set(ASSIMP_BUILD_ZLIB ON)
+endif()
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
 option(EMSCRIPTEN_PTHREADS "PThread support" OFF)
@@ -147,11 +153,6 @@ if(EMSCRIPTEN)
   # add_subdirectory(example example)
 
 else()
-  if(apple)
-    # set(CMAKE_MACOSX_RPATH 1)
-    # SET(CMAKE_INSTALL_RPATH @loader_path/../Framework)
-  endif()
-
   # SDL2 (vendored) replaces GLFW for windowing/input. Build the static lib only.
   set(SDL_STATIC ON CACHE BOOL "" FORCE)
   set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -210,26 +211,6 @@ else()
           COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio_vc.lib
           ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio_vc.lib)
-  endif()
-
-  if(apple)
-    install(TARGETS ${PROJECT_NAME}
-          glad freetype glm SDL2-static DESTINATION ${PROJECT_BINARY_DIR}
-          BUNDLE DESTINATION ${PROJECT_BINARY_DIR}
-      )
-    install(IMPORTED_RUNTIME_ARTIFACTS ${PROJECT_NAME})
-
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${FMOD_DIR}/apple/core/lib/libfmodL.dylib
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodL.dylib)
-
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${FMOD_DIR}/apple/studio/lib/libfmodstudioL.dylib
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudioL.dylib)
   endif()
 
   if(UNIX AND NOT APPLE)
