@@ -75,7 +75,7 @@ Multiple named `RenderingSystem` instances can coexist with different cameras (e
 
 ### Input
 
-- `MouseInputListener<T>` — attach to entity; register with `TE::mis`
+- `MouseInputListener<T>` — attach to entity; register with `TE::mis`. Its `layer` (default 0) sets who hears an event first: higher layers before lower, registration order (or `sort()`'s) within a layer. Moves and scrolls stop at the first listener that sets `event->picked_up`; clicks and releases reach every listener, so each checks `picked_up` itself
 - `KeyboardInputListener` — attach to entity; register with `KeyboardInputSystem`
 - `TE::clicked_on(event, entity, zoom)` — orthographic hit test
 - `TE::clicked_on_perspective(event, entity)` — perspective hit test

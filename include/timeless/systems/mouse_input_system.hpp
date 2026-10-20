@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include <vector>
 #include "timeless/components/mouse_input_listener.hpp"
 #include "timeless/event.hpp"
 #include "timeless/systems/system.hpp"
@@ -21,9 +23,17 @@ public:
   void mouse_scroll_handler(ComponentManager &cm, MouseEvent *event);
 
 private:
-  // `entities` in the order they hear an event: by their listener's layer,
+  // A listener in the order it hears an event. Weak, so one removed by an
+  // earlier handler of the same event is skipped.
+  template <typename T> struct Ordered {
+    int layer;
+    Entity entity;
+    std::weak_ptr<MouseInputListener<T>> listener;
+  };
+
+  // The listeners of `entities`, in the order they hear an event: by layer,
   // highest first, keeping their order within a layer.
   template <typename T>
-  std::vector<Entity> in_layer_order(ComponentManager &cm,
-                                     const std::vector<Entity> &entities);
+  std::vector<Ordered<T>> in_layer_order(ComponentManager &cm,
+                                         const std::vector<Entity> &entities);
 };

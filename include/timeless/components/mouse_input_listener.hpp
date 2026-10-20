@@ -14,7 +14,9 @@ public:
     // Which listeners hear an event first: higher layers before lower ones
     // (see MouseInputSystem). Within a layer they keep the system's order,
     // registration or sort(). E.g. put the world below the UI, so a panel
-    // can claim (picked_up) a click before whatever is behind it hears it.
+    // sets event->picked_up on a click before whatever is behind it hears
+    // it. Moves and scrolls stop there; clicks and releases still reach the
+    // listeners below, which should check picked_up and leave it alone.
     int layer = 0;
 
     MouseInputListener(std::function<void(T *event, Entity entity, int data)> onClick, int layer = 0)
