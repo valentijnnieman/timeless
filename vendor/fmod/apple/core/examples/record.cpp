@@ -1,6 +1,6 @@
 /*==============================================================================
 Record example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to record continuously and play back the same data while
 keeping a specified latency between the two. This is achieved by delaying the
@@ -190,7 +190,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Record Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Adjust LATENCY define to compensate for stuttering");

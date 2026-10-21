@@ -25,4 +25,5 @@
 <FileRef location = "group:fmod_distance_filter.xcodeproj" />
 <FileRef location = "group:fmod_gain.xcodeproj" />
 <FileRef location = "group:fmod_noise.xcodeproj" />
+<FileRef location = "group:fmod_rnbo.xcodeproj" />
 </Workspace>

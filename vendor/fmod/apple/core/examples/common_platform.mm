@@ -1,6 +1,6 @@
 /*==============================================================================
 FMOD Example Framework
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 ==============================================================================*/
 #import "common.h"
 #import <Cocoa/Cocoa.h>
@@ -98,32 +98,33 @@ const char *Common_WritePath(const char *fileName)
         const unsigned int BUTTON_HEIGHT = 20;
         const unsigned int WINDOW_WIDTH  = BUTTON_WIDTH * BTN_COUNT;
         const unsigned int WINDOW_HEIGHT = 500;
-        
-        mOutputWindow = [[NSTextField alloc] init];
+
+        NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)];
+
+        mOutputWindow = [[NSTextField alloc] initWithFrame:NSMakeRect(0, BUTTON_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - BUTTON_HEIGHT)];
         [mOutputWindow setFont:[NSFont userFixedPitchFontOfSize:12]];
         [mOutputWindow setEditable:NO];
-        [mOutputWindow setBezeled:NO];
-        [mOutputWindow setBackgroundColor:[NSColor blackColor]];
-        [mOutputWindow setTextColor:[NSColor whiteColor]];
+        [container addSubview:mOutputWindow];
 
         for (unsigned int i = 0; i < BTN_COUNT; i++)
         {
-            mButtons[i] = [[NSButton alloc] initWithFrame:NSMakeRect(i * BUTTON_WIDTH, WINDOW_HEIGHT - BUTTON_HEIGHT, BUTTON_WIDTH, BUTTON_HEIGHT)];
+            mButtons[i] = [[NSButton alloc] initWithFrame:NSMakeRect(i * BUTTON_WIDTH, 0, BUTTON_WIDTH, BUTTON_HEIGHT)];
             [mButtons[i] setAction:@selector(buttonClick:)];
             [mButtons[i] setTag:BTN_IDS[i]];
             [mButtons[i] setTitle:[NSString stringWithUTF8String:Common_BtnStr(BTN_IDS[i])]];
             [mButtons[i] setContinuous:true];
-            [mOutputWindow addSubview:mButtons[i]];
+            [mButtons[i] setBezelStyle:NSBezelStyleShadowlessSquare];
+            [container addSubview:mButtons[i]];
         }
 
         mWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT) styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable) backing:NSBackingStoreBuffered defer:NO];
         [mWindow setTitle:@"FMOD Example"];
-        [mWindow setContentView:mOutputWindow];
+        [mWindow setContentView:container];
         [mWindow setDelegate:self];
-        
+
         [NSThread detachNewThreadSelector:@selector(threadMain:) toTarget:self withObject:nil];
     }
-    
+
     return self;
 }
 

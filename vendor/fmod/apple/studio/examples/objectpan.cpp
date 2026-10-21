@@ -1,6 +1,6 @@
 /*==============================================================================
 Object Panning Example
-Copyright (c), Firelight Technologies Pty, Ltd 2015-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2015-2026.
 
 This example demonstrates the FMOD object panner. The usage is completely
 transparent to the API, the only difference is how the event is authored in the
@@ -163,7 +163,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Object Panning Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2015-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2015-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Playing %s with the %s.", radioString, spatialString);

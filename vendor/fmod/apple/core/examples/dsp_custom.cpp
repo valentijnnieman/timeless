@@ -1,6 +1,6 @@
 /*==============================================================================
 Custom DSP Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to add a user created DSP callback to process audio 
 data. The read callback is executed at runtime, and can be added anywhere in
@@ -20,7 +20,7 @@ typedef struct
     int   channels;
 } mydsp_data_t;
 
-FMOD_RESULT F_CALLBACK myDSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int *outchannels) 
+FMOD_RESULT F_CALL myDSPCallback(FMOD_DSP_STATE *dsp_state, unsigned int length, const FMOD_DSP_BUFFER *in, const FMOD_DSP_BUFFER *out)
 {
     mydsp_data_t *data = (mydsp_data_t *)dsp_state->plugindata;
 
@@ -36,17 +36,17 @@ FMOD_RESULT F_CALLBACK myDSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer,
         /*
             Feel free to unroll this.
         */
-        for (int chan = 0; chan < *outchannels; chan++)
+        for (int chan = 0; chan < out->numchannels; chan++)
         {
             /* 
                 This DSP filter just halves the volume! 
                 Input is modified, and sent to output.
             */
-            data->buffer[(samp * *outchannels) + chan] = outbuffer[(samp * inchannels) + chan] = inbuffer[(samp * inchannels) + chan] * data->volume_linear;
+            data->buffer[(samp * out->numchannels) + chan] = out->buffer[(samp * out->numchannels) + chan] = in->buffer[(samp * in->numchannels) + chan] * data->volume_linear;
         }
     }
 
-    data->channels = inchannels;
+    data->channels = out->numchannels;
 
     return FMOD_OK; 
 } 
@@ -54,7 +54,7 @@ FMOD_RESULT F_CALLBACK myDSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer,
 /*
     Callback called when DSP is created.   This implementation creates a structure which is attached to the dsp state's 'plugindata' member.
 */
-FMOD_RESULT F_CALLBACK myDSPCreateCallback(FMOD_DSP_STATE *dsp_state)
+FMOD_RESULT F_CALL myDSPCreateCallback(FMOD_DSP_STATE *dsp_state)
 {
     unsigned int blocksize;
     FMOD_RESULT result;
@@ -83,7 +83,7 @@ FMOD_RESULT F_CALLBACK myDSPCreateCallback(FMOD_DSP_STATE *dsp_state)
 /*
     Callback called when DSP is destroyed.   The memory allocated in the create callback can be freed here.
 */
-FMOD_RESULT F_CALLBACK myDSPReleaseCallback(FMOD_DSP_STATE *dsp_state)
+FMOD_RESULT F_CALL myDSPReleaseCallback(FMOD_DSP_STATE *dsp_state)
 {
     if (dsp_state->plugindata)
     {
@@ -104,7 +104,7 @@ FMOD_RESULT F_CALLBACK myDSPReleaseCallback(FMOD_DSP_STATE *dsp_state)
     Callback called when DSP::getParameterData is called.   This returns a pointer to the raw floating point PCM data.
     We have set up 'parameter 0' to be the data parameter, so it checks to make sure the passed in index is 0, and nothing else.
 */
-FMOD_RESULT F_CALLBACK myDSPGetParameterDataCallback(FMOD_DSP_STATE *dsp_state, int index, void **data, unsigned int *length, char *)
+FMOD_RESULT F_CALL myDSPGetParameterDataCallback(FMOD_DSP_STATE *dsp_state, int index, void **data, unsigned int *length, char *)
 {
     if (index == 0)
     {
@@ -128,7 +128,7 @@ FMOD_RESULT F_CALLBACK myDSPGetParameterDataCallback(FMOD_DSP_STATE *dsp_state, 
     Callback called when DSP::setParameterFloat is called.   This accepts a floating point 0 to 1 volume value, and stores it.
     We have set up 'parameter 1' to be the volume parameter, so it checks to make sure the passed in index is 1, and nothing else.
 */
-FMOD_RESULT F_CALLBACK myDSPSetParameterFloatCallback(FMOD_DSP_STATE *dsp_state, int index, float value)
+FMOD_RESULT F_CALL myDSPSetParameterFloatCallback(FMOD_DSP_STATE *dsp_state, int index, float value)
 {
     if (index == 1)
     {
@@ -147,7 +147,7 @@ FMOD_RESULT F_CALLBACK myDSPSetParameterFloatCallback(FMOD_DSP_STATE *dsp_state,
     We have set up 'parameter 1' to be the volume parameter, so it checks to make sure the passed in index is 1, and nothing else.
     An alternate way of displaying the data is provided, as a string, so the main app can use it.
 */
-FMOD_RESULT F_CALLBACK myDSPGetParameterFloatCallback(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valstr)
+FMOD_RESULT F_CALL myDSPGetParameterFloatCallback(FMOD_DSP_STATE *dsp_state, int index, float *value, char *valstr)
 {
     if (index == 1)
     {
@@ -196,32 +196,32 @@ int FMOD_Main()
         Create the DSP effect.
     */  
     { 
-        FMOD_DSP_DESCRIPTION dspdesc; 
-        memset(&dspdesc, 0, sizeof(dspdesc));
-        FMOD_DSP_PARAMETER_DESC wavedata_desc;
-        FMOD_DSP_PARAMETER_DESC volume_desc;
-        FMOD_DSP_PARAMETER_DESC *paramdesc[2] = 
-        {
-            &wavedata_desc,
-            &volume_desc
-        };
+        // Declare and initialize DSP description.
 
-        FMOD_DSP_INIT_PARAMDESC_DATA(wavedata_desc, "wave data", "", "wave data", FMOD_DSP_PARAMETER_DATA_TYPE_USER);
-        FMOD_DSP_INIT_PARAMDESC_FLOAT(volume_desc, "volume", "%", "linear volume in percent", 0, 1, 1);
+        FMOD_DSP_DESCRIPTION dspdesc = { FMOD_PLUGIN_SDK_VERSION, "My first DSP unit", 0x00010000, FMOD_DSP_MODE_FILTER };  // plugin sdk version, name, your plugin version, DSP mode (filter or generator)
 
-        strncpy(dspdesc.name, "My first DSP unit", sizeof(dspdesc.name));
-        dspdesc.version             = 0x00010000;
-        dspdesc.numinputbuffers     = 1;
-        dspdesc.numoutputbuffers    = 1;
-        dspdesc.read                = myDSPCallback; 
+        dspdesc.process             = myDSPCallback; 
         dspdesc.create              = myDSPCreateCallback;
         dspdesc.release             = myDSPReleaseCallback;
         dspdesc.getparameterdata    = myDSPGetParameterDataCallback;
         dspdesc.setparameterfloat   = myDSPSetParameterFloatCallback;
         dspdesc.getparameterfloat   = myDSPGetParameterFloatCallback;
+
+        // Declare and initialise parameter descriptions. (Use the helper macros to save space.)
+
+        FMOD_DSP_DECLARE_PARAMDESC_DATA(wavedata_desc, "wave data", "wave data", FMOD_DSP_PARAMETER_DATA_TYPE_USER);
+        FMOD_DSP_DECLARE_PARAMDESC_FLOAT(volume_desc, "volume", "linear volume in percent", "%", 0.0f, 1.0f, 1.0f);  // mininum = 0, maximum = 1, default = 1.
+ 
+         FMOD_DSP_PARAMETER_DESC *paramdesc[2] = 
+        {
+            &wavedata_desc,
+            &volume_desc
+        };
+
         dspdesc.numparameters       = 2;
         dspdesc.paramdesc           = paramdesc;
 
+        // Create the DSP
         result = system->createDSP(&dspdesc, &mydsp); 
         ERRCHECK(result); 
     } 
@@ -299,7 +299,7 @@ int FMOD_Main()
 
             Common_Draw("==================================================");
             Common_Draw("Custom DSP Example.");
-            Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+            Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
             Common_Draw("==================================================");
             Common_Draw("");
             Common_Draw("Press %s to toggle filter bypass", Common_BtnStr(BTN_ACTION1));

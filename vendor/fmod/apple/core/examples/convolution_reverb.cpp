@@ -1,6 +1,6 @@
 /*==============================================================================
 Convolution Reverb Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to set up a convolution reverb DSP as a global
 DSP unit that can be routed into by multiple seperate channels.
@@ -202,7 +202,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Convolution Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("Press %s and %s to change dry mix", Common_BtnStr(BTN_UP), Common_BtnStr(BTN_DOWN));
         Common_Draw("Press %s and %s to change wet mix", Common_BtnStr(BTN_LEFT), Common_BtnStr(BTN_RIGHT));

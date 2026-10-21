@@ -1,6 +1,6 @@
 /*==============================================================================
 Programmer Sound Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates how to implement the programmer sound callback to
 play an event that has a programmer specified sound.
@@ -17,12 +17,10 @@ https://www.fmod.com/legal
 
 struct ProgrammerSoundContext
 {
-    FMOD::System* coreSystem;
-    FMOD::Studio::System* system;
     const char* dialogueString;
 };
 
-FMOD_RESULT F_CALLBACK programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters);
+FMOD_RESULT F_CALL programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters);
 
 int FMOD_Main()
 {
@@ -67,8 +65,6 @@ int FMOD_Main()
     static const char* const dialogue[] = {"welcome", "main menu", "goodbye"};
 
     ProgrammerSoundContext programmerSoundContext;
-    programmerSoundContext.system = system;
-    programmerSoundContext.coreSystem = coreSystem;
     programmerSoundContext.dialogueString = dialogue[dialogueIndex];
 
     ERRCHECK( eventInstance->setUserData(&programmerSoundContext) );
@@ -101,7 +97,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Programmer Sound Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Press %s to change language", Common_BtnStr(BTN_ACTION1));
@@ -139,7 +135,7 @@ int FMOD_Main()
         } \
     }
 
-FMOD_RESULT F_CALLBACK programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters)
+FMOD_RESULT F_CALL programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void *parameters)
 {
     FMOD::Studio::EventInstance* eventInstance = (FMOD::Studio::EventInstance*)event;
 
@@ -151,12 +147,16 @@ FMOD_RESULT F_CALLBACK programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE t
         ProgrammerSoundContext* context = NULL;
         CHECK_RESULT( eventInstance->getUserData((void**)&context) );
 
+        FMOD::Studio::System* studioSystem = NULL;
+        CHECK_RESULT( eventInstance->getSystem(&studioSystem) );
         // Find the audio file in the audio table with the key
         FMOD_STUDIO_SOUND_INFO info;
-        CHECK_RESULT( context->system->getSoundInfo(context->dialogueString, &info) );
+        CHECK_RESULT( studioSystem->getSoundInfo(context->dialogueString, &info) );
 
+        FMOD::System* coreSystem = NULL;
+        CHECK_RESULT( studioSystem->getCoreSystem(&coreSystem) );
         FMOD::Sound* sound = NULL;
-        CHECK_RESULT( context->coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound) );
+        CHECK_RESULT( coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound) );
 
         // Pass the sound to FMOD
         props->sound = (FMOD_SOUND*)sound;

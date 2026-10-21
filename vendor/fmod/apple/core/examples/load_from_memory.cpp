@@ -1,6 +1,6 @@
 /*==============================================================================
 Load From Memory Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example is simply a variant of the [Play Sound Example](play_sound.html), 
 but it loads the data into memory then uses the 'load from memory' feature of 
@@ -133,7 +133,7 @@ int FMOD_Main()
 
             Common_Draw("==================================================");
             Common_Draw("Load From Memory Example.");
-            Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+            Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
             Common_Draw("==================================================");
             Common_Draw("");
             Common_Draw("Press %s to play a mono sound (drumloop)", Common_BtnStr(BTN_ACTION1));

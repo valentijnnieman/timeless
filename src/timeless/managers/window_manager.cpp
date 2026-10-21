@@ -7,6 +7,8 @@ struct PlatformWindow {
   SDL_Window *window = nullptr;
   SDL_GLContext gl_context = nullptr;
   SDL_Cursor *cursor = nullptr;
+  // iOS: the renderbuffer SDL presents on swap (see swap_buffers).
+  GLint screen_renderbuffer = 0;
 };
 
 namespace {
@@ -68,7 +70,7 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
     std::cout << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
   }
 
-#ifdef __EMSCRIPTEN__
+#ifdef TIMELESS_GLES // web and iOS: OpenGL ES 3.0
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -118,12 +120,16 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
   platform->cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
   SDL_SetCursor(platform->cursor);
 
-#ifdef __EMSCRIPTEN__
-#else
+#ifndef TIMELESS_GLES
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
   }
 #endif
+  // On iOS the window is drawn through SDL's own framebuffer object (bound
+  // since the context was made current), not framebuffer 0. After glad has
+  // loaded, which on desktop is what makes GL calls work at all.
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&TE::screen_framebuffer);
+  glGetIntegerv(GL_RENDERBUFFER_BINDING, &platform->screen_renderbuffer);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -214,7 +220,7 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     std::cout << "Could not create Framebuffer!" << std::endl;
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
 
   framebuffers.push_back(fbo);
   textures.push_back(tex);
@@ -227,7 +233,7 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 void WindowManager::select_framebuffer(size_t idx, bool clear) {
   if (idx < framebuffers.size()) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[idx]);
-    glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+    glViewport(0, 0, TESettings::RENDER_X, TESettings::RENDER_Y);
     if (clear) {
       glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
                    TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
@@ -285,8 +291,8 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   // Premultiplied "over": the offscreen FBO holds premultiplied colour, so this
   // lets the page background show through transparent regions of the composite.
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-  int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::VIEWPORT_X;
-  int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::VIEWPORT_Y;
+  int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::RENDER_X;
+  int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::RENDER_Y;
   glViewport(0, 0, vp_w, vp_h);
   if (clear) {
     glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
@@ -306,8 +312,8 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   }
   glActiveTexture(GL_TEXTURE0);
 
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::VIEWPORT_X);
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::VIEWPORT_Y);
+  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::RENDER_X);
+  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::RENDER_Y);
   // Normalise raw mouse position by actual window size so shader effects
   // (e.g. search highlight) track the cursor correctly regardless of resolution.
   glUniform2fv(
@@ -345,8 +351,8 @@ void WindowManager::render_background_quad(std::shared_ptr<Shader> shader) {
   shader->use();
   glBindVertexArray(ScreenVAO);
 
-  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::VIEWPORT_X);
-  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::VIEWPORT_Y);
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::RENDER_X);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::RENDER_Y);
   set_shader_time(shader);
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -482,8 +488,8 @@ void WindowManager::poll_events() {
       }
 
       // Touch fingers. SDL reports normalized [0,1] coords; scale to window
-      // pixels so pan deltas share units with mouse handling. With two fingers
-      // down this drives camera pan (centroid) + pinch-zoom (spread). Single
+      // pixels, the units of mouse positions. With two fingers down this drives
+      // camera pan (centroid) + pinch-zoom (spread), see get_touch_gesture. Single
       // taps are still delivered as synthesized mouse clicks by SDL, so simple
       // click interactions keep working without touching this path.
       case SDL_FINGERDOWN:
@@ -507,42 +513,34 @@ void WindowManager::poll_events() {
   }
 }
 
-// Recompute the two-finger gesture baseline after any finger event. While
-// exactly two fingers are down we accumulate centroid movement (pan) and the
-// change in their separation (pinch) relative to the previous update; anything
-// other than two fingers resets the baseline so the next pinch starts clean.
+// Track the two-finger gesture after any finger event: with exactly two
+// fingers down, their midpoint and spread; anything else ends the gesture.
 void WindowManager::update_touch_gesture() {
-  if (active_touches.size() == 2) {
+  two_finger_active = active_touches.size() == 2;
+  if (two_finger_active) {
     auto it = active_touches.begin();
     glm::vec2 a = it->second;
     glm::vec2 b = (++it)->second;
-    glm::vec2 centroid = (a + b) * 0.5f;
-    float spread = glm::length(a - b);
-    if (two_finger_active) {
-      touch_pan_accum += centroid - gesture_centroid;
-      touch_pinch_accum += spread - gesture_spread;
-    }
-    gesture_centroid = centroid;
-    gesture_spread = spread;
-    two_finger_active = true;
-  } else {
-    two_finger_active = false;
+    gesture_centroid = (a + b) * 0.5f;
+    gesture_spread = glm::length(a - b);
   }
 }
 
-glm::vec2 WindowManager::consume_touch_pan() {
-  glm::vec2 v = touch_pan_accum;
-  touch_pan_accum = glm::vec2(0.0f);
-  return v;
-}
-
-float WindowManager::consume_touch_pinch() {
-  float v = touch_pinch_accum;
-  touch_pinch_accum = 0.0f;
-  return v;
+bool WindowManager::get_touch_gesture(glm::vec2 &centroid,
+                                      float &spread) const {
+  if (!two_finger_active)
+    return false;
+  centroid = gesture_centroid;
+  spread = gesture_spread;
+  return true;
 }
 
 void WindowManager::swap_buffers() {
+#if TARGET_OS_IOS
+  // SDL presents whatever renderbuffer is bound, and our framebuffers bind
+  // their own (depth) renderbuffers, so rebind the screen's first.
+  glBindRenderbuffer(GL_RENDERBUFFER, platform->screen_renderbuffer);
+#endif
   SDL_GL_SwapWindow(platform->window);
 }
 

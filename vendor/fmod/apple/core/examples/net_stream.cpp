@@ -1,12 +1,13 @@
 /*==============================================================================
 Net Stream Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to play streaming audio from an Internet source
 
 For information on using FMOD example code in your own programs, visit
 https://www.fmod.com/legal
 ==============================================================================*/
+#define COMMON_REQUIRE_NETWORK
 #include "fmod.hpp"
 #include "common.h"
 
@@ -42,7 +43,7 @@ int FMOD_Main()
     exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
     exinfo.filebuffersize = 1024*16;        /* Increase the default file chunk size to handle seeking inside large playlist files that may be over 2kb. */
 
-    result = system->createSound("http://live-radio01.mediahubaustralia.com/2TJW/mp3/", FMOD_CREATESTREAM | FMOD_NONBLOCKING, &exinfo, &sound);
+    result = system->createSound("https://stream.live.vc.bbcmedia.co.uk/bbc_world_service", FMOD_CREATESTREAM | FMOD_NONBLOCKING, &exinfo, &sound);
     ERRCHECK(result);
 
     /*
@@ -160,7 +161,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Net Stream Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Press %s to toggle pause", Common_BtnStr(BTN_ACTION1));

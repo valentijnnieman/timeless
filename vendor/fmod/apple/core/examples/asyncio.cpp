@@ -1,6 +1,6 @@
 /*===============================================================================================
  Async IO Example
- Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+ Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
  This example shows how to play a stream and use a custom file handler that defers reads for the
  streaming part.  FMOD will allow the user to return straight away from a file read request and
@@ -69,7 +69,7 @@ void DrawLines()
 /*
     File callbacks
 */
-FMOD_RESULT F_CALLBACK myopen(const char *name, unsigned int *filesize, void **handle, void * /*userdata*/)
+FMOD_RESULT F_CALL myopen(const char *name, unsigned int *filesize, void **handle, void * /*userdata*/)
 {
     assert(name);
     assert(filesize);
@@ -85,7 +85,7 @@ FMOD_RESULT F_CALLBACK myopen(const char *name, unsigned int *filesize, void **h
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK myclose(void *handle, void * /*userdata*/)
+FMOD_RESULT F_CALL myclose(void *handle, void * /*userdata*/)
 {
     assert(handle);
 
@@ -94,7 +94,7 @@ FMOD_RESULT F_CALLBACK myclose(void *handle, void * /*userdata*/)
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK myread(void *handle, void *buffer, unsigned int sizebytes, unsigned int *bytesread, void * /*userdata*/)
+FMOD_RESULT F_CALL myread(void *handle, void *buffer, unsigned int sizebytes, unsigned int *bytesread, void * /*userdata*/)
 {
     assert(handle);
     assert(buffer);
@@ -110,7 +110,7 @@ FMOD_RESULT F_CALLBACK myread(void *handle, void *buffer, unsigned int sizebytes
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK myseek(void *handle, unsigned int pos, void * /*userdata*/)
+FMOD_RESULT F_CALL myseek(void *handle, unsigned int pos, void * /*userdata*/)
 {
     assert(handle);
 
@@ -119,7 +119,7 @@ FMOD_RESULT F_CALLBACK myseek(void *handle, unsigned int pos, void * /*userdata*
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK myasyncread(FMOD_ASYNCREADINFO *info, void * /*userdata*/)
+FMOD_RESULT F_CALL myasyncread(FMOD_ASYNCREADINFO *info, void * /*userdata*/)
 {
     assert(info);
 
@@ -146,7 +146,7 @@ FMOD_RESULT F_CALLBACK myasyncread(FMOD_ASYNCREADINFO *info, void * /*userdata*/
     return FMOD_OK;
 }
 
-FMOD_RESULT F_CALLBACK myasynccancel(FMOD_ASYNCREADINFO *info, void * /*userdata*/)
+FMOD_RESULT F_CALL myasynccancel(FMOD_ASYNCREADINFO *info, void * /*userdata*/)
 {
     assert(info);
 
@@ -310,7 +310,7 @@ int FMOD_Main()
 
         Common_Draw("==================================================");
         Common_Draw("Async IO Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
         Common_Draw("==================================================");
         Common_Draw("");
         Common_Draw("Press %s to release playing stream", Common_BtnStr(BTN_ACTION1));

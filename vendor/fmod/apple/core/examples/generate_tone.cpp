@@ -1,6 +1,6 @@
 /*==============================================================================
 Generate Tone Example
-Copyright (c), Firelight Technologies Pty, Ltd 2004-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2004-2026.
 
 This example shows how to play generated tones using System::playDSP
 instead of manually connecting and disconnecting DSP units.
@@ -177,7 +177,7 @@ int FMOD_Main()
 
             Common_Draw("==================================================");
             Common_Draw("Generate Tone Example.");
-            Common_Draw("Copyright (c) Firelight Technologies 2004-2023.");
+            Common_Draw("Copyright (c) Firelight Technologies 2004-2026.");
             Common_Draw("==================================================");
             Common_Draw("");
             Common_Draw("Press %s to play a sine wave", Common_BtnStr(BTN_ACTION1));

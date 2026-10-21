@@ -1,11 +1,6 @@
 #pragma once
 #include "timeless/event.hpp"
-#ifdef __EMSCRIPTEN__
-#include <GL/gl.h>
-#include <GLES3/gl3.h>
-#else
-#include <glad/glad.h>
-#endif
+#include "timeless/gl.hpp"
 #include <iostream>
 #include <map>
 #include <memory>
@@ -57,15 +52,12 @@ public:
 
   // --- Touch gestures (iOS / any SDL touch device) ---
   // Active fingers keyed by SDL_FingerID (stored as long long so SDL types stay
-  // out of this header), in window pixels. When exactly two are down we treat
-  // it as a pan+pinch gesture and accumulate the deltas below; callers drain
-  // them each frame via consume_touch_pan()/consume_touch_pinch().
+  // out of this header), in window pixels. When exactly two are down they
+  // make a pan+pinch gesture, read with get_touch_gesture().
   std::map<long long, glm::vec2> active_touches;
-  bool two_finger_active = false;       // had exactly 2 fingers last update
-  glm::vec2 gesture_centroid{0.0f};     // last two-finger midpoint (pixels)
-  float gesture_spread = 0.0f;          // last distance between the two fingers
-  glm::vec2 touch_pan_accum{0.0f};      // unconsumed centroid movement (pixels)
-  float touch_pinch_accum = 0.0f;       // unconsumed spread change (pixels)
+  bool two_finger_active = false;       // exactly 2 fingers are down
+  glm::vec2 gesture_centroid{0.0f};     // their midpoint (pixels)
+  float gesture_spread = 0.0f;          // the distance between them (pixels)
 
   unsigned int ScreenVAO, ScreenVBO;
 
@@ -89,14 +81,12 @@ public:
   void set_fullscreen(bool enabled);     // borderless-desktop fullscreen toggle
   void set_window_size(int width, int height); // resize + recenter the OS window
 
-  // Two-finger gesture deltas accumulated since the last call (and reset by it).
-  // Pan is centroid movement in window pixels; pinch is the change in finger
-  // spread (positive = fingers moved apart). Zero when fewer than two fingers
-  // are down. Poll these once per frame, like is_key_pressed.
-  glm::vec2 consume_touch_pan();
-  float consume_touch_pinch();
+  // Whether exactly two fingers are down, and if so their midpoint and the
+  // distance between them, in window pixels. Poll once per frame, like
+  // is_key_pressed: the change from one frame to the next is the pan + pinch.
+  bool get_touch_gesture(glm::vec2 &centroid, float &spread) const;
 
-  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
+  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::RENDER_X, int height = TESettings::RENDER_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
   // Clearing also zeroes the extra colour attachments (not SCREEN_COLOR).
   void select_framebuffer(size_t idx, bool clear = true);
   // Which colour attachments of the bound framebuffer draws write to: the

@@ -1,6 +1,6 @@
 /*==============================================================================
 Event 3D Example
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2026.
 
 This example demonstrates how to position events in 3D for spatialization.
 
@@ -98,7 +98,7 @@ int FMOD_Main()
         updateScreenPosition(attributes.position);
         Common_Draw("==================================================");
         Common_Draw("Event 3D Example.");
-        Common_Draw("Copyright (c) Firelight Technologies 2012-2023.");
+        Common_Draw("Copyright (c) Firelight Technologies 2012-2026.");
         Common_Draw("==================================================");
         Common_Draw(screenBuffer);
         Common_Draw("Use the arrow keys (%s, %s, %s, %s) to control the event position", 

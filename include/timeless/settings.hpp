@@ -15,6 +15,16 @@ namespace TESettings
     inline int VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
     inline float ZOOM = 1.0f;
 
+    // The offscreen framebuffers the world is drawn through, as a fraction of
+    // the viewport. Below 1 they're smaller than the design resolution (e.g.
+    // the screen's own size, when that's smaller), which saves fill on a slow
+    // GPU; layout, cameras and picking stay in design units. Pixel-sized
+    // effects (the 1-bit dots, outlines) are then in these pixels. Set it
+    // before the framebuffers are added: nothing resizes existing ones.
+    inline float RENDER_SCALE = 1.0f;
+    inline int RENDER_X = VIEWPORT_X;
+    inline int RENDER_Y = VIEWPORT_Y;
+
     // Actual OS window / framebuffer size.  Set this before TE::init() to
     // choose a different window size; it is updated automatically on resize.
     inline int WINDOW_X = SCREEN_X;
@@ -41,6 +51,14 @@ namespace TESettings
       VIEWPORT_SCALE = new_scale;
       VIEWPORT_X = SCREEN_X * VIEWPORT_SCALE;
       VIEWPORT_Y = SCREEN_Y * VIEWPORT_SCALE;
+      RENDER_X = int(VIEWPORT_X * RENDER_SCALE + 0.5f);
+      RENDER_Y = int(VIEWPORT_Y * RENDER_SCALE + 0.5f);
+    }
+
+    inline void set_render_scale(float new_scale) {
+      RENDER_SCALE = new_scale;
+      RENDER_X = int(VIEWPORT_X * RENDER_SCALE + 0.5f);
+      RENDER_Y = int(VIEWPORT_Y * RENDER_SCALE + 0.5f);
     }
 
     // Only updates the window size; design resolution (SCREEN/VIEWPORT) stays fixed.

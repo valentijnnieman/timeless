@@ -40,8 +40,20 @@ private:
     float yaw_target = 0.0f;
     bool rotating = false;
 
+    // Drag panning: a drag begun with begin_drag() (pending) that has moved
+    // past drag_threshold, and the cursor position it last panned to.
+    bool drag_pending = false;
+    bool drag_moved = false;
+    glm::vec2 drag_start = glm::vec2(0.0f);
+    glm::vec2 drag_last = glm::vec2(0.0f);
+    // Pinch zoom: the two-finger midpoint and spread last frame.
+    bool pinching = false;
+    glm::vec2 pinch_centroid = glm::vec2(0.0f);
+    float pinch_spread = 0.0f;
+
     void turn_camera(float degrees, ComponentManager &cm);
     void update_rotation(ComponentManager &cm, float dt);
+    void update_drag(ComponentManager &cm, WindowManager &wm);
 
 public:
     Entity camera;
@@ -64,7 +76,11 @@ public:
     float zoom_step = 1.12f;
     glm::vec2 zoom_limits = glm::vec2(0.2f, 4.0f);
     // How far from the window edge (in pixels) edge scrolling starts ramping up.
+    // 0 (off) on iOS, where the cursor stays wherever the last touch lifted.
     float edge_margin = 40.0f;
+    // How far (window pixels) a drag moves before it pans, so a tap or a
+    // click that wobbles a little is still just a click.
+    float drag_threshold = 8.0f;
 
     MovementSystem();
     void register_camera(Entity c);
@@ -82,6 +98,18 @@ public:
     // Jump straight to a zoom level, cancelling any in-flight easing.
     void set_zoom(float zoom);
     float get_zoom_target() const { return zoom_target; }
+
+    // Drag the map with the left mouse button or a finger, and pinch-zoom
+    // with two fingers. Both grab the map: the ground under the cursor, or
+    // between the fingers, stays under it. Call begin_drag() on a press the
+    // game decides is on the map (window pixels, MouseEvent::raw_position);
+    // the drag follows the cursor until the button is released. A pinch only
+    // starts from such a drag (its first finger), so pinching over the UI
+    // leaves the map alone.
+    void begin_drag(glm::vec2 window_pos);
+    void cancel_drag();
+    // Whether a drag is panning (it has passed drag_threshold).
+    bool dragging() const { return drag_moved; }
 
     void update(ComponentManager &cm, WindowManager &wm, float delta_time = 1.0f / 60.0f);
 };

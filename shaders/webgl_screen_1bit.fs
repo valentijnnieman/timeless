@@ -131,18 +131,16 @@ float tone(vec3 c) {
     return clamp((l - INK_LEVEL) / (PAPER_LEVEL - INK_LEVEL), 0.0, 1.0);
 }
 
-bool is_world(vec2 uv) {
-    return texture2D(screenTexture1, uv).g > 0.5;
-}
-
-float depth_at(vec2 uv) {
-    float hi = floor(texture2D(screenTexture1, uv).b * 255.0 + 0.5);
-    float lo = floor(texture2D(screenTexture2, uv).b * 255.0 + 0.5);
+// Depth and normal from a pixel's two attachment texels (g1 from
+// screenTexture1, g2 from screenTexture2), which callers read once and share.
+float depth_of(vec4 g1, vec4 g2) {
+    float hi = floor(g1.b * 255.0 + 0.5);
+    float lo = floor(g2.b * 255.0 + 0.5);
     return (hi * 256.0 + lo) / 65535.0 * DEPTH_RANGE;
 }
 
-vec3 normal_at(vec2 uv) {
-    vec2 p = texture2D(screenTexture2, uv).rg * 2.0 - 1.0;
+vec3 normal_of(vec4 g2) {
+    vec2 p = g2.rg * 2.0 - 1.0;
     vec3 n = vec3(p, 1.0 - abs(p.x) - abs(p.y));
     if (n.z < 0.0) {
         vec2 s = vec2(n.x >= 0.0 ? 1.0 : -1.0, n.y >= 0.0 ? 1.0 : -1.0);
@@ -154,25 +152,34 @@ vec3 normal_at(vec2 uv) {
 // Whether this building/floor pixel sits on a geometry edge (see
 // GEOMETRY_OUTLINE). Lines stay one pixel wide: silhouettes only mark the
 // nearer side, creases only compare with the right and upper neighbour.
-bool geometry_edge(vec2 uv, vec2 px) {
+// `p1` is this pixel's screenTexture1 texel. Each texel is read once (9
+// reads), which matters on mobile GPUs: this runs on most of the screen.
+bool geometry_edge(vec2 uv, vec2 px, vec4 p1) {
     vec2 l = uv - vec2(px.x, 0.0), r = uv + vec2(px.x, 0.0);
     vec2 d = uv - vec2(0.0, px.y), u = uv + vec2(0.0, px.y);
-    if (!is_world(l) || !is_world(r) || !is_world(d) || !is_world(u))
+    vec4 l1 = texture2D(screenTexture1, l), r1 = texture2D(screenTexture1, r);
+    vec4 d1 = texture2D(screenTexture1, d), u1 = texture2D(screenTexture1, u);
+    // Next to the background (anything that isn't building or floor).
+    if (l1.g <= 0.5 || r1.g <= 0.5 || d1.g <= 0.5 || u1.g <= 0.5)
         return true;
+
+    vec4 p2 = texture2D(screenTexture2, uv);
+    vec4 l2 = texture2D(screenTexture2, l), r2 = texture2D(screenTexture2, r);
+    vec4 d2 = texture2D(screenTexture2, d), u2 = texture2D(screenTexture2, u);
 
     // A depth jump only counts if the surface's own slope doesn't explain
     // it: on a plane dl + dr - 2*dp is ~0, at the near side of a silhouette
     // it's about the size of the jump.
-    float dp = depth_at(uv);
-    float dl = depth_at(l), dr = depth_at(r);
-    float dd = depth_at(d), du = depth_at(u);
+    float dp = depth_of(p1, p2);
+    float dl = depth_of(l1, l2), dr = depth_of(r1, r2);
+    float dd = depth_of(d1, d2), du = depth_of(u1, u2);
     if (dl + dr - 2.0 * dp > DEPTH_EDGE && max(dl, dr) - dp > DEPTH_EDGE)
         return true;
     if (dd + du - 2.0 * dp > DEPTH_EDGE && max(dd, du) - dp > DEPTH_EDGE)
         return true;
 
-    vec3 np = normal_at(uv);
-    return dot(np, normal_at(r)) < NORMAL_EDGE || dot(np, normal_at(u)) < NORMAL_EDGE;
+    vec3 np = normal_of(p2);
+    return dot(np, normal_of(r2)) < NORMAL_EDGE || dot(np, normal_of(u2)) < NORMAL_EDGE;
 }
 
 bool is_citizen(vec2 uv) {
@@ -202,21 +209,17 @@ void main() {
     // numbers stay small (the pattern looks the same either way).
     vec2 origin = mod(ditherOrigin, 8.0 * PIXEL_SIZE);
     vec2 cell = floor((TexCoords * res - origin) / PIXEL_SIZE);
-    // The search layer keeps the grid's dither threshold, so its citizens get
-    // the same dots as outside the spotlight, but reads its own pixel rather
-    // than the cell's centre, so its lines and silhouettes stay sharp.
-    vec4 color = layer < 0.5 ? sample_cell(cell, res, origin)
-                             : texture2D(screenTexture, TexCoords);
-    // +0.5/64 centres the thresholds so pure black and pure white stay solid.
-    float threshold = bayer8(cell) + 0.5 / 64.0;
-
     // World-space threshold: per framebuffer pixel, no grid snapping.
     vec4 world = texture2D(screenTexture1, TexCoords);
     bool world_space = layer < 0.5 && world.g > 0.5;
-    if (world_space) {
-        color = texture2D(screenTexture, TexCoords);
-        threshold = world.r;
-    }
+    // The search layer keeps the grid's dither threshold, so its citizens get
+    // the same dots as outside the spotlight, but reads its own pixel rather
+    // than the cell's centre, so its lines and silhouettes stay sharp.
+    vec4 color = layer < 0.5 && !world_space
+                     ? sample_cell(cell, res, origin)
+                     : texture2D(screenTexture, TexCoords);
+    // +0.5/64 centres the thresholds so pure black and pure white stay solid.
+    float threshold = world_space ? world.r : bayer8(cell) + 0.5 / 64.0;
 
     float lum = luma(color.rgb);
 
@@ -236,7 +239,7 @@ void main() {
     bool ink = t < threshold;
 
     if (world_space && GEOMETRY_OUTLINE) {
-        if (geometry_edge(TexCoords, 1.0 / res))
+        if (geometry_edge(TexCoords, 1.0 / res, world))
             ink = LINE_MODE == 0 || t >= 0.5;
     } else if (OUTLINE && layer < 0.5) {
         if (world_space) {
@@ -258,7 +261,8 @@ void main() {
         }
     }
 
-    if (layer < 0.5 && near_citizen(TexCoords, 1.0 / res))
+    // Only worth looking for (9 reads) where it would change anything.
+    if (!ink && layer < 0.5 && near_citizen(TexCoords, 1.0 / res))
         ink = true;
 
     gl_FragColor = vec4(ink ? palette0 : palette3, color.a);
