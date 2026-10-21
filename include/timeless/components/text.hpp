@@ -134,9 +134,10 @@ public:
       glBindTexture(GL_TEXTURE_2D, glyph.textureId);
       // update content of VBO memory
       glBindBuffer(GL_ARRAY_BUFFER, font->VBO);
-      glBufferSubData(
-          GL_ARRAY_BUFFER, 0, sizeof(vertices),
-          vertices); // be sure to use glBufferSubData and not glBufferData
+      // glBufferData, not glBufferSubData: fresh storage for each glyph keeps
+      // the driver (iOS) from waiting on the draw of the previous glyph.
+      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+                   GL_STREAM_DRAW);
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       // render quad

@@ -735,18 +735,18 @@ void RenderingSystem::prepare_instanced(ComponentManager &cm, float x, float y,
 
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
   if (!models.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0, models.size() * sizeof(glm::mat4),
-                    models.data());
+    glBufferData(GL_ARRAY_BUFFER, models.size() * sizeof(glm::mat4),
+                 models.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO2);
   if (!sprite_indices.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sprite_indices.size() * sizeof(float),
-                    sprite_indices.data());
+    glBufferData(GL_ARRAY_BUFFER, sprite_indices.size() * sizeof(float),
+                 sprite_indices.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO3);
   if (!sprite_sizes.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sprite_sizes.size() * sizeof(glm::vec2),
-                    sprite_sizes.data());
+    glBufferData(GL_ARRAY_BUFFER, sprite_sizes.size() * sizeof(glm::vec2),
+                 sprite_sizes.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -863,19 +863,18 @@ void RenderingSystem::prepare_instanced_models(ComponentManager &cm,
 
   glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
   if (!modelMatrices.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0,
-                    modelMatrices.size() * sizeof(glm::mat4),
-                    modelMatrices.data());
+    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
+                 modelMatrices.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
   if (!modelIndices.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0, modelIndices.size() * sizeof(float),
-                    modelIndices.data());
+    glBufferData(GL_ARRAY_BUFFER, modelIndices.size() * sizeof(float),
+                 modelIndices.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
   if (!modelParams.empty())
-    glBufferSubData(GL_ARRAY_BUFFER, 0, modelParams.size() * sizeof(glm::vec4),
-                    modelParams.data());
+    glBufferData(GL_ARRAY_BUFFER, modelParams.size() * sizeof(glm::vec4),
+                 modelParams.data(), GL_STREAM_DRAW);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -924,20 +923,18 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
 
     glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
     if (!modelMatrices.empty())
-      glBufferSubData(GL_ARRAY_BUFFER, 0,
-                      modelMatrices.size() * sizeof(glm::mat4),
-                      modelMatrices.data());
+      glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
+                   modelMatrices.data(), GL_STREAM_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
     if (!modelIndices.empty())
-      glBufferSubData(GL_ARRAY_BUFFER, 0, modelIndices.size() * sizeof(float),
-                      modelIndices.data());
+      glBufferData(GL_ARRAY_BUFFER, modelIndices.size() * sizeof(float),
+                   modelIndices.data(), GL_STREAM_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
     if (!modelParams.empty())
-      glBufferSubData(GL_ARRAY_BUFFER, 0,
-                      modelParams.size() * sizeof(glm::vec4),
-                      modelParams.data());
+      glBufferData(GL_ARRAY_BUFFER, modelParams.size() * sizeof(glm::vec4),
+                   modelParams.data(), GL_STREAM_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
