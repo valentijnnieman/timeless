@@ -4,6 +4,7 @@
 #include "timeless/components/font.hpp"
 #include "timeless/components/shader.hpp"
 #include <memory>
+#include <vector>
 
 class Text : public Component {
 private:
@@ -81,9 +82,6 @@ public:
       }
       opacities.pop();
     }
-    // iterate through all characters
-    std::string::const_iterator c;
-
     if (type_timer != nullptr) {
       if (print_length < text.length() && type_timer->pollTime()) {
         print_length += 1;
@@ -95,59 +93,61 @@ public:
       printed = text.substr(0, print_length);
     }
 
-    int i = 0;
-    for (c = printed.begin(); c != printed.end(); c++) {
-      if (printed.size() <= color_vector.size()) {
-        glUniform4f(glGetUniformLocation(shader->ID, "textColor"),
-                    this->color_vector[i].r, this->color_vector[i].g,
-                    this->color_vector[i].b, this->color_vector[i].a);
-      } else {
-        set_default_color_vector();
-      }
-      auto it = font->glyphs.find(*c);
+    if (printed.size() > color_vector.size())
+      set_default_color_vector();
+
+    // Every glyph's quad in one buffer, then one draw per run of glyphs that
+    // share a colour (usually the whole string): per-glyph draws cost a lot
+    // of CPU in the driver, on iOS especially.
+    std::vector<float> vertices;
+    std::vector<glm::vec4> run_colors;
+    std::vector<int> run_starts;
+    vertices.reserve(printed.size() * 24);
+    for (size_t i = 0; i < printed.size(); i++) {
+      auto it = font->glyphs.find(printed[i]);
       if (it == font->glyphs.end()) {
-        std::cout << "Character " << *c << " not found in font glyphs!"
+        std::cout << "Character " << printed[i] << " not found in font glyphs!"
                   << std::endl;
         continue;
       }
-      Glyph glyph = font->glyphs.at(*c);
+      const Glyph &glyph = it->second;
+      float xpos = x + glyph.bearing.x;
+      float ypos = y - glyph.bearing.y + height;
+      // advance is in 1/64 pixels
+      x += (glyph.advance >> 6);
+      // Glyphs without pixels (whitespace, control characters) only advance.
+      if (glyph.size.x == 0 || glyph.size.y == 0)
+        continue;
 
       float w = glyph.size.x;
       float h = glyph.size.y;
-
-      float xpos = x + glyph.bearing.x;
-      float ypos = y - (glyph.bearing.y) + height;
-      // update VBO for each character
-      float vertices[6][4] = {
-          {xpos, ypos + h, 0.0f, 1.0f},    {xpos, ypos, 0.0f, 0.0f},
-          {xpos + w, ypos, 1.0f, 0.0f},
-
-          {xpos, ypos + h, 0.0f, 1.0f},    {xpos + w, ypos, 1.0f, 0.0f},
-          {xpos + w, ypos + h, 1.0f, 1.0f}};
-      // Skip glyphs with no texture (whitespace/control characters)
-      if (glyph.textureId == 0) {
-        x += (glyph.advance >> 6);
-        i++;
-        continue;
+      float u0 = glyph.uv.x, v0 = glyph.uv.y, u1 = glyph.uv.z, v1 = glyph.uv.w;
+      float quad[24] = {xpos,     ypos + h, u0, v1, xpos,     ypos,     u0, v0,
+                        xpos + w, ypos,     u1, v0, xpos,     ypos + h, u0, v1,
+                        xpos + w, ypos,     u1, v0, xpos + w, ypos + h, u1, v1};
+      if (run_colors.empty() || run_colors.back() != color_vector[i]) {
+        run_colors.push_back(color_vector[i]);
+        run_starts.push_back(int(vertices.size() / 4));
       }
-      // render glyph texture over quad
-      glBindTexture(GL_TEXTURE_2D, glyph.textureId);
-      // update content of VBO memory
-      glBindBuffer(GL_ARRAY_BUFFER, font->VBO);
-      // glBufferData, not glBufferSubData: fresh storage for each glyph keeps
-      // the driver (iOS) from waiting on the draw of the previous glyph.
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-                   GL_STREAM_DRAW);
+      vertices.insert(vertices.end(), quad, quad + 24);
+    }
 
+    if (!vertices.empty()) {
+      glBindTexture(GL_TEXTURE_2D, font->atlas);
+      glBindBuffer(GL_ARRAY_BUFFER, font->VBO);
+      // Fresh storage every time (orphaning), so the driver never waits for
+      // the previous string's draw to finish with it.
+      glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
+                   vertices.data(), GL_STREAM_DRAW);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-      // render quad
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-      // now advance cursors for next glyph (note that advance is number of 1/64
-      // pixels)
-      x += (glyph.advance >>
-            6); // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount
-                // of 1/64th pixels by 64 to get amount of pixels))
-      i++;
+      GLint color_loc = glGetUniformLocation(shader->ID, "textColor");
+      int total = int(vertices.size() / 4);
+      for (size_t r = 0; r < run_colors.size(); r++) {
+        int end = r + 1 < run_starts.size() ? run_starts[r + 1] : total;
+        const glm::vec4 &col = run_colors[r];
+        glUniform4f(color_loc, col.r, col.g, col.b, col.a);
+        glDrawArrays(GL_TRIANGLES, run_starts[r], end - run_starts[r]);
+      }
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
