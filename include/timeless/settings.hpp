@@ -19,7 +19,8 @@ namespace TESettings
     // the viewport. Below 1 they're smaller than the design resolution (e.g.
     // the screen's own size, when that's smaller), which saves fill on a slow
     // GPU; layout, cameras and picking stay in design units. Pixel-sized
-    // effects (the 1-bit dots, outlines) are then in these pixels.
+    // effects (the 1-bit dots, outlines) are then in these pixels. Set it
+    // before the framebuffers are added: nothing resizes existing ones.
     inline float RENDER_SCALE = 1.0f;
     inline int RENDER_X = VIEWPORT_X;
     inline int RENDER_Y = VIEWPORT_Y;

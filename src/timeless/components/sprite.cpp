@@ -41,6 +41,8 @@ void Sprite::set_slice_shader(std::shared_ptr<Shader> shader,
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
+  GLint previous_framebuffer = 0;
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_framebuffer);
   glGenFramebuffers(1, &framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -61,8 +63,8 @@ void Sprite::set_slice_shader(std::shared_ptr<Shader> shader,
   // 4. Render the sliced sprite to the framebuffer
   render_sliced_to_texture();
 
-  // 5. Unbind framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
+  // 5. Back to whatever framebuffer was bound before
+  glBindFramebuffer(GL_FRAMEBUFFER, previous_framebuffer);
 
   // Restore active texture unit to 0 (default)
   glActiveTexture(GL_TEXTURE0);
@@ -111,6 +113,12 @@ void Sprite::set_shader_transform_uniforms(int tick) {
 }
 
 void Sprite::render_sliced_to_texture() {
+  // Restored at the end, so this can run in the middle of drawing into any
+  // framebuffer, at any size.
+  GLint previous_framebuffer = 0;
+  GLint previous_viewport[4];
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_framebuffer);
+  glGetIntegerv(GL_VIEWPORT, previous_viewport);
   // 1. Bind the framebuffer
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
   glViewport(0, 0, spriteSize.x, spriteSize.y);
@@ -129,9 +137,10 @@ void Sprite::render_sliced_to_texture() {
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-  // 4. Unbind the framebuffer to return to default framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
-  glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+  // 4. Back to the framebuffer and viewport from before
+  glBindFramebuffer(GL_FRAMEBUFFER, previous_framebuffer);
+  glViewport(previous_viewport[0], previous_viewport[1], previous_viewport[2],
+             previous_viewport[3]);
 }
 
 void Sprite::render_sliced() {

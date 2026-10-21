@@ -114,10 +114,6 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
     std::cout << "Failed to create GL context: " << SDL_GetError() << std::endl;
   }
   SDL_GL_MakeCurrent(platform->window, platform->gl_context);
-  // On iOS the window is drawn through SDL's own framebuffer object (bound
-  // here), not framebuffer 0.
-  glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&TE::screen_framebuffer);
-  glGetIntegerv(GL_RENDERBUFFER_BINDING, &platform->screen_renderbuffer);
 
   SDL_GL_SetSwapInterval(1); // vsync
 
@@ -129,6 +125,11 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
     std::cout << "Failed to initialize GLAD" << std::endl;
   }
 #endif
+  // On iOS the window is drawn through SDL's own framebuffer object (bound
+  // since the context was made current), not framebuffer 0. After glad has
+  // loaded, which on desktop is what makes GL calls work at all.
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&TE::screen_framebuffer);
+  glGetIntegerv(GL_RENDERBUFFER_BINDING, &platform->screen_renderbuffer);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
