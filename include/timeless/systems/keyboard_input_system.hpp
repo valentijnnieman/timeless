@@ -15,10 +15,11 @@ private:
         escape,
         space,
         enter,
-        f
+        f,
+        key_count
     };
 
-    std::array<bool, 7> keysPressed = {false, false, false, false, false, false, false};
+    std::array<bool, key_count> keysPressed = {};
 
 public:
 
