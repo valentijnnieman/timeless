@@ -62,7 +62,7 @@ void Sprite::set_slice_shader(std::shared_ptr<Shader> shader,
   render_sliced_to_texture();
 
   // 5. Unbind framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
 
   // Restore active texture unit to 0 (default)
   glActiveTexture(GL_TEXTURE0);
@@ -130,7 +130,7 @@ void Sprite::render_sliced_to_texture() {
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
   // 4. Unbind the framebuffer to return to default framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
   glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
 }
 

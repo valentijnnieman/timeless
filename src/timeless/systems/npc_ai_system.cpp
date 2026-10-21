@@ -1,9 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <GL/gl.h>
-#include <GLES3/gl3.h>
-#else
-#include <glad/glad.h>
-#endif
+#include "timeless/gl.hpp"
 #include "timeless/systems/npc_ai_system.hpp"
 
 void NpcAiSystem::attach_text_component(ComponentManager &cm, Entity text) {

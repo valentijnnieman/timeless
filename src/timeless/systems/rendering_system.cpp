@@ -35,7 +35,7 @@ void RenderingSystem::setup_shadow_map() {
     std::cerr << "Shadow FBO incomplete: 0x" << std::hex << status << std::endl;
 
   glBindTexture(GL_TEXTURE_2D, 0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
 }
 
 // ---------------------------------------------------------------------------

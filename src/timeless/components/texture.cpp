@@ -2,12 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 
-#ifdef __EMSCRIPTEN__
-#include <GL/gl.h>
-#include <GLES3/gl3.h>
-#else
-#include <glad/glad.h>
-#endif
+#include "timeless/gl.hpp"
 
 #include "stb_image.h"
 

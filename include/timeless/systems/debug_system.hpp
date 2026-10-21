@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef __EMSCRIPTEN__
-#include <GL/gl.h>
-#include <GLES3/gl3.h>
-#else
-#include <glad/glad.h>
-#endif
+#include "timeless/gl.hpp"
 
 #include "timeless/components/camera.hpp"
 #include "timeless/components/shader.hpp"

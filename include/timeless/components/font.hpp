@@ -1,10 +1,5 @@
 #pragma once
-#ifdef __EMSCRIPTEN__
-#include <GL/gl.h>
-#include <GLES3/gl3.h>
-#else
-#include <glad/glad.h>
-#endif
+#include "timeless/gl.hpp"
 #include <glm/glm.hpp>
 #include <ft2build.h>
 #include FT_FREETYPE_H

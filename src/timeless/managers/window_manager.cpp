@@ -7,6 +7,8 @@ struct PlatformWindow {
   SDL_Window *window = nullptr;
   SDL_GLContext gl_context = nullptr;
   SDL_Cursor *cursor = nullptr;
+  // iOS: the renderbuffer SDL presents on swap (see swap_buffers).
+  GLint screen_renderbuffer = 0;
 };
 
 namespace {
@@ -68,7 +70,7 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
     std::cout << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
   }
 
-#ifdef __EMSCRIPTEN__
+#ifdef TIMELESS_GLES // web and iOS: OpenGL ES 3.0
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -112,14 +114,17 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
     std::cout << "Failed to create GL context: " << SDL_GetError() << std::endl;
   }
   SDL_GL_MakeCurrent(platform->window, platform->gl_context);
+  // On iOS the window is drawn through SDL's own framebuffer object (bound
+  // here), not framebuffer 0.
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&TE::screen_framebuffer);
+  glGetIntegerv(GL_RENDERBUFFER_BINDING, &platform->screen_renderbuffer);
 
   SDL_GL_SetSwapInterval(1); // vsync
 
   platform->cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
   SDL_SetCursor(platform->cursor);
 
-#ifdef __EMSCRIPTEN__
-#else
+#ifndef TIMELESS_GLES
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
   }
@@ -214,7 +219,7 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     std::cout << "Could not create Framebuffer!" << std::endl;
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
 
   framebuffers.push_back(fbo);
   textures.push_back(tex);
@@ -530,6 +535,11 @@ void WindowManager::update_touch_gesture() {
   }
 }
 
+#if TARGET_OS_IOS
+  // SDL presents whatever renderbuffer is bound, and our framebuffers bind
+  // their own (depth) renderbuffers, so rebind the screen's first.
+  glBindRenderbuffer(GL_RENDERBUFFER, platform->screen_renderbuffer);
+#endif
 glm::vec2 WindowManager::consume_touch_pan() {
   glm::vec2 v = touch_pan_accum;
   touch_pan_accum = glm::vec2(0.0f);

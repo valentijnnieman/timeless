@@ -158,7 +158,9 @@ else()
   set(SDL_SHARED OFF CACHE BOOL "" FORCE)
   set(SDL_TEST OFF CACHE BOOL "" FORCE)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/sdl)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
+  if(NOT IOS) # iOS uses the system's OpenGL ES, no loader
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
+  endif()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
   # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
@@ -185,7 +187,14 @@ else()
   target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" include/ src/ vendor/sdl/include vendor/glad/include vendor/freetype2/include vendor/glm vendor/stb_image/)
 
   # target_include_directories(${PROJECT_NAME} INTERFACE src/)
-  target_link_libraries(${PROJECT_NAME} glad SDL2-static glm freetype assimp)
+  if(IOS)
+    # OpenGL ES comes from the system. SDL2main supplies the app's real main(),
+    # which starts UIKit and calls the game's main() (renamed SDL_main by
+    # <SDL_main.h>).
+    target_link_libraries(${PROJECT_NAME} SDL2-static SDL2main glm freetype assimp "-framework OpenGLES")
+  else()
+    target_link_libraries(${PROJECT_NAME} glad SDL2-static glm freetype assimp)
+  endif()
   # FMOD lives only in the audio module.
   target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
 
@@ -228,8 +237,12 @@ else()
           ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.14)
   endif()
 
-  add_subdirectory(example example)
-  add_executable(${PROJECT_NAME}ResourcePacker src/timeless/resource_packer.cpp)
+  # Desktop tools: an iOS build packs its assets with a host-built packer (see
+  # the game's CMakeLists).
+  if(NOT IOS)
+    add_subdirectory(example example)
+    add_executable(${PROJECT_NAME}ResourcePacker src/timeless/resource_packer.cpp)
+  endif()
 
   set_target_properties(${PROJECT_NAME} PROPERTIES
       BUILD_RPATH "$ORIGIN"
