@@ -2,7 +2,11 @@
 #include "timeless/managers/window_manager.hpp"
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 namespace {
 // Camera turn about the vertical axis in degrees: 0 for the default view
@@ -19,13 +23,42 @@ float wrap_degrees(float a) {
     if (a < 0.0f) a += 360.0f;
     return a - 180.0f;
 }
+
+// The ground (z = 0) point under a window position, seen through `cam` at
+// `zoom`; false if that ray runs parallel to the ground. Window pixels map to
+// the viewport as in TE::clicked_on_perspective.
+bool ground_under(const std::shared_ptr<Camera> &cam, glm::vec2 window_pos,
+                  float zoom, glm::vec3 &out) {
+    glm::vec4 viewport(0.0f, 0.0f, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+    glm::mat4 view = cam->get_view_matrix();
+    glm::mat4 proj = cam->get_projection_matrix(TESettings::VIEWPORT_X,
+                                                TESettings::VIEWPORT_Y, zoom);
+    float x = window_pos.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
+    float y = viewport.w - window_pos.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
+    glm::vec3 near_point = glm::unProject(glm::vec3(x, y, 0.0f), view, proj, viewport);
+    glm::vec3 far_point  = glm::unProject(glm::vec3(x, y, 1.0f), view, proj, viewport);
+    glm::vec3 dir = far_point - near_point;
+    if (std::abs(dir.z) < 1e-6f) return false;
+    out = near_point + dir * (-near_point.z / dir.z);
+    return true;
+}
+
+// Move the camera over the ground, keeping its height.
+void shift_camera(const std::shared_ptr<Camera> &cam, glm::vec3 by) {
+    glm::vec3 pos = cam->get_position();
+    cam->set_position(glm::vec3(pos.x + by.x, pos.y + by.y, pos.z));
+}
 }
 
 MovementSystem::MovementSystem()
     : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)),
       y_bounds(glm::vec2(-TESettings::SCREEN_Y, TESettings::SCREEN_Y)),
       walk_speed(1.0f), zoom_target(TESettings::ZOOM),
-      last_applied_zoom(TESettings::ZOOM) {}
+      last_applied_zoom(TESettings::ZOOM) {
+#if TARGET_OS_IOS
+    edge_margin = 0.0f;
+#endif
+}
 
 void MovementSystem::register_camera(Entity c) { camera = c; }
 
@@ -136,6 +169,62 @@ void MovementSystem::set_zoom(float zoom) {
     last_applied_zoom = zoom_target;
 }
 
+void MovementSystem::begin_drag(glm::vec2 window_pos) {
+    drag_pending = true;
+    drag_moved   = false;
+    drag_start   = window_pos;
+    drag_last    = window_pos;
+}
+
+void MovementSystem::cancel_drag() {
+    drag_pending = false;
+    drag_moved   = false;
+    pinching     = false;
+}
+
+void MovementSystem::update_drag(ComponentManager &cm, WindowManager &wm) {
+    auto cam = cm.get_component<Camera>(camera);
+
+    glm::vec2 centroid;
+    float spread;
+    if (wm.get_touch_gesture(centroid, spread)) {
+        // A second finger turns the first finger's drag into a pinch.
+        if (!drag_pending && !pinching) return;
+        if (pinching && cam != nullptr && spread > 1.0f && pinch_spread > 1.0f) {
+            // Zoom by how much the fingers spread (apart = in), then move the
+            // camera so the ground that was between the fingers still is.
+            glm::vec3 before, after;
+            bool found = ground_under(cam, pinch_centroid, TESettings::ZOOM, before);
+            set_zoom(TESettings::ZOOM * pinch_spread / spread);
+            if (found && ground_under(cam, centroid, TESettings::ZOOM, after))
+                shift_camera(cam, before - after);
+        }
+        pinching       = true;
+        drag_pending   = false;
+        drag_moved     = false;
+        pinch_centroid = centroid;
+        pinch_spread   = spread;
+        return;
+    }
+    pinching = false;
+
+    if (!drag_pending) return;
+    if (!wm.is_mouse_button_pressed(TE::MouseButton::Left)) {
+        cancel_drag();
+        return;
+    }
+    glm::vec2 cursor = wm.get_cursor_position();
+    if (!drag_moved) {
+        if (glm::length(cursor - drag_start) < drag_threshold) return;
+        drag_moved = true;
+    }
+    glm::vec3 before, after;
+    if (cam != nullptr && ground_under(cam, drag_last, TESettings::ZOOM, before) &&
+        ground_under(cam, cursor, TESettings::ZOOM, after))
+        shift_camera(cam, before - after);
+    drag_last = cursor;
+}
+
 void MovementSystem::turn_camera(float degrees, ComponentManager &cm) {
     auto cam = cm.get_component<Camera>(camera);
     if (cam == nullptr) return;
@@ -205,6 +294,7 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
         keysPressed[e] = false;
     }
     update_rotation(cm, dt);
+    update_drag(cm, wm);
 
     if (!wm.is_key_pressed(TE::Key::Escape) && keysPressed[escape]) keysPressed[escape] = false;
     if (!wm.is_key_pressed(TE::Key::A)      && keysPressed[a])      keysPressed[a]      = false;
@@ -224,7 +314,8 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
         float win_h = static_cast<float>(TESettings::WINDOW_Y);
         bool inside = cursor.x >= 0.0f && cursor.x <= win_w &&
                       cursor.y >= 0.0f && cursor.y <= win_h;
-        if (inside && edge_margin > 0.0f) {
+        // Not while dragging, which may well take the cursor near an edge.
+        if (inside && edge_margin > 0.0f && !drag_pending && !pinching) {
             auto ramp = [this](float distance_into_margin) {
                 return std::clamp(distance_into_margin / edge_margin, 0.0f, 1.0f);
             };

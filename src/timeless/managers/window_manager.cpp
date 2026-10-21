@@ -487,8 +487,8 @@ void WindowManager::poll_events() {
       }
 
       // Touch fingers. SDL reports normalized [0,1] coords; scale to window
-      // pixels so pan deltas share units with mouse handling. With two fingers
-      // down this drives camera pan (centroid) + pinch-zoom (spread). Single
+      // pixels, the units of mouse positions. With two fingers down this drives
+      // camera pan (centroid) + pinch-zoom (spread), see get_touch_gesture. Single
       // taps are still delivered as synthesized mouse clicks by SDL, so simple
       // click interactions keep working without touching this path.
       case SDL_FINGERDOWN:
@@ -512,47 +512,34 @@ void WindowManager::poll_events() {
   }
 }
 
-// Recompute the two-finger gesture baseline after any finger event. While
-// exactly two fingers are down we accumulate centroid movement (pan) and the
-// change in their separation (pinch) relative to the previous update; anything
-// other than two fingers resets the baseline so the next pinch starts clean.
+// Track the two-finger gesture after any finger event: with exactly two
+// fingers down, their midpoint and spread; anything else ends the gesture.
 void WindowManager::update_touch_gesture() {
-  if (active_touches.size() == 2) {
+  two_finger_active = active_touches.size() == 2;
+  if (two_finger_active) {
     auto it = active_touches.begin();
     glm::vec2 a = it->second;
     glm::vec2 b = (++it)->second;
-    glm::vec2 centroid = (a + b) * 0.5f;
-    float spread = glm::length(a - b);
-    if (two_finger_active) {
-      touch_pan_accum += centroid - gesture_centroid;
-      touch_pinch_accum += spread - gesture_spread;
-    }
-    gesture_centroid = centroid;
-    gesture_spread = spread;
-    two_finger_active = true;
-  } else {
-    two_finger_active = false;
+    gesture_centroid = (a + b) * 0.5f;
+    gesture_spread = glm::length(a - b);
   }
 }
 
+bool WindowManager::get_touch_gesture(glm::vec2 &centroid,
+                                      float &spread) const {
+  if (!two_finger_active)
+    return false;
+  centroid = gesture_centroid;
+  spread = gesture_spread;
+  return true;
+}
+
+void WindowManager::swap_buffers() {
 #if TARGET_OS_IOS
   // SDL presents whatever renderbuffer is bound, and our framebuffers bind
   // their own (depth) renderbuffers, so rebind the screen's first.
   glBindRenderbuffer(GL_RENDERBUFFER, platform->screen_renderbuffer);
 #endif
-glm::vec2 WindowManager::consume_touch_pan() {
-  glm::vec2 v = touch_pan_accum;
-  touch_pan_accum = glm::vec2(0.0f);
-  return v;
-}
-
-float WindowManager::consume_touch_pinch() {
-  float v = touch_pinch_accum;
-  touch_pinch_accum = 0.0f;
-  return v;
-}
-
-void WindowManager::swap_buffers() {
   SDL_GL_SwapWindow(platform->window);
 }
 
