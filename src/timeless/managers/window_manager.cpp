@@ -232,7 +232,7 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 void WindowManager::select_framebuffer(size_t idx, bool clear) {
   if (idx < framebuffers.size()) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[idx]);
-    glViewport(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+    glViewport(0, 0, TESettings::RENDER_X, TESettings::RENDER_Y);
     if (clear) {
       glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
                    TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
@@ -290,8 +290,8 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   // Premultiplied "over": the offscreen FBO holds premultiplied colour, so this
   // lets the page background show through transparent regions of the composite.
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-  int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::VIEWPORT_X;
-  int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::VIEWPORT_Y;
+  int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::RENDER_X;
+  int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::RENDER_Y;
   glViewport(0, 0, vp_w, vp_h);
   if (clear) {
     glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
@@ -311,8 +311,8 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   }
   glActiveTexture(GL_TEXTURE0);
 
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::VIEWPORT_X);
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::VIEWPORT_Y);
+  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::RENDER_X);
+  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::RENDER_Y);
   // Normalise raw mouse position by actual window size so shader effects
   // (e.g. search highlight) track the cursor correctly regardless of resolution.
   glUniform2fv(
@@ -350,8 +350,8 @@ void WindowManager::render_background_quad(std::shared_ptr<Shader> shader) {
   shader->use();
   glBindVertexArray(ScreenVAO);
 
-  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::VIEWPORT_X);
-  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::VIEWPORT_Y);
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::RENDER_X);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::RENDER_Y);
   set_shader_time(shader);
 
   glDrawArrays(GL_TRIANGLES, 0, 6);

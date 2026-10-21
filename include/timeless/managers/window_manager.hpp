@@ -86,7 +86,7 @@ public:
   // is_key_pressed: the change from one frame to the next is the pan + pinch.
   bool get_touch_gesture(glm::vec2 &centroid, float &spread) const;
 
-  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::SCREEN_X, int height = TESettings::SCREEN_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
+  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::RENDER_X, int height = TESettings::RENDER_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
   // Clearing also zeroes the extra colour attachments (not SCREEN_COLOR).
   void select_framebuffer(size_t idx, bool clear = true);
   // Which colour attachments of the bound framebuffer draws write to: the
