@@ -6,6 +6,10 @@ varying vec2 TexCoords;
 
 uniform sampler2D screenTexture;
 uniform vec2 mousePosition;
+// How big the search light is relative to its size at zoom 1: the game sets
+// it to 1/ZOOM so the light scales with the map. circle() compares against
+// the squared distance, hence the square below.
+uniform float searchScale;
 
 const float range = 0.0005;
 const float noiseQuality = 1.0;
@@ -53,8 +57,9 @@ void main()
 
     vec2 f = vec2((st.x - mp.x) * 2.0, distance(st.y, (1.0 - mp.y)));
 
-    vec3 color = vec3(circle(f,0.075));
-    vec3 borderColor = vec3(1.0 - circle(f,0.075));
+    float radius = 0.075 * searchScale * searchScale;
+    vec3 color = vec3(circle(f,radius));
+    vec3 borderColor = vec3(1.0 - circle(f,radius));
 
   float uvY = tc.y;
   uvY *= noiseQuality;
