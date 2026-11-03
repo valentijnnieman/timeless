@@ -4,3 +4,8 @@ build-wasm
 
 # CodeQL analysis files
 _codeql_detected_source_root
+
+# OS / IDE / profiler artifacts
+.DS_Store
+.vs/
+perf.data*

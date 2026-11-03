@@ -33,7 +33,7 @@ A game engine written in C++ built around an **Entity Component System (ECS)** a
 | `Component` | Plain data structs attached to entities (e.g., `Transform`, `Sprite`, `Behaviour`) |
 | `System` | Logic that processes entities with specific components (e.g., `RenderingSystem`, `NpcAiSystem`) |
 | `ComponentManager` | Stores and retrieves all components |
-| `WindowManager` | Manages the GLFW window and OpenGL framebuffers |
+| `WindowManager` | Manages the SDL window, input events, and OpenGL framebuffers |
 
 ### Time-sequencing
 
@@ -68,7 +68,7 @@ The following libraries are required. Most are included as git submodules under 
 
 | Library | Purpose |
 |---|---|
-| [GLFW](https://www.glfw.org/) | Window creation and input |
+| [SDL2](https://www.libsdl.org/) | Window creation and input |
 | [GLAD](https://glad.dav1d.de/) | OpenGL function loader |
 | [GLM](https://github.com/g-truc/glm) | Math (vectors, matrices) |
 | [FreeType](https://freetype.org/) | Font rendering |
@@ -96,8 +96,6 @@ The following libraries are required. Most are included as git submodules under 
 cmake -B build
 cmake --build build
 ```
-
-On **Linux**, X11 is used by default (Wayland support can be enabled in `CMakeLists.txt`).
 
 On **Windows**, FMOD DLLs are automatically copied to the build output directory.
 
@@ -138,12 +136,12 @@ int main() {
     TE::get_system<NpcAiSystem>("AI")->register_entity(e);
 
     auto wm = TE::get_window_manager();
-    while (!glfwWindowShouldClose(wm->window) && wm->running) {
-        TE::loop([&](GLFWwindow* window, ComponentManager& cm, WindowManager& wm) {
+    while (!wm->should_close()) {
+        TE::loop([&](WindowManager& wm, ComponentManager& cm) {
             TE::get_system<NpcAiSystem>("AI")->update(cm);
             TE::get_system<RenderingSystem>("Renderer")->render(cm, 1920, 1080, 1.0f, 0);
-            glfwSwapBuffers(window);
-            glfwPollEvents();
+            wm.swap_buffers();
+            wm.poll_events();
         });
     }
 
