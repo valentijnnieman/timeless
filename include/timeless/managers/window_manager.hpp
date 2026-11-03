@@ -59,6 +59,16 @@ public:
   glm::vec2 gesture_centroid{0.0f};     // their midpoint (pixels)
   float gesture_spread = 0.0f;          // the distance between them (pixels)
 
+  // Long press: one finger held still for long_press_seconds right-clicks
+  // (a press and a release) where it is, as there's no right button. A touch
+  // that ends with neither, and no second finger, is a tap (MouseEvent::tap).
+  float long_press_seconds = 0.5f;
+  float touch_slop = 10.0f;             // how far (pixels) a still finger may wander
+  glm::vec2 touch_start{0.0f};          // where the touch's first finger went down
+  double touch_start_time = 0.0;
+  bool touch_still = false;             // one finger, still within touch_slop
+  bool long_pressed = false;            // the touch has right-clicked
+
   unsigned int ScreenVAO, ScreenVBO;
 
   // Backend window + GL context, hidden behind an opaque handle (PIMPL).
@@ -101,6 +111,7 @@ public:
 
   void handle_resize(int width, int height);
   void update_touch_gesture(); // recompute two-finger pan/pinch from active_touches
+  void update_long_press();    // right-click a touch held still long enough
   void mouse_move_handler(MouseMoveEvent *event);
   void mouse_click_handler(MouseEvent *event);
   void mouse_release_handler(MouseEvent *event);

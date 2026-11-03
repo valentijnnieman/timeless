@@ -28,6 +28,10 @@ public:
     glm::vec2 raw_position;
     float x_scroll;
     float y_scroll;
+    // A left release ending a touch that was a tap: one finger that neither
+    // moved nor was held into a long press (see WindowManager). Never set
+    // for the mouse.
+    bool tap = false;
     MouseEvent(std::string et, glm::vec2 sp, glm::vec2 rp, float x_scroll = 0.0f, float y_scroll = 0.0f)
         : Event(et), screen_position(sp), raw_position(rp), x_scroll(x_scroll), y_scroll(y_scroll)
     {
