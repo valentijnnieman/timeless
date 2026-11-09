@@ -31,6 +31,7 @@ public:
 
     Font(int fontSize, const std::string& filepath = "Assets/fonts/8bit.ttf");
     Font(int fontSize, const std::vector<uint8_t>& buffer);
+    ~Font(void);
 
 private:
     // Empty pixels around each glyph in the atlas.
