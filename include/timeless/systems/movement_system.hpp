@@ -71,6 +71,8 @@ public:
     float rotate_smoothing = 10.0f;
     // Degrees per Q/E press. Q turns one way, E the other.
     float turn_step = 90.0f;
+    // Whether Q/E turn the camera at all.
+    bool turn_keys = true;
     // Multiplicative zoom per scroll notch, so every notch is the same
     // perceived step at any zoom level.
     float zoom_step = 1.12f;

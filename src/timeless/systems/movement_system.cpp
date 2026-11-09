@@ -281,13 +281,13 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
     if (wm.is_key_pressed(TE::Key::Escape)) keysPressed[escape] = true;
 
     // Q/E turn the camera one step per press (edge-triggered, not held).
-    if (wm.is_key_pressed(TE::Key::Q)) {
+    if (turn_keys && wm.is_key_pressed(TE::Key::Q)) {
         if (!keysPressed[q]) turn_camera(turn_step, cm);
         keysPressed[q] = true;
     } else {
         keysPressed[q] = false;
     }
-    if (wm.is_key_pressed(TE::Key::E)) {
+    if (turn_keys && wm.is_key_pressed(TE::Key::E)) {
         if (!keysPressed[e]) turn_camera(-turn_step, cm);
         keysPressed[e] = true;
     } else {

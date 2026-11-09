@@ -479,6 +479,10 @@ void WindowManager::poll_events() {
           name = press ? "MiddleMousePress" : "MiddleMouseRelease";
         if (name) {
           MouseEvent *ev = new MouseEvent(name, world, raw);
+          // SDL's mouse button events for a finger come before the finger's
+          // own, so touch_still and long_pressed are still this touch's.
+          if (!press && e.button.which == SDL_TOUCH_MOUSEID && e.button.button == SDL_BUTTON_LEFT)
+            ev->tap = touch_still && !long_pressed;
           if (press)
             mouse_click_handler(ev);
           else
@@ -495,8 +499,20 @@ void WindowManager::poll_events() {
       case SDL_FINGERDOWN:
       case SDL_FINGERMOTION: {
         long long id = (long long)e.tfinger.fingerId;
-        active_touches[id] = glm::vec2(e.tfinger.x * TESettings::WINDOW_X,
-                                       e.tfinger.y * TESettings::WINDOW_Y);
+        glm::vec2 pos(e.tfinger.x * TESettings::WINDOW_X,
+                      e.tfinger.y * TESettings::WINDOW_Y);
+        if (e.type == SDL_FINGERDOWN) {
+          // A first finger starts a touch; a second one makes it a gesture.
+          touch_still = active_touches.empty();
+          if (touch_still) {
+            touch_start = pos;
+            touch_start_time = TE::now_seconds();
+            long_pressed = false;
+          }
+        } else if (glm::length(pos - touch_start) > touch_slop) {
+          touch_still = false;
+        }
+        active_touches[id] = pos;
         update_touch_gesture();
         break;
       }
@@ -511,6 +527,17 @@ void WindowManager::poll_events() {
         break;
     }
   }
+  update_long_press();
+}
+
+void WindowManager::update_long_press() {
+  if (!touch_still || long_pressed || active_touches.size() != 1 ||
+      TE::now_seconds() - touch_start_time < long_press_seconds)
+    return;
+  long_pressed = true;
+  glm::vec2 world = map_click_to_world(touch_start.x, touch_start.y);
+  mouse_click_handler(new MouseEvent("RightMousePress", world, touch_start));
+  mouse_release_handler(new MouseEvent("RightMouseRelease", world, touch_start));
 }
 
 // Track the two-finger gesture after any finger event: with exactly two
