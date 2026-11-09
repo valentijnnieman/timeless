@@ -1,4 +1,5 @@
 #include "timeless/components/font.hpp"
+#include "timeless/gl.hpp"
 #include <algorithm>
 #include <iostream>
 #include <filesystem>
@@ -154,4 +155,11 @@ Font::Font(int fontSize, const std::vector<uint8_t>& buffer)
     load_glyphs(face, fontSize);
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
+}
+
+Font::~Font(void) 
+{
+  glDeleteTextures(1, &atlas);
+  glDeleteBuffers(1, &VAO);
+  glDeleteBuffers(1, &VBO);
 }
