@@ -1,8 +1,6 @@
 #pragma once
 #include "timeless/scene.hpp"
-#include "timeless/settings.hpp"
 #include "timeless/systems/system.hpp"
-#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -39,26 +37,12 @@ public:
   // a freshly-built scene for a "restart"). Deferred to apply_pending(), which
   // calls remove() on the outgoing scene before swapping — so it's safe to call
   // from inside that scene's own update()/callbacks.
-  void switch_to(std::shared_ptr<Scene> scene) {
-    auto it = std::find(scenes.begin(), scenes.end(), scene);
-    if (it == scenes.end()) {
-      scenes.push_back(scene);
-      it = scenes.end() - 1;
-    }
-    transition_pending = true;
-    pending_index = static_cast<int>(it - scenes.begin());
-  }
+  void switch_to(std::shared_ptr<Scene> scene);
 
   // Restart the current scene as `fresh`, a newly built copy of it, in its
   // place: unlike switch_to(fresh), the scenes after it stay next, so
   // next_scene() carries on as before. Deferred to apply_pending() too.
-  void restart(std::shared_ptr<Scene> fresh) {
-    auto it = std::find(scenes.begin(), scenes.end(), current_scene);
-    if (it == scenes.end()) return;
-    *it = fresh;
-    transition_pending = true;
-    pending_index = static_cast<int>(it - scenes.begin());
-  }
+  void restart(std::shared_ptr<Scene> fresh);
 
   // Drop every registered scene except the current one. A scene that restarts
   // itself via switch_to(fresh) keeps spawning new instances; without this the
@@ -66,29 +50,8 @@ public:
   // the incoming scene once it's current (e.g. its init) to reclaim the rest.
   // Index-based load_scene/next_scene users simply never call this, so their
   // stable-index assumptions are untouched.
-  void drop_other_scenes() {
-    scenes.erase(std::remove_if(scenes.begin(), scenes.end(),
-                                [&](const std::shared_ptr<Scene> &s) {
-                                  return s != current_scene;
-                                }),
-                 scenes.end());
-  }
+  void drop_other_scenes();
 
   // Call once per frame at the top of the game loop, before any scene logic.
-  void apply_pending() {
-    if (!transition_pending) return;
-    transition_pending = false;
-
-    TESettings::ZOOM = 1.0f;
-    current_scene->remove();
-
-    if (pending_index >= 0) {
-      current_scene = scenes[pending_index];
-    } else {
-      auto it = find(scenes.begin(), scenes.end(), current_scene);
-      int index = it - scenes.begin();
-      current_scene = scenes[index + 1];
-    }
-    pending_index = -1;
-  }
+  void apply_pending();
 };
