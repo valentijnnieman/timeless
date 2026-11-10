@@ -1,5 +1,5 @@
-#include "timeless/gl.hpp"
 #include "timeless/systems/npc_ai_system.hpp"
+#include "timeless/gl.hpp"
 
 void NpcAiSystem::attach_text_component(ComponentManager &cm, Entity text) {
     index_text = text;
