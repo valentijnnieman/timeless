@@ -16,7 +16,7 @@ uniform vec3 lightColor;
 uniform float ambientStrength;
 uniform vec3 cameraPos;
 
-#define MAX_POINT_LIGHTS 32
+#define MAX_POINT_LIGHTS 48
 uniform vec3 pointLightPositions[MAX_POINT_LIGHTS];
 uniform vec3 pointLightColors[MAX_POINT_LIGHTS];
 uniform int numPointLights;
