@@ -1,5 +1,6 @@
 #pragma once
 #include "timeless/components/component.hpp"
+#include <glm/glm.hpp>
 
 class Collider : public Component
 {

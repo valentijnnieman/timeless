@@ -51,16 +51,7 @@ public:
     }
 
     /** fill instructions with idle to ensure time max is reached*/
-    void fill_instructions_with_idle()
-    {
-        if (next_instructions.size() < max)
-        {
-            for (int i = 0; i < max - next_instructions.size(); i++)
-            {
-                next_instructions.push_back(idle);
-            }
-        }
-    }
+    void fill_instructions_with_idle();
 
     void add_instructions(std::vector<Instruction> f_instructions)
     {
@@ -68,18 +59,7 @@ public:
     }
 
     /** copy set instructions n times so it fits in max timeline*/
-    void loop_instructions()
-    {
-        int n = floor(max / next_instructions.size());
-        const std::vector<Instruction> original = next_instructions;
-
-        for (int i = 0; i < n; i++)
-        {
-            next_instructions.insert(next_instructions.end(), original.begin(), original.end());
-        }
-
-        next_instructions.resize(max);
-    }
+    void loop_instructions();
 
     const Instruction* next(int index) {
       if (!next_instructions.empty() && index <= (int)next_instructions.size() - 1)

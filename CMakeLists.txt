@@ -250,3 +250,34 @@ else()
   )
 
 endif()
+
+# ---------------------------------------------------------------------------
+# Header self-containment check (off by default).
+#
+# Every public header must compile as the first and only include of a
+# translation unit, so that include order never matters. With
+#   -DTIMELESS_CHECK_HEADERS=ON
+# one tiny source per header is generated and compiled as `timeless-header-check`;
+# a header that leans on something included before it fails to build there.
+# ---------------------------------------------------------------------------
+option(TIMELESS_CHECK_HEADERS "Compile every public header on its own" OFF)
+if(TIMELESS_CHECK_HEADERS)
+  file(GLOB_RECURSE TIMELESS_PUBLIC_HEADERS
+      RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+      "${CMAKE_CURRENT_SOURCE_DIR}/include/timeless/*.hpp")
+  # Unused, and needs cereal, which isn't on the include path.
+  list(FILTER TIMELESS_PUBLIC_HEADERS EXCLUDE REGEX "algorithm/ud_graph\\.hpp$")
+
+  set(TIMELESS_HEADER_CHECK_SOURCES "")
+  foreach(header ${TIMELESS_PUBLIC_HEADERS})
+    string(REPLACE "/" "_" check_name "${header}")
+    set(check_source "${CMAKE_CURRENT_BINARY_DIR}/header_check/${check_name}.cpp")
+    file(CONFIGURE OUTPUT "${check_source}"
+         CONTENT "#include \"${header}\"\n" @ONLY)
+    list(APPEND TIMELESS_HEADER_CHECK_SOURCES "${check_source}")
+  endforeach()
+
+  add_library(${PROJECT_NAME}-header-check OBJECT ${TIMELESS_HEADER_CHECK_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-header-check PRIVATE
+      ${PROJECT_NAME} ${PROJECT_NAME}-audio ${PROJECT_NAME}-ai)
+endif()
