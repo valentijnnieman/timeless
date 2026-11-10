@@ -50,8 +50,11 @@ public:
   void clearBoneOverride(const std::string &name) { boneOverrides.erase(name); }
 
   // Computed pose matrices for skinning (one per bone, matches Model's bone
-  // order)
+  // order). Computed lazily: update() only advances the clip, and whoever
+  // reads them calls ensure_pose() first, so entities nobody draws (off
+  // screen) don't pay for posing their skeleton every frame.
   std::vector<glm::mat4> poseMatrices;
+  bool pose_dirty = false;
 
   // Reference to the entity's Model component
   std::shared_ptr<Model> model = nullptr;
@@ -61,42 +64,6 @@ public:
   void setAnimation(const std::string &name, bool loop = true,
                     bool restWhenFinished = false);
 
-<<<<<<< Updated upstream
-  void stopAnimation() {
-    playing = false;
-    currentAnimation = "";
-    std::fill(poseMatrices.begin(), poseMatrices.end(), glm::mat4(1.0f));
-  }
-
-  void update(float dt) {
-    if (!playing || !model ||
-        animations.find(currentAnimation) == animations.end())
-      return;
-
-    const SkeletalAnimationData &anim = animations.at(currentAnimation);
-    currentTime += dt;
-    if (loop && anim.duration > 0.0f) {
-      currentTime = fmod(currentTime, anim.duration);
-    } else if (currentTime > anim.duration) {
-      currentTime = anim.duration;
-      if (restWhenFinished) {
-        // One-shot finished: clear the clip and stop advancing so the pose
-        // below is computed with no active animation, i.e. the bind/rest pose.
-        // We still fall through this frame to compute that pose once; later
-        // frames early-return on !playing and hold the rest pose.
-        currentAnimation = "";
-        playing = false;
-      }
-    }
-
-    poseMatrices.resize(model->boneInfos.size(), glm::mat4(1.0f));
-
-    for (size_t i = 0; i < model->skeletonBones.size(); ++i) {
-      if (model->skeletonBones[i].parentIndex == -1)
-        computeBonePose(i, model->skeletonRootNodeTransform);
-    }
-  }
-=======
   void stopAnimation();
 
   void update(float dt);
@@ -104,7 +71,6 @@ public:
   // Bring poseMatrices up to date with the clip, if update() moved it on since
   // they were last computed. Call before reading them.
   void ensure_pose();
->>>>>>> Stashed changes
 
   void loadAnimations();
 

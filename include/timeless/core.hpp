@@ -198,16 +198,8 @@ namespace TE
     // can sit well off the drawn figure, since clips move and bend bones.
     // Returns false when there is nothing to pose (no SkeletalAnimation, so
     // the renderer doesn't skin either), leaving the bind box to the caller.
-<<<<<<< Updated upstream
-    inline bool posed_local_aabb(Entity entity, const std::shared_ptr<Model> &model,
-                                 glm::vec3 &out_min, glm::vec3 &out_max) {
-      auto anim = TE::get_component<SkeletalAnimation>(entity);
-      if (anim == nullptr || model->bone_aabb_min.empty())
-        return false;
-=======
     bool posed_local_aabb(Entity entity, const std::shared_ptr<Model> &model,
                           glm::vec3 &out_min, glm::vec3 &out_max);
->>>>>>> Stashed changes
 
     void picking_aabb(Entity entity, const std::shared_ptr<Transform>& transform,
                       glm::vec3 &out_min, glm::vec3 &out_max);
