@@ -168,6 +168,7 @@ bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
   if (boneMatrixLoc < 0) return false;
   auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
   if (skeletal_animation == nullptr) return false;
+  skeletal_animation->ensure_pose();
   std::array<glm::mat4, 128> boneMatrices;
   size_t count = skeletal_animation->poseMatrices.size();
   for (size_t i = 0; i < 128; ++i)
