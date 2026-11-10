@@ -285,7 +285,8 @@ void WindowManager::resize_framebuffers(int new_width, int new_height) {
   }
 }
 
-void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick, bool to_screen) {
+void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick, bool to_screen,
+                                               std::shared_ptr<Shader> shader) {
   if (idx >= screen_shaders.size() || idx >= textures.size()) return;
   glEnable(GL_BLEND);
   // Premultiplied "over": the offscreen FBO holds premultiplied colour, so this
@@ -299,7 +300,8 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
                  TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   }
-  screen_shaders[idx]->use();
+  if (shader == nullptr) shader = screen_shaders[idx];
+  shader->use();
 
   glBindVertexArray(ScreenVAO);
   glActiveTexture(GL_TEXTURE0);
@@ -308,20 +310,20 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
     glActiveTexture(GL_TEXTURE1 + i);
     glBindTexture(GL_TEXTURE_2D, extra_textures[idx][i]);
     std::string name = "screenTexture" + std::to_string(i + 1);
-    glUniform1i(glGetUniformLocation(screen_shaders[idx]->ID, name.c_str()), (GLint)(i + 1));
+    glUniform1i(glGetUniformLocation(shader->ID, name.c_str()), (GLint)(i + 1));
   }
   glActiveTexture(GL_TEXTURE0);
 
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "width"), TESettings::RENDER_X);
-  glUniform1f(glGetUniformLocation(screen_shaders[idx]->ID, "height"), TESettings::RENDER_Y);
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::RENDER_X);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::RENDER_Y);
   // Normalise raw mouse position by actual window size so shader effects
   // (e.g. search highlight) track the cursor correctly regardless of resolution.
   glUniform2fv(
-      glGetUniformLocation(screen_shaders[idx]->ID, "mousePosition"), 1,
+      glGetUniformLocation(shader->ID, "mousePosition"), 1,
       glm::value_ptr(glm::vec2(shader_mouse_position.x / TESettings::WINDOW_X,
                                shader_mouse_position.y / TESettings::WINDOW_Y)));
 
-  set_shader_time(screen_shaders[idx]);
+  set_shader_time(shader);
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);

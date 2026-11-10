@@ -168,6 +168,7 @@ bool RenderingSystem::upload_bone_matrices(Entity entity, ComponentManager &cm,
   if (boneMatrixLoc < 0) return false;
   auto skeletal_animation = cm.get_component<SkeletalAnimation>(entity);
   if (skeletal_animation == nullptr) return false;
+  skeletal_animation->ensure_pose();
   std::array<glm::mat4, 128> boneMatrices;
   size_t count = skeletal_animation->poseMatrices.size();
   for (size_t i = 0; i < 128; ++i)
@@ -346,14 +347,38 @@ void RenderingSystem::shadow_reset_rotation(ComponentManager &cm) {
   }
 }
 
-void RenderingSystem::pre_filter_lights(std::shared_ptr<Camera> cam) {
+void RenderingSystem::pre_filter_lights(std::shared_ptr<Camera> cam, int x, int y,
+                                        float zoom) {
   filteredLightPositions.clear();
   filteredLightColors.clear();
-  glm::vec3 camPos = cam->get_position();
+  // Measured from the spot on the ground (z = 0) in the middle of the screen,
+  // not the camera itself: an orthographic camera can sit anywhere along its
+  // view line, and from far enough away no light was in range at all. Found
+  // like mouse picking does, from the camera's own matrices (with a focus
+  // point it doesn't look along get_forward()). The range reaches the
+  // screen's corners (plus a light's reach) when zoomed out.
+  glm::vec3 centre = cam->get_position();
+  {
+    glm::vec4 viewport(0.0f, 0.0f, float(x), float(y));
+    glm::mat4 view = cam->get_view_matrix();
+    glm::mat4 proj = cam->get_projection_matrix(x, y, zoom);
+    glm::vec3 mid(0.5f * x, 0.5f * y, 0.0f);
+    glm::vec3 near_point = glm::unProject(mid, view, proj, viewport);
+    mid.z = 1.0f;
+    glm::vec3 dir = glm::unProject(mid, view, proj, viewport) - near_point;
+    if (std::abs(dir.z) > 1e-6f) {
+      float t = -near_point.z / dir.z;
+      centre = near_point + dir * t;
+    }
+  }
+  float range = cam->perspective
+                    ? maxDistance
+                    : std::max(maxDistance, 0.5f * std::hypot(float(x), float(y)) * zoom + 600.0f);
   std::vector<std::pair<float, size_t>> in_range;
   for (size_t i = 0; i < lightPositions.size(); ++i) {
-    float d = glm::distance(lightPositions[i], camPos);
-    if (d <= maxDistance)
+    glm::vec2 off = glm::vec2(lightPositions[i]) - glm::vec2(centre);
+    float d = glm::length(off);
+    if (d <= range)
       in_range.push_back({d, i});
   }
   // The shaders only hold maxPointLights; beyond that, extra lights would be
@@ -429,7 +454,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
                              int tick, float delta_time) {
   std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
   if (cam != nullptr)
-    pre_filter_lights(cam);
+    pre_filter_lights(cam, x, y, zoom);
 
   // Cache per-frame values once — avoids redundant matrix computations and
   // system calls inside the per-entity loop.
@@ -453,13 +478,25 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
   }
 
   for (auto &entity : registered_entities) {
+    auto transform = cm.get_component<Transform>(entity);
+    // Off screen: skip it before anything else (with a crowd of citizens,
+    // their bodies, icons and labels are most of what's registered, and most
+    // are off screen). Queued tweens and particles still advance, as they
+    // would have if it had been drawn.
+    if (cam != nullptr && transform != nullptr &&
+        !on_screen(cm, entity, transform, frustum)) {
+      if (transform->has_queued_frames())
+        update_transform(transform);
+      if (auto emitter = cm.get_component<ParticleEmitter>(entity))
+        emitter->update(delta_time);
+      continue;
+    }
     auto shader = cm.get_component<Shader>(entity);
     if (shader != nullptr) {
       shader->use();
     } else {
       continue;
     }
-    auto transform = cm.get_component<Transform>(entity);
     if (transform != nullptr) {
       if (cam != nullptr)
         transform->update_camera(cam);
@@ -659,6 +696,49 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
   }
 }
 
+bool RenderingSystem::on_screen(ComponentManager &cm, Entity entity,
+                                const std::shared_ptr<Transform> &transform,
+                                const Frustum &frustum) {
+  // How far outside the frustum t's position is (0 if inside), and its
+  // radius: a sprite is drawn 2 width by 2 height, a model is its scale times
+  // its own few units (is_in_frustum allows 6).
+  auto outside = [&](const std::shared_ptr<Transform> &t, float &radius) {
+    glm::vec3 p = t->peek_position(); // not get_position(): that pops a frame
+    p.x -= t->offset.x;
+    p.y -= t->offset.y;
+    float size = std::max({std::abs(t->width), std::abs(t->height),
+                           glm::compMax(glm::abs(t->scale))});
+    radius = size * 6.0f + 64.0f;
+    float out = 0.0f;
+    for (int i = 0; i < 6; ++i) {
+      const glm::vec4 &plane = frustum.planes[i];
+      out = std::max(out, -(glm::dot(glm::vec3(plane), p) + plane.w));
+    }
+    return out;
+  };
+  float radius = 0.0f;
+  float out = outside(transform, radius);
+  if (out <= radius)
+    return true;
+  // Text runs on from its anchor, and while an animation plays it's drawn
+  // at the animation's root; only looked up near the edge, so the many
+  // entities far off screen cost no more than the above.
+  constexpr float near_edge = 2000.0f;
+  if (out > radius + near_edge)
+    return false;
+  if (auto text = cm.get_component<Text>(entity))
+    if (out <= radius + 40.0f * float(text->text.size()) * std::max(1.0f, std::abs(transform->width)))
+      return true;
+  auto animation = cm.get_component<Animation>(entity);
+  if (animation != nullptr && animation->playing && animation->root != nullptr &&
+      animation->root->transform != nullptr) {
+    float root_radius = 0.0f;
+    if (outside(animation->root->transform, root_radius) <= root_radius)
+      return true;
+  }
+  return false;
+}
+
 bool RenderingSystem::is_in_frustum(const Frustum &frustum,
                                     const BoundingSphere &sphere) {
   for (int i = 0; i < 6; ++i) {
@@ -786,96 +866,95 @@ void RenderingSystem::instanced_render(ComponentManager &cm, int x, int y,
                           registered_entities.size());
 }
 
+// The instance buffers are per model group now (see InstanceGroup), created and
+// sized by prepare_instanced_models, and instanced_model_render points each
+// mesh's VAO at them before drawing. Nothing to set up ahead of time; kept so
+// callers that still call it compile.
 void RenderingSystem::init_instanced_model_buffers(
     std::shared_ptr<Model> model, std::shared_ptr<Shader> shader,
-    size_t max_instances) {
-  for (auto &mesh : model->meshes) {
-    glBindVertexArray(mesh->VAO);
+    size_t max_instances) {}
 
-    if (!modelInstanceVBO)
-      glGenBuffers(1, &modelInstanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::mat4), nullptr,
-                 GL_DYNAMIC_DRAW);
-    for (int i = 0; i < 4; ++i) {
-      std::string name = "aModelMatrix" + std::to_string(i);
-      GLint attrLoc = shader->get_attrib(name);
-      if (attrLoc >= 0) {
-        glEnableVertexAttribArray(attrLoc);
-        glVertexAttribPointer(attrLoc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                              (void *)(sizeof(glm::vec4) * i));
-        glVertexAttribDivisor(attrLoc, 1);
-      }
-    }
-
-    if (!modelInstanceVBO2)
-      glGenBuffers(1, &modelInstanceVBO2);
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
-    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(float), nullptr,
-                 GL_DYNAMIC_DRAW);
-    GLint attrLoc2 = shader->get_attrib("aModelIndex");
-    if (attrLoc2 >= 0) {
-      glEnableVertexAttribArray(attrLoc2);
-      glVertexAttribPointer(attrLoc2, 1, GL_FLOAT, GL_FALSE, sizeof(float),
-                            (void *)0);
-      glVertexAttribDivisor(attrLoc2, 1);
-    }
-
-    if (!modelInstanceVBO3)
-      glGenBuffers(1, &modelInstanceVBO3);
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
-    glBufferData(GL_ARRAY_BUFFER, max_instances * sizeof(glm::vec4), nullptr,
-                 GL_DYNAMIC_DRAW);
-    GLint attrLoc3 = shader->get_attrib("aModelParams");
-    if (attrLoc3 >= 0) {
-      glEnableVertexAttribArray(attrLoc3);
-      glVertexAttribPointer(attrLoc3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4),
-                            (void *)0);
-      glVertexAttribDivisor(attrLoc3, 1);
-    }
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-  }
+// Upload `bytes` of `data` to the start of `vbo`, first reallocating it to
+// `capacity_bytes` when that's not 0 (the buffer has to grow).
+static void upload_instance_buffer(unsigned int vbo, const void *data,
+                                   size_t bytes, size_t capacity_bytes) {
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  if (capacity_bytes > 0)
+    glBufferData(GL_ARRAY_BUFFER, capacity_bytes, nullptr, GL_DYNAMIC_DRAW);
+  if (bytes > 0)
+    glBufferSubData(GL_ARRAY_BUFFER, 0, bytes, data);
 }
 
 void RenderingSystem::prepare_instanced_models(ComponentManager &cm,
                                                std::shared_ptr<Shader> shader,
                                                float x, float y, int zoom) {
-  modelMatrices.clear();
-  modelIndices.clear();
-  modelParams.clear();
   std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
 
+  for (auto &[key, group] : instance_groups)
+    group.entities.clear();
   for (auto &entity : registered_entities) {
-    auto transform = cm.get_component<Transform>(entity);
-    if (transform != nullptr) {
-      transform->update_camera(cam);
-      update_transform(transform);
-      modelMatrices.push_back(transform->model);
-    }
     auto modelComp = cm.get_component<Model>(entity);
-    if (modelComp != nullptr) {
+    if (!modelComp)
+      continue;
+    auto &group = instance_groups[modelComp.get()];
+    group.model = modelComp;
+    group.entities.push_back(entity);
+  }
+
+  for (auto it = instance_groups.begin(); it != instance_groups.end();) {
+    auto &group = it->second;
+    // Models nobody uses any more (e.g. after a scene switch): free them.
+    if (group.entities.empty()) {
+      unsigned int vbos[3] = {group.vbo_mat, group.vbo_idx, group.vbo_params};
+      if (group.vbo_mat)
+        glDeleteBuffers(3, vbos);
+      it = instance_groups.erase(it);
+      continue;
+    }
+
+    modelMatrices.clear();
+    modelIndices.clear();
+    modelParams.clear();
+    for (auto &entity : group.entities) {
+      auto transform = cm.get_component<Transform>(entity);
+      if (transform != nullptr) {
+        transform->update_camera(cam);
+        update_transform(transform);
+        modelMatrices.push_back(transform->model);
+      }
+      auto modelComp = cm.get_component<Model>(entity);
       modelIndices.push_back(modelComp->index);
       modelParams.push_back(modelComp->params);
     }
+    group.shader = cm.get_component<Shader>(group.entities[0]);
+    // An instance per entity with a transform; the others have nothing to
+    // draw with.
+    group.count = std::min(modelMatrices.size(), modelIndices.size());
+
+    if (!group.vbo_mat) {
+      unsigned int vbos[3];
+      glGenBuffers(3, vbos);
+      group.vbo_mat = vbos[0];
+      group.vbo_idx = vbos[1];
+      group.vbo_params = vbos[2];
+    }
+    size_t n = modelIndices.size();
+    size_t grow = 0;
+    if (n > group.capacity) {
+      grow = std::max(n, group.capacity * 2);
+      group.capacity = grow;
+    }
+    upload_instance_buffer(group.vbo_mat, modelMatrices.data(),
+                           modelMatrices.size() * sizeof(glm::mat4),
+                           grow * sizeof(glm::mat4));
+    upload_instance_buffer(group.vbo_idx, modelIndices.data(),
+                           modelIndices.size() * sizeof(float),
+                           grow * sizeof(float));
+    upload_instance_buffer(group.vbo_params, modelParams.data(),
+                           modelParams.size() * sizeof(glm::vec4),
+                           grow * sizeof(glm::vec4));
+    ++it;
   }
-
-  glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
-  if (!modelMatrices.empty())
-    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
-                 modelMatrices.data(), GL_STREAM_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
-  if (!modelIndices.empty())
-    glBufferData(GL_ARRAY_BUFFER, modelIndices.size() * sizeof(float),
-                 modelIndices.data(), GL_STREAM_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
-  if (!modelParams.empty())
-    glBufferData(GL_ARRAY_BUFFER, modelParams.size() * sizeof(glm::vec4),
-                 modelParams.data(), GL_STREAM_DRAW);
-
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -883,7 +962,7 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
                                              float zoom, int tick) {
   std::shared_ptr<Camera> cam = cm.get_component<Camera>(camera);
   if (cam != nullptr)
-    pre_filter_lights(cam);
+    pre_filter_lights(cam, x, y, zoom);
 
   const float time = (float)TE::now_seconds();
   glm::mat4 view{}, projection{};
@@ -895,120 +974,82 @@ void RenderingSystem::instanced_model_render(ComponentManager &cm, int x, int y,
     cam_pos    = cam->get_position();
   }
 
-  std::unordered_map<std::shared_ptr<Model>, std::vector<Entity>> modelGroups;
-  for (auto &entity : registered_entities) {
-    auto modelComp = cm.get_component<Model>(entity);
-    if (modelComp)
-      modelGroups[modelComp].push_back(entity);
-  }
+  static const std::string matrix_attribs[4] = {
+      "aModelMatrix0", "aModelMatrix1", "aModelMatrix2", "aModelMatrix3"};
 
-  for (auto &[modelPtr, entities] : modelGroups) {
-    modelMatrices.clear();
-    modelIndices.clear();
-    modelParams.clear();
+  for (auto &[key, group] : instance_groups) {
+    auto &shader = group.shader;
+    if (!shader || group.count == 0)
+      continue;
+    shader->use();
 
-    for (auto &entity : entities) {
-      auto transform = cm.get_component<Transform>(entity);
-      if (transform != nullptr) {
-        transform->update_camera(cam);
-        update_transform(transform);
-        modelMatrices.push_back(transform->model);
-      }
-      auto modelComp = cm.get_component<Model>(entity);
-      if (modelComp) {
-        modelIndices.push_back(modelComp->index);
-        modelParams.push_back(modelComp->params);
-      }
-    }
+    glUniformMatrix4fv(shader->get_uniform("projection"), 1,
+                       GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
+                       glm::value_ptr(view));
+    glUniform1f(shader->get_uniform("time"), time);
+    glUniform1f(shader->get_uniform("tick"), tick);
+    glUniform1f(shader->get_uniform("jitter"), inst_jitter);
+    glUniform1f(shader->get_uniform("jitter_speed"),
+                inst_jitter_speed);
 
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
-    if (!modelMatrices.empty())
-      glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
-                   modelMatrices.data(), GL_STREAM_DRAW);
+    // Lighting is the same for all meshes in this group — set it once.
+    calculate_lighting(shader, cam_pos, tick);
 
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
-    if (!modelIndices.empty())
-      glBufferData(GL_ARRAY_BUFFER, modelIndices.size() * sizeof(float),
-                   modelIndices.data(), GL_STREAM_DRAW);
+    GLint matrix_locs[4];
+    for (int i = 0; i < 4; ++i)
+      matrix_locs[i] = shader->get_attrib(matrix_attribs[i]);
+    GLint index_loc = shader->get_attrib("aModelIndex");
+    GLint params_loc = shader->get_attrib("aModelParams");
 
-    glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
-    if (!modelParams.empty())
-      glBufferData(GL_ARRAY_BUFFER, modelParams.size() * sizeof(glm::vec4),
-                   modelParams.data(), GL_STREAM_DRAW);
+    auto &modelPtr = group.model;
+    for (auto &mesh : modelPtr->meshes) {
+      glBindVertexArray(mesh->VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    auto shader = cm.get_component<Shader>(entities[0]);
-    if (shader) {
-      shader->use();
-
-      glUniformMatrix4fv(shader->get_uniform("projection"), 1,
-                         GL_FALSE, glm::value_ptr(projection));
-      glUniformMatrix4fv(shader->get_uniform("view"), 1, GL_FALSE,
-                         glm::value_ptr(view));
-      glUniform1f(shader->get_uniform("time"), time);
-      glUniform1f(shader->get_uniform("tick"), tick);
-      glUniform1f(shader->get_uniform("jitter"), inst_jitter);
-      glUniform1f(shader->get_uniform("jitter_speed"),
-                  inst_jitter_speed);
-
-      // Lighting is the same for all meshes in this group — set it once.
-      calculate_lighting(shader, cam_pos, tick);
-
-      for (auto &mesh : modelPtr->meshes) {
-        glBindVertexArray(mesh->VAO);
-
-        // Re-bind our own instance VBOs
-        glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO);
-        for (int i = 0; i < 4; ++i) {
-          std::string name = "aModelMatrix" + std::to_string(i);
-          GLint loc = shader->get_attrib(name);
-          if (loc >= 0) {
-            glEnableVertexAttribArray(loc);
-            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                                  (void *)(sizeof(glm::vec4) * i));
-            glVertexAttribDivisor(loc, 1);
-          }
+      // Point the VAO at this group's instance buffers. The meshes' VAOs are
+      // shared (other systems draw the same models), so this is done per draw.
+      glBindBuffer(GL_ARRAY_BUFFER, group.vbo_mat);
+      for (int i = 0; i < 4; ++i) {
+        if (matrix_locs[i] >= 0) {
+          glEnableVertexAttribArray(matrix_locs[i]);
+          glVertexAttribPointer(matrix_locs[i], 4, GL_FLOAT, GL_FALSE,
+                                sizeof(glm::mat4),
+                                (void *)(sizeof(glm::vec4) * i));
+          glVertexAttribDivisor(matrix_locs[i], 1);
         }
-        glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO2);
-        {
-          GLint loc = shader->get_attrib("aModelIndex");
-          if (loc >= 0) {
-            glEnableVertexAttribArray(loc);
-            glVertexAttribPointer(loc, 1, GL_FLOAT, GL_FALSE, sizeof(float),
-                                  (void *)0);
-            glVertexAttribDivisor(loc, 1);
-          }
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, modelInstanceVBO3);
-        {
-          GLint loc = shader->get_attrib("aModelParams");
-          if (loc >= 0) {
-            glEnableVertexAttribArray(loc);
-            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4),
-                                  (void *)0);
-            glVertexAttribDivisor(loc, 1);
-          }
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glUniform3fv(shader->get_uniform("materialDiffuse"), 1,
-                     glm::value_ptr(mesh->diffuseColor));
-        glUniform3fv(shader->get_uniform("albedo"), 1,
-                     glm::value_ptr(mesh->diffuseColor));
-        glUniform1f(shader->get_uniform("metallic"),
-                    modelPtr->metallic.value_or(mesh->metallic.value_or(0.1f)));
-        glUniform1f(shader->get_uniform("roughness"),
-                    modelPtr->roughness.value_or(mesh->roughness.value_or(0.1f)));
-        glUniform3fv(shader->get_uniform("materialSpecular"), 1,
-                     glm::value_ptr(mesh->specularColor));
-        glUniform1i(shader->get_uniform("materialKind"), mesh->kind);
-        glUniform1i(shader->get_uniform("texture1"), 0);
-        glDrawElementsInstanced(GL_TRIANGLES,
-                                static_cast<unsigned int>(mesh->indices.size()),
-                                GL_UNSIGNED_INT, 0, entities.size());
-        glBindVertexArray(0);
       }
+      glBindBuffer(GL_ARRAY_BUFFER, group.vbo_idx);
+      if (index_loc >= 0) {
+        glEnableVertexAttribArray(index_loc);
+        glVertexAttribPointer(index_loc, 1, GL_FLOAT, GL_FALSE, sizeof(float),
+                              (void *)0);
+        glVertexAttribDivisor(index_loc, 1);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, group.vbo_params);
+      if (params_loc >= 0) {
+        glEnableVertexAttribArray(params_loc);
+        glVertexAttribPointer(params_loc, 4, GL_FLOAT, GL_FALSE,
+                              sizeof(glm::vec4), (void *)0);
+        glVertexAttribDivisor(params_loc, 1);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+      glUniform3fv(shader->get_uniform("materialDiffuse"), 1,
+                   glm::value_ptr(mesh->diffuseColor));
+      glUniform3fv(shader->get_uniform("albedo"), 1,
+                   glm::value_ptr(mesh->diffuseColor));
+      glUniform1f(shader->get_uniform("metallic"),
+                  modelPtr->metallic.value_or(mesh->metallic.value_or(0.1f)));
+      glUniform1f(shader->get_uniform("roughness"),
+                  modelPtr->roughness.value_or(mesh->roughness.value_or(0.1f)));
+      glUniform3fv(shader->get_uniform("materialSpecular"), 1,
+                   glm::value_ptr(mesh->specularColor));
+      glUniform1i(shader->get_uniform("materialKind"), mesh->kind);
+      glUniform1i(shader->get_uniform("texture1"), 0);
+      glDrawElementsInstanced(GL_TRIANGLES,
+                              static_cast<unsigned int>(mesh->indices.size()),
+                              GL_UNSIGNED_INT, 0, group.count);
+      glBindVertexArray(0);
     }
   }
 }

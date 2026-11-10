@@ -51,8 +51,11 @@ public:
   void clearBoneOverride(const std::string &name) { boneOverrides.erase(name); }
 
   // Computed pose matrices for skinning (one per bone, matches Model's bone
-  // order)
+  // order). Computed lazily: update() only advances the clip, and whoever
+  // reads them calls ensure_pose() first, so entities nobody draws (off
+  // screen) don't pay for posing their skeleton every frame.
   std::vector<glm::mat4> poseMatrices;
+  bool pose_dirty = false;
 
   // Reference to the entity's Model component
   std::shared_ptr<Model> model = nullptr;
@@ -79,6 +82,7 @@ public:
     playing = false;
     currentAnimation = "";
     std::fill(poseMatrices.begin(), poseMatrices.end(), glm::mat4(1.0f));
+    pose_dirty = false;
   }
 
   void update(float dt) {
@@ -102,8 +106,17 @@ public:
       }
     }
 
-    poseMatrices.resize(model->boneInfos.size(), glm::mat4(1.0f));
+    // The pose itself waits for ensure_pose().
+    pose_dirty = true;
+  }
 
+  // Bring poseMatrices up to date with the clip, if update() moved it on since
+  // they were last computed. Call before reading them.
+  void ensure_pose() {
+    if (!pose_dirty || !model)
+      return;
+    pose_dirty = false;
+    poseMatrices.resize(model->boneInfos.size(), glm::mat4(1.0f));
     for (size_t i = 0; i < model->skeletonBones.size(); ++i) {
       if (model->skeletonBones[i].parentIndex == -1)
         computeBonePose(i, model->skeletonRootNodeTransform);

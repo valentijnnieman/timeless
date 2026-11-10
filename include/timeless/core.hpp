@@ -298,6 +298,7 @@ namespace TE
       auto anim = TE::get_component<SkeletalAnimation>(entity);
       if (anim == nullptr || model->bone_aabb_min.empty())
         return false;
+      anim->ensure_pose();
 
       // Accumulate separately: on failure the caller keeps its bind box.
       glm::vec3 posed_min(std::numeric_limits<float>::max());
