@@ -18,9 +18,19 @@ private:
   unsigned int instanceVBO2;
   unsigned int instanceVBO3;
 
-  unsigned int modelInstanceVBO;
-  unsigned int modelInstanceVBO2;
-  unsigned int modelInstanceVBO3;
+  // The instanced models, one group per Model, each with its own instance
+  // buffers (matrices, indices, params). Built by prepare_instanced_models and
+  // drawn by instanced_model_render, so one prepare serves several draws in a
+  // frame. Kept across frames so the buffers are reused.
+  struct InstanceGroup {
+    std::shared_ptr<Model> model;
+    std::shared_ptr<Shader> shader;
+    std::vector<Entity> entities;
+    unsigned int vbo_mat = 0, vbo_idx = 0, vbo_params = 0;
+    size_t count = 0;
+    size_t capacity = 0;
+  };
+  std::unordered_map<Model *, InstanceGroup> instance_groups;
 
   unsigned int attrLoc1;
   unsigned int attrLoc2;
@@ -58,10 +68,13 @@ public:
   float ui_jitter = 0.0f;
   float ui_jitter_speed = 0.0f;
 
-  float maxDistance = 2000.0f; // max distance for light calculations, beyond which light contribution is negligible
-  // How many point lights the shaders hold (MAX_POINT_LIGHTS in the model
-  // shaders). When more are in range, the nearest to the camera are sent.
-  static constexpr size_t maxPointLights = 32;
+  // Point lights count within this distance of the spot the camera looks at,
+  // or of anything on screen if the view is wider (see pre_filter_lights).
+  float maxDistance = 2000.0f;
+  // How many point lights the shaders hold (the smallest MAX_POINT_LIGHTS of
+  // the model shaders). When more are in range, the nearest to the spot the
+  // camera looks at are sent.
+  static constexpr size_t maxPointLights = 48;
 
   // Directional light (sun). lightPos is the direction the light points toward
   // (shader uses normalize(-lightPos) as L).
@@ -143,12 +156,18 @@ public:
   void sort(ComponentManager &cm);
   void shadow_rotate(ComponentManager &cm);
   void shadow_reset_rotation(ComponentManager &cm);
-  void pre_filter_lights(std::shared_ptr<Camera> cam);
+  void pre_filter_lights(std::shared_ptr<Camera> cam, int x, int y, float zoom);
   void calculate_lighting(std::shared_ptr<Shader> shader,
                           const glm::vec3& cam_pos, int tick);
   void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
               int tick = 0, float delta_time = 0.016f);
   bool is_in_frustum(const Frustum &frustum, const BoundingSphere &sphere);
+  // Whether an entity drawn by render() may show inside the frustum: its
+  // position (the animation's root while one plays) with a generous radius
+  // for its size, and for text, its length. False means it's surely off
+  // screen. Looks up nothing else for an entity far off screen.
+  bool on_screen(ComponentManager &cm, Entity entity,
+                 const std::shared_ptr<Transform> &transform, const Frustum &frustum);
   void init_instanced_buffers(std::shared_ptr<Quad> quad,
                               std::shared_ptr<Shader> shader,
                               size_t max_instances);
@@ -163,10 +182,16 @@ public:
   void init_instanced_model_buffers(std::shared_ptr<Model> model,
                                     std::shared_ptr<Shader> shader,
                                     size_t max_instances);
+  // Builds and uploads the instance data of every model group (transforms,
+  // indices, params). The camera doesn't go into it (view and projection are
+  // uniforms), so it's needed only when the instances move or change: for
+  // models that never move, once after they're registered. instanced_model_render
+  // draws what it uploaded, as often as needed. shader, x, y and zoom are unused.
   void prepare_instanced_models(ComponentManager &cm,
                                 std::shared_ptr<Shader> shader,
                                 float x, float y, int zoom);
-  // Prepare and render instanced models grouped by model pointer
+  // Renders the instanced models grouped by model, from the instance data the
+  // last prepare_instanced_models uploaded.
   void instanced_model_render(ComponentManager &cm, int x, int y,
                               float zoom = 1.0, int tick = 0);
 };

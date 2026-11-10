@@ -104,7 +104,11 @@ public:
   // attachment must not draw with it enabled, or its contents are undefined.
   void set_draw_attachments(size_t idx, int count);
   void resize_framebuffers(int new_width, int new_height);
-  void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false);
+  // Draws framebuffer idx's colour texture (and its extra attachments, as
+  // screenTexture1..) as a quad, with `shader` instead of the framebuffer's own
+  // screen shader when one is given.
+  void render_framebuffer_as_quad(size_t idx, bool clear = true, int tick = 0, bool to_screen = false,
+                                  std::shared_ptr<Shader> shader = nullptr);
   void render_background_quad(std::shared_ptr<Shader> shader);
   void set_shader_time(std::shared_ptr<Shader> shader);
   void set_shader_mouse_position(glm::vec2 mouse_pos);

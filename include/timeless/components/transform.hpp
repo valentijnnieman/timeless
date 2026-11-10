@@ -99,6 +99,12 @@ public:
     draw) must use this or they steal frames from the animation. */
     glm::vec3 peek_position() const;
 
+    /* Whether position, scale or rotation frames are still queued (an
+    animation that get_position() and friends play one frame per call). */
+    bool has_queued_frames() const {
+      return !positions.empty() || !scales.empty() || !rotations.empty();
+    }
+
     glm::vec3 get_position_minus_offset();
 
     /* returns position minus camera - i.e. position as if looking from
