@@ -35,18 +35,20 @@ option(EMSCRIPTEN_PTHREADS "PThread support" OFF)
 # Modular sub-targets
 #
 #   timeless        — core engine (components, rendering, input, window, ...)
-#   timeless-audio  — FMOD-backed SoundSystem (the ONLY target that links FMOD)
+#   timeless-audio  — SoundSystem, on the tokkel audio library (the ONLY target
+#                     that links tokkel, and through it miniaudio and STK)
 #   timeless-ai     — NpcAiSystem time-sequencing (rewind/replay)
 #
 # The optional feature modules depend on core one-way; core never references
 # them (verified: SoundSystem/NpcAiSystem are each referenced only by their own
 # translation unit). So a game links just the modules it uses — e.g. BiasBusters
 # links `timeless timeless-audio` and pays nothing for the AI module or, if it
-# dropped audio too, for FMOD.
+# dropped audio too, for tokkel.
 # ---------------------------------------------------------------------------
 
 # Feature-module sources, carved out of the source tree.
-set(TIMELESS_AUDIO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/systems/sound_system.cpp")
+set(TIMELESS_AUDIO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/systems/sound_system.cpp"
+                           "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/music.cpp")
 set(TIMELESS_AI_SOURCES    "${CMAKE_CURRENT_SOURCE_DIR}/src/timeless/systems/npc_ai_system.cpp")
 
 # Everything else (minus the standalone resource packer) is core.
@@ -65,6 +67,8 @@ add_library(${PROJECT_NAME}-ai STATIC ${TIMELESS_AI_SOURCES})
 # back (keeps the dependency graph acyclic). PRIVATE so core's link options
 # aren't re-propagated to consumers a second time through these libs.
 target_link_libraries(${PROJECT_NAME}-audio PRIVATE ${PROJECT_NAME})
+# nlohmann/json, for the scores music.cpp reads; private to the audio module.
+target_include_directories(${PROJECT_NAME}-audio PRIVATE vendor/nlohmann)
 target_link_libraries(${PROJECT_NAME}-ai    PRIVATE ${PROJECT_NAME})
 
 # add property for shaders folder - to be copied into game build "Assets/" folder
@@ -89,7 +93,7 @@ if(EMSCRIPTEN)
 
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/tokkel)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -147,8 +151,9 @@ if(EMSCRIPTEN)
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
 
   target_link_libraries(${PROJECT_NAME} glm assimp)
-  # FMOD lives only in the audio module.
-  target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
+  # tokkel lives only in the audio module. PRIVATE: no engine header includes
+  # it, and CMake still carries a static library's dependencies to the final link.
+  target_link_libraries(${PROJECT_NAME}-audio PRIVATE tokkel::tokkel)
 
   # add_subdirectory(example example)
 
@@ -164,20 +169,12 @@ else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/freetype2)
   # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/cereal)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/tokkel)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp)
 
-  # find_package(fmod)
   include_directories("${PROJECT_BINARY_DIR}" glad/include sdl/include freetype2/include glm/include stb_image/ assimp/include)
 
   set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-
-  # add property for fmod folder to copy dll files
-  set_property(
-      TARGET ${PROJECT_NAME}
-      APPEND PROPERTY
-      FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod"
-  )
 
   # set_target_properties(${PROJECT_NAME}
   # PROPERTIES SUFFIX ".html"
@@ -195,47 +192,9 @@ else()
   else()
     target_link_libraries(${PROJECT_NAME} glad SDL2-static glm freetype assimp)
   endif()
-  # FMOD lives only in the audio module.
-  target_link_libraries(${PROJECT_NAME}-audio PUBLIC fmod fmod_studio)
-
-  if(WIN32)
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod.dll
-          ${CMAKE_CURRENT_BINARY_DIR}/fmod.dll)
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/core/lib/fmod_vc.lib
-          ${CMAKE_CURRENT_BINARY_DIR}/fmod_vc.lib)
-
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio.dll
-          ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio.dll)
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/win/studio/lib/fmodstudio_vc.lib
-          ${CMAKE_CURRENT_BINARY_DIR}/fmodstudio_vc.lib)
-  endif()
-
-  if(UNIX AND NOT APPLE)
-    message(STATUS "LINUX BUILD!")
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/core/lib/x86_64/libfmod.so.14
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmod.so.14)
-
-    add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmod/linux/studio/lib/x86_64/libfmodstudio.so.14
-          ${CMAKE_CURRENT_BINARY_DIR}/libfmodstudio.so.14)
-  endif()
+  # tokkel lives only in the audio module. PRIVATE: no engine header includes
+  # it, and CMake still carries a static library's dependencies to the final link.
+  target_link_libraries(${PROJECT_NAME}-audio PRIVATE tokkel::tokkel)
 
   # Desktop tools: an iOS build packs its assets with a host-built packer (see
   # the game's CMakeLists).

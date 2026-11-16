@@ -10,7 +10,6 @@ add_executable(${PROJECT_NAME} main.cpp)
 
 get_target_property(ENGINE_INCLUDES timeless INCLUDE_DIRECTORIES)
 get_target_property(SHADERS_DIR timeless SHADERS_DIR)
-get_target_property(FMOD_DIR timeless FMOD_DIR)
 
 # Construct the compiler string for the include directories.
 foreach(dir ${ENGINE_INCLUDES})
