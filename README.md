@@ -17,7 +17,7 @@ A game engine written in C++ built around an **Entity Component System (ECS)** a
 - **Camera system** — orthographic and perspective cameras; supports multiple cameras per scene (e.g., separate game and UI cameras)
 - **Animation system** — keyframe-based animations with positional interpolation
 - **Input handling** — keyboard, mouse and touch input behind the engine's own key and button types (SDL2 underneath, never in your code), including hover and click detection in both orthographic and perspective modes
-- **Sound** — FMOD-based sound system
+- **Sound** — a sound system on [tokkel](https://github.com/valentijnnieman/tokkel) (miniaudio and STK): samples and synthesized instruments
 - **Movement system** — camera panning (keys, drag) and zooming (scroll, pinch), eased
 - **Scenes** — a scene lifecycle and deferred scene transitions
 - **WebAssembly support** — build and run in the browser via Emscripten
@@ -35,8 +35,17 @@ A game engine written in C++ built around an **Entity Component System (ECS)** a
 | `System` | Logic that processes entities with specific components (e.g., `RenderingSystem`, `NpcAiSystem`) |
 | `ComponentManager` | Stores and retrieves all components |
 | `WindowManager` | Manages the window, input events, and OpenGL framebuffers |
+| `TE::Engine` | Owns the managers, the systems and the grid; opens the window when it's made and closes it when it's destroyed |
 
-Everything is reached through the `TE::` namespace: `TE::init()`, `TE::create_system<T>(name, system)` / `TE::get_system<T>(name)`, `TE::add_component<T>(entity, component)` / `TE::get_component<T>(entity)`, `TE::cleanup()`.
+A game makes one `TE::Engine` (a second one aborts), and keeps it alive for as long as it uses the engine. Its constructor takes a `TE::EngineConfig`: how the window opens (its size, the display's native resolution, or fullscreen), the design resolution all layout and cameras work in, and the render scale of the offscreen framebuffers. The engine keeps it, unchanged, as `TE::config()`; `TE::design_size()` and `TE::render_size()` read the resolutions.
+
+```cpp
+TE::EngineConfig config;
+config.native_resolution = true;
+auto engine = std::make_unique<TE::Engine>(config);
+```
+
+Everything else is reached through the `TE::` namespace, which uses that engine: `TE::create_system<T>(name, system)` / `TE::get_system<T>(name)`, `TE::add_component<T>(entity, component)` / `TE::get_component<T>(entity)`. Destroying the engine removes the systems and components and closes the window; anything holding OpenGL objects (shaders, textures, models) has to go before that, so declare the engine before them.
 
 ### Modules and headers
 
@@ -45,7 +54,7 @@ The engine builds as three static libraries, so a game links only what it uses:
 | Target | Contents |
 |---|---|
 | `timeless` | The core: components, rendering, input, window, grid |
-| `timeless-audio` | `SoundSystem` — the only target that links FMOD |
+| `timeless-audio` | `SoundSystem` — the only target that links tokkel |
 | `timeless-ai` | `NpcAiSystem` — time-sequencing |
 
 `#include "timeless/timeless.hpp"` pulls in the whole engine. To include less, take `timeless/core.hpp` (the `TE::` facade) plus the component and system headers you use; every header compiles on its own.
@@ -69,7 +78,7 @@ The `NpcAiSystem` drives the time-sequencing model. Each entity can have a `Beha
 
 ```cpp
 std::vector<Instruction> instructions;
-for (int i = 0; i < TESettings::MAX_TICKS; i++) {
+for (int i = 0; i < ticks; i++) {
     instructions.push_back(Instruction([](Entity entity, bool reverse, float speed) {
         // do something each tick, or undo it when reverse is set
     }));
@@ -100,11 +109,9 @@ The following libraries are required. They are all under `vendor/`, some as git 
 | [GLAD](https://glad.dav1d.de/) | OpenGL function loader |
 | [GLM](https://github.com/g-truc/glm) | Math (vectors, matrices) |
 | [FreeType](https://freetype.org/) | Font rendering |
-| [FMOD](https://www.fmod.com/) | Audio playback |
+| [tokkel](https://github.com/valentijnnieman/tokkel) | Audio playback and synthesis (on miniaudio and STK) |
 | [Assimp](https://github.com/assimp/assimp) | 3D model importing |
 | [stb_image](https://github.com/nothings/stb) | Image loading |
-
-> **FMOD** is a proprietary library. You must download it separately from [fmod.com](https://www.fmod.com/download) and place it in `vendor/fmod/`.
 
 ---
 
@@ -115,7 +122,6 @@ The following libraries are required. They are all under `vendor/`, some as git 
 - CMake ≥ 3.19
 - A C++20-compatible compiler (GCC, Clang, MSVC)
 - All submodules initialized: `git submodule update --init --recursive`
-- FMOD SDK placed in `vendor/fmod/` (see above)
 
 ### Desktop (Linux / macOS / Windows)
 
@@ -124,7 +130,7 @@ cmake -B build
 cmake --build build
 ```
 
-This builds the engine libraries, the [example](#example) and `timelessResourcePacker`. The FMOD libraries are copied to the build output directory (Windows, Linux).
+This builds the engine libraries, the [example](#example) and `timelessResourcePacker`.
 
 To use the engine in a game, add it as a subdirectory and link the modules you need:
 
@@ -158,7 +164,9 @@ A sprite that steps to the right every tick. It expects the engine's `shaders/` 
 #include "stb_image.h"
 
 int main() {
-    TE::init(); // opens the window and creates the OpenGL context
+    // Opens the window and creates the OpenGL context. Made first, so it's
+    // destroyed last: after the resources below let go of their OpenGL objects.
+    TE::Engine engine;
 
     // Resources. The engine's shaders are in shaders/; copy them next to your game.
     auto screen_shader = std::make_shared<Shader>("Assets/shaders/webgl_screen.vs", "Assets/shaders/webgl_screen.fs");
@@ -191,7 +199,7 @@ int main() {
     TE::add_component<Transform>(e, new Transform(glm::vec3(0, 0, 0), 0.f, 32.f, 32.f));
     TE::add_component<Sprite>(e, new Sprite(66, glm::vec4(1.0f), glm::vec2(512, 672), glm::vec2(32, 32)));
     std::vector<Instruction> instructions;
-    for (int i = 0; i < TESettings::MAX_TICKS; i++) {
+    for (int i = 0; i < ticks; i++) {
         instructions.push_back(Instruction([](Entity ent, bool reverse, float speed) {
             TE::get_component<Transform>(ent)->translate(glm::vec3(reverse ? -8.f : 8.f, 0.f, 0.f));
         }));
@@ -209,7 +217,7 @@ int main() {
             ai->update(cm);
 
             wm.select_framebuffer(0);
-            renderer->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index);
+            renderer->render(cm, TE::design_size().x, TE::design_size().y, TE::zoom(), ai->main_index);
             glBindFramebuffer(GL_FRAMEBUFFER, TE::screen_framebuffer);
             wm.render_framebuffer_as_quad(0, true, ai->main_index, true);
 
@@ -218,10 +226,7 @@ int main() {
         });
     }
 
-    // release GL resources before the engine closes the window
-    screen_shader.reset(); sprite_shader.reset(); quad.reset(); texture.reset();
-    TE::cleanup();
-    return 0;
+    return 0; // the resources go first, then the engine closes the window
 }
 ```
 

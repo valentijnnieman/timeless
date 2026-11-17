@@ -30,6 +30,8 @@ endif()
 
 option(EMSCRIPTEN "WASM build or regular" OFF)
 option(EMSCRIPTEN_PTHREADS "PThread support" OFF)
+# Threaded WASM builds only: mix audio in an AudioWorklet (see below).
+option(TIMELESS_AUDIO_WORKLETS "WASM: mix audio in an AudioWorklet (threaded builds)" ON)
 
 # ---------------------------------------------------------------------------
 # Modular sub-targets
@@ -109,8 +111,25 @@ if(EMSCRIPTEN)
     target_compile_options(${PROJECT_NAME} PUBLIC
       -pthread
     )
+    # Mix the audio in an AudioWorklet, on the browser's audio thread. Without
+    # it miniaudio uses a ScriptProcessorNode, whose callback runs on the main
+    # thread, so every long frame (a scene loading) starves the audio and it
+    # crackles. Worklets need shared memory, hence threaded builds only.
+    # -sASYNCIFY because miniaudio's device init waits for the worklet with
+    # emscripten_sleep() (see miniaudio.h, "AudioWorklets").
+    if(TIMELESS_AUDIO_WORKLETS)
+      target_compile_definitions(tokkel_miniaudio PRIVATE MA_ENABLE_AUDIO_WORKLETS)
+      target_link_options(${PROJECT_NAME} PUBLIC
+        -sAUDIO_WORKLET=1
+        -sWASM_WORKERS=1
+        -sASYNCIFY
+      )
+    endif()
     target_link_options(${PROJECT_NAME} PUBLIC
       -sALLOW_MEMORY_GROWTH=1
+      # Up to the 4GB a 32-bit wasm can address, rather than the 2GB default:
+      # headroom for the biggest cases' crowds.
+      -sMAXIMUM_MEMORY=4GB
       # With --shared-memory (pthreads) the ~20MB of --embed-file Assets pushes
       # static data past the default 16MB initial-memory floor, so raise it.
       # 64MB = ~21.5MB static + headroom for the runtime heap; growth covers the
@@ -131,6 +150,9 @@ if(EMSCRIPTEN)
   else()
     target_link_options(${PROJECT_NAME} PUBLIC
       -sALLOW_MEMORY_GROWTH=1
+      # Up to the 4GB a 32-bit wasm can address, rather than the 2GB default:
+      # headroom for the biggest cases' crowds.
+      -sMAXIMUM_MEMORY=4GB
       -sEXPORTED_RUNTIME_METHODS=['cwrap','setValue','getValue']
       -sUSE_FREETYPE=1
       -sUSE_SDL=2

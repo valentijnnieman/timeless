@@ -38,9 +38,16 @@ trap 'rm -rf "$STAGE"' EXIT
 cp "$BUILD/$NAME.html" "$STAGE/index.html"
 cp "$BUILD/$NAME.js"   "$STAGE/$NAME.js"
 cp "$BUILD/$NAME.wasm" "$STAGE/$NAME.wasm"
+FILES=(index.html "$NAME.js" "$NAME.wasm")
+# A build with -sAUDIO_WORKLET (the threaded one) also emits <Exe>.aw.js, the
+# script the AudioWorklet starts from; without it there's no sound.
+if [ -f "$BUILD/$NAME.aw.js" ]; then
+  cp "$BUILD/$NAME.aw.js" "$STAGE/$NAME.aw.js"
+  FILES+=("$NAME.aw.js")
+fi
 
 rm -f "$OUT"
-( cd "$STAGE" && zip -q "$OUT" index.html "$NAME.js" "$NAME.wasm" )
+( cd "$STAGE" && zip -q "$OUT" "${FILES[@]}" )
 
 echo "Done: $OUT"
 unzip -l "$OUT"

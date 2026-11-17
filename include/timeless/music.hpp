@@ -12,7 +12,7 @@ class SoundSystem;
 // The game reads the file (from disk, a packed asset, wherever) and hands
 // over its text, then plays one beat from each tick:
 //
-//   const Score music = loop_score(parse_score(text, "song.json"), TESettings::MAX_TICKS);
+//   const Score music = loop_score(parse_score(text, "song.json"), ticks);
 //   apply_instruments(sound, music);
 //   ... in tick i's instruction:
 //   play_beat(sound, music.beats[i], reverse, seconds_per_tick);

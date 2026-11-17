@@ -126,8 +126,7 @@ public:
   float heard_volume(glm::vec3 position) const;
   // Play one of the event's samples (see add_sample()). An event without
   // samples is silent. Triggering an event that is still playing restarts it:
-  // the previous sound is cut off, as when FMOD restarted its one instance of
-  // the event. With `spatial` it plays from `spatial_pos` in the world, and
+  // the previous sound is cut off. With `spatial` it plays from `spatial_pos` in the world, and
   // stays there while the camera moves.
   void trigger_event(std::string soundevent_path, bool spatial = false,
                      glm::vec3 spatial_pos = glm::vec3(0.0));

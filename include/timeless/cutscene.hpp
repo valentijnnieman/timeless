@@ -59,8 +59,7 @@ struct AnimTrigger {
 };
 
 // A one-shot sound to fire when the playhead crosses time t. `event` is the
-// game's sound-event name (e.g. an FMOD event path without the "event:/"
-// prefix); playback is left to the game via CutsceneSystem::on_sound, so this
+// game's sound-event name; playback is left to the game via CutsceneSystem::on_sound, so this
 // stays audio-backend-agnostic. In a looping cutscene it re-fires each pass.
 struct SoundCue {
   float t = 0.0f;

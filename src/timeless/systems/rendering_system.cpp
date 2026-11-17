@@ -122,7 +122,7 @@ void RenderingSystem::render_shadow_pass(ComponentManager &cm,
       }
     }
 
-    if (!mdl || !xfm || mdl->hidden) continue;
+    if (!mdl || !xfm || mdl->hidden || xfm->hidden) continue;
 
     // Upload bone matrices once per entity to the depth shader.
     bool hasSkinning = upload_bone_matrices(entity, cm, shadowDepthShader);
@@ -411,7 +411,7 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
                                          int tick) {
   int dayTick = (tick >= 16) ? tick - 16 : 0;
   float angle = glm::mix(-glm::half_pi<float>(), glm::half_pi<float>(),
-                         (float)dayTick / (TESettings::MAX_TICKS / 2.0));
+                         (float)dayTick / (dayTicks / 2.0));
   float day = daylight(tick);
   float ambient = ambientStrength;
   if (ambient < 0.0f) {
@@ -660,7 +660,7 @@ void RenderingSystem::render(ComponentManager &cm, int x, int y, float zoom,
       }
 
       auto model = cm.get_component<Model>(entity);
-      if (model != nullptr) {
+      if (model != nullptr && !transform->hidden) {
         BoundingSphere sphere = transform->get_bounding_sphere();
         if (is_in_frustum(frustum, sphere)) {
           set_shader_transform_uniforms(shader, transform, view, projection,

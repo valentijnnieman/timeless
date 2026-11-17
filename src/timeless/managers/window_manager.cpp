@@ -1,4 +1,5 @@
 #include "timeless/managers/window_manager.hpp"
+#include "timeless/core.hpp" // TE::design_size(), render_size()
 #include <SDL.h>
 
 // Opaque platform handle (declared in the header). Holds the SDL window and
@@ -62,8 +63,9 @@ double TE::now_seconds() {
 }
 
 WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
-                             std::shared_ptr<MouseInputSystem> mis)
-    : cm(cm), mis(mis) {
+                             std::shared_ptr<MouseInputSystem> mis,
+                             const TE::EngineConfig &config)
+    : cm(cm), mis(mis), fullscreen(config.fullscreen) {
   platform = std::make_unique<PlatformWindow>();
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
@@ -83,21 +85,21 @@ WindowManager::WindowManager(std::shared_ptr<ComponentManager> cm,
   // transparently over the HTML page (emscripten maps this to WebGL alpha:true).
   SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
-  int width = TESettings::WINDOW_X;
-  int height = TESettings::WINDOW_Y;
+  int width = config.window_width;
+  int height = config.window_height;
 
-  if (TESettings::NATIVE_RESOLUTION) {
+  if (config.native_resolution) {
     SDL_DisplayMode mode;
     if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
       width = mode.w;
       height = mode.h;
-      TESettings::WINDOW_X = width;
-      TESettings::WINDOW_Y = height;
     }
   }
+  window_width = width;
+  window_height = height;
 
   Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-  if (TESettings::FULLSCREEN)
+  if (fullscreen)
     flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
   platform->window =
@@ -170,6 +172,8 @@ void WindowManager::cleanup() {
 }
 
 void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, int height, bool add_screen_shader, int extra_color_attachments) {
+  if (width < 0) width = TE::render_size().x;
+  if (height < 0) height = TE::render_size().y;
   unsigned int fbo, tex, rbo;
   glGenFramebuffers(1, &fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -233,10 +237,9 @@ void WindowManager::add_framebuffer(std::shared_ptr<Shader> shader, int width, i
 void WindowManager::select_framebuffer(size_t idx, bool clear) {
   if (idx < framebuffers.size()) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[idx]);
-    glViewport(0, 0, TESettings::RENDER_X, TESettings::RENDER_Y);
+    glViewport(0, 0, TE::render_size().x, TE::render_size().y);
     if (clear) {
-      glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-                   TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
+      glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       // glClear only reaches the enabled draw buffers, and data attachments
       // want zero rather than the screen colour anyway. glClearBufferfv(i)
@@ -292,12 +295,11 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   // Premultiplied "over": the offscreen FBO holds premultiplied colour, so this
   // lets the page background show through transparent regions of the composite.
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-  int vp_w = to_screen ? TESettings::WINDOW_X : TESettings::RENDER_X;
-  int vp_h = to_screen ? TESettings::WINDOW_Y : TESettings::RENDER_Y;
+  int vp_w = to_screen ? window_width : TE::render_size().x;
+  int vp_h = to_screen ? window_height : TE::render_size().y;
   glViewport(0, 0, vp_w, vp_h);
   if (clear) {
-    glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-                 TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
+    glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   }
   if (shader == nullptr) shader = screen_shaders[idx];
@@ -314,14 +316,14 @@ void WindowManager::render_framebuffer_as_quad(size_t idx, bool clear, int tick,
   }
   glActiveTexture(GL_TEXTURE0);
 
-  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::RENDER_X);
-  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::RENDER_Y);
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TE::render_size().x);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TE::render_size().y);
   // Normalise raw mouse position by actual window size so shader effects
   // (e.g. search highlight) track the cursor correctly regardless of resolution.
   glUniform2fv(
       glGetUniformLocation(shader->ID, "mousePosition"), 1,
-      glm::value_ptr(glm::vec2(shader_mouse_position.x / TESettings::WINDOW_X,
-                               shader_mouse_position.y / TESettings::WINDOW_Y)));
+      glm::value_ptr(glm::vec2(shader_mouse_position.x / window_width,
+                               shader_mouse_position.y / window_height)));
 
   set_shader_time(shader);
 
@@ -353,8 +355,8 @@ void WindowManager::render_background_quad(std::shared_ptr<Shader> shader) {
   shader->use();
   glBindVertexArray(ScreenVAO);
 
-  glUniform1f(glGetUniformLocation(shader->ID, "width"), TESettings::RENDER_X);
-  glUniform1f(glGetUniformLocation(shader->ID, "height"), TESettings::RENDER_Y);
+  glUniform1f(glGetUniformLocation(shader->ID, "width"), TE::render_size().x);
+  glUniform1f(glGetUniformLocation(shader->ID, "height"), TE::render_size().y);
   set_shader_time(shader);
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -375,7 +377,7 @@ void WindowManager::set_shader_time(std::shared_ptr<Shader> shader) {
     GLint resLoc = glGetUniformLocation(screen_shaders[0]->ID, "resolution");
     if (resLoc != -1)
       glUniform2fv(resLoc, 1,
-                   glm::value_ptr(glm::vec2(TESettings::SCREEN_X, TESettings::SCREEN_Y)));
+                   glm::value_ptr(glm::vec2(TE::design_size().x, TE::design_size().y)));
   }
 }
 
@@ -384,7 +386,8 @@ void WindowManager::set_shader_mouse_position(glm::vec2 mouse_pos) {
 }
 
 void WindowManager::handle_resize(int width, int height) {
-  TESettings::rescale_window(width, height);
+  window_width = width;
+  window_height = height;
   glm::vec2 new_size(width, height);
   if (es != nullptr) {
     es->create_event<glm::vec2>(*cm, "ResizeWindow", &new_size);
@@ -413,22 +416,22 @@ void WindowManager::mouse_scroll_handler(MouseEvent *event) {
 // Cursor-move mapping: window pixels -> design-resolution world coords,
 // scaling by VIEWPORT/WINDOW then centering on the viewport.
 static glm::vec2 map_move_to_world(double xpos, double ypos) {
-  double scale_x = double(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
-  double scale_y = double(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
-  double fb_x = xpos * scale_x - TESettings::VIEWPORT_X * 0.5;
-  double fb_y = ypos * scale_y - TESettings::VIEWPORT_Y * 0.5;
-  double world_x = (fb_x / TESettings::VIEWPORT_X) * TESettings::VIEWPORT_X;
-  double world_y = (fb_y / TESettings::VIEWPORT_Y) * TESettings::VIEWPORT_Y;
+  double scale_x = double(TE::design_size().x) / TE::window_size().x;
+  double scale_y = double(TE::design_size().y) / TE::window_size().y;
+  double fb_x = xpos * scale_x - TE::design_size().x * 0.5;
+  double fb_y = ypos * scale_y - TE::design_size().y * 0.5;
+  double world_x = (fb_x / TE::design_size().x) * TE::design_size().x;
+  double world_y = (fb_y / TE::design_size().y) * TE::design_size().y;
   return glm::vec2(world_x, world_y);
 }
 
 // Button mapping: window pixels -> design-resolution world coords, centering
 // on the window then scaling to the viewport.
 static glm::vec2 map_click_to_world(double xpos, double ypos) {
-  double cx = xpos - TESettings::WINDOW_X * 0.5;
-  double cy = ypos - TESettings::WINDOW_Y * 0.5;
-  double world_x = (cx / TESettings::WINDOW_X) * TESettings::VIEWPORT_X;
-  double world_y = (cy / TESettings::WINDOW_Y) * TESettings::VIEWPORT_Y;
+  double cx = xpos - TE::window_size().x * 0.5;
+  double cy = ypos - TE::window_size().y * 0.5;
+  double world_x = (cx / TE::window_size().x) * TE::design_size().x;
+  double world_y = (cy / TE::window_size().y) * TE::design_size().y;
   return glm::vec2(world_x, world_y);
 }
 
@@ -501,8 +504,8 @@ void WindowManager::poll_events() {
       case SDL_FINGERDOWN:
       case SDL_FINGERMOTION: {
         long long id = (long long)e.tfinger.fingerId;
-        glm::vec2 pos(e.tfinger.x * TESettings::WINDOW_X,
-                      e.tfinger.y * TESettings::WINDOW_Y);
+        glm::vec2 pos(e.tfinger.x * window_width,
+                      e.tfinger.y * window_height);
         if (e.type == SDL_FINGERDOWN) {
           // A first finger starts a touch; a second one makes it a gesture.
           touch_still = active_touches.empty();
@@ -605,7 +608,7 @@ void WindowManager::set_cursor_visible(bool visible) {
 }
 
 void WindowManager::set_fullscreen(bool enabled) {
-  TESettings::FULLSCREEN = enabled;
+  fullscreen = enabled;
   // The resulting SDL_WINDOWEVENT_SIZE_CHANGED is picked up in poll_events(),
   // which rebuilds the framebuffers and rescales the viewport.
   SDL_SetWindowFullscreen(platform->window,
@@ -615,6 +618,9 @@ void WindowManager::set_fullscreen(bool enabled) {
 void WindowManager::set_window_size(int width, int height) {
   // As with fullscreen, the size change comes back as a window event that
   // poll_events() turns into a resize.
+  // Known straight away, before the event comes back.
+  window_width = width;
+  window_height = height;
   SDL_SetWindowSize(platform->window, width, height);
   SDL_SetWindowPosition(platform->window, SDL_WINDOWPOS_CENTERED,
                         SDL_WINDOWPOS_CENTERED);

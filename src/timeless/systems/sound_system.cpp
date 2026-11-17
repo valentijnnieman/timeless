@@ -1,6 +1,6 @@
 #include "timeless/systems/sound_system.hpp"
 #include "timeless/components/camera.hpp"
-#include "timeless/settings.hpp"
+#include "timeless/core.hpp"
 #include <tokkel/tokkel.hpp>
 #include <tokkel/bass_synth.hpp>
 #include <tokkel/bell_synth.hpp>
@@ -78,8 +78,8 @@ void SoundSystem::update(ComponentManager &cm) {
     // grows along its row of the matrix, and 1 over that row's length is how
     // far the view reaches along it. Whatever way the projection is mirrored.
     const glm::mat4 view_projection =
-        main_camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y,
-                                           TESettings::ZOOM) *
+        main_camera->get_projection_matrix(TE::design_size().x, TE::design_size().y,
+                                           TE::zoom()) *
         main_camera->get_view_matrix();
     const glm::vec3 across(view_projection[0][0], view_projection[1][0], view_projection[2][0]);
     const glm::vec3 up(view_projection[0][1], view_projection[1][1], view_projection[2][1]);

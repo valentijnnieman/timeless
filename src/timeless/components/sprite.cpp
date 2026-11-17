@@ -1,5 +1,5 @@
 #include "timeless/components/sprite.hpp"
-#include "timeless/settings.hpp"
+#include "timeless/core.hpp"
 
 Sprite::Sprite(int index, glm::vec4 color, glm::vec2 spriteSheetSize,
                glm::vec2 spriteSize, bool isStatic,
@@ -123,8 +123,8 @@ void Sprite::render_sliced_to_texture() {
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
   glViewport(0, 0, spriteSize.x, spriteSize.y);
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-  // glClearColor(TESettings::SCREEN_COLOR.r, TESettings::SCREEN_COLOR.g,
-  //               TESettings::SCREEN_COLOR.b, TESettings::SCREEN_COLOR.a);
+  // glm::vec4 clear = TE::clear_color();
+  // glClearColor(clear.r, clear.g, clear.b, clear.a);
   glClear(GL_COLOR_BUFFER_BIT);
 
   // Render your sprite here using slice_shader

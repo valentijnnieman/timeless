@@ -14,7 +14,7 @@ SkeletalAnimation::SkeletalAnimation(std::shared_ptr<Model> model) : model(model
 
 void SkeletalAnimation::setAnimation(const std::string &name, bool loop,
                                      bool restWhenFinished) {
-  if (animations.find(name) != animations.end() && currentAnimation != name) {
+  if (clip(name) != nullptr && currentAnimation != name) {
     currentAnimation = name;
     currentTime = 0.0f;
     playing = true;
@@ -31,11 +31,11 @@ void SkeletalAnimation::stopAnimation() {
 }
 
 void SkeletalAnimation::update(float dt) {
-  if (!playing || !model ||
-      animations.find(currentAnimation) == animations.end())
+  const SkeletalAnimationData *playing_clip = clip(currentAnimation);
+  if (!playing || !model || playing_clip == nullptr)
     return;
 
-  const SkeletalAnimationData &anim = animations.at(currentAnimation);
+  const SkeletalAnimationData &anim = *playing_clip;
   currentTime += dt;
   if (loop && anim.duration > 0.0f) {
     currentTime = fmod(currentTime, anim.duration);
@@ -67,8 +67,23 @@ void SkeletalAnimation::ensure_pose() {
 }
 
 void SkeletalAnimation::loadAnimations() {
-  const aiScene *scene = model->scene;
-  if (!scene) return;
+  // Converted once per model, on the first SkeletalAnimation made for it;
+  // every later one shares that set.
+  if (!model->animation_set)
+    model->animation_set = load_animation_set(model->scene);
+  animations = model->animation_set;
+}
+
+const SkeletalAnimationData *SkeletalAnimation::clip(const std::string &name) const {
+  if (!animations)
+    return nullptr;
+  auto found = animations->find(name);
+  return found == animations->end() ? nullptr : &found->second;
+}
+
+std::shared_ptr<const AnimationSet> load_animation_set(const aiScene *scene) {
+  if (!scene) return nullptr;
+  auto animations = std::make_shared<AnimationSet>();
   for (unsigned int animIdx = 0; animIdx < scene->mNumAnimations; ++animIdx) {
     aiAnimation *aiAnim = scene->mAnimations[animIdx];
     SkeletalAnimationData animData;
@@ -111,15 +126,16 @@ void SkeletalAnimation::loadAnimations() {
       }
 
       // 6. Store keyframes for this bone
-      animData.boneKeyframes[boneName] = keyframes;
+      animData.boneKeyframes[boneName] = std::move(keyframes);
     }
 
     // 7. Store the animation by name
     std::string animName = aiAnim->mName.length > 0
                                ? aiAnim->mName.C_Str()
                                : "Anim" + std::to_string(animIdx);
-    animations[animName] = animData;
+    (*animations)[animName] = std::move(animData);
   }
+  return animations;
 }
 
 void SkeletalAnimation::computeBonePose(int boneIndex,
@@ -146,10 +162,9 @@ glm::mat4 SkeletalAnimation::getLocalTransform(const std::string &boneName,
   // Fall back to the bind-pose local transform (not identity) so bones the
   // current clip doesn't animate keep their rest offset instead of collapsing.
   glm::mat4 local = restLocal;
-  auto animIt = animations.find(currentAnimation);
-  if (animIt != animations.end()) {
-    auto boneIt = animIt->second.boneKeyframes.find(boneName);
-    if (boneIt != animIt->second.boneKeyframes.end() &&
+  if (const SkeletalAnimationData *playing_clip = clip(currentAnimation)) {
+    auto boneIt = playing_clip->boneKeyframes.find(boneName);
+    if (boneIt != playing_clip->boneKeyframes.end() &&
         !boneIt->second.times.empty())
       local = interpolate(boneIt->second, currentTime);
   }

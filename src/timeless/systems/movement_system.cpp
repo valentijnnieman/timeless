@@ -1,5 +1,6 @@
 #include "timeless/systems/movement_system.hpp"
 #include "timeless/managers/window_manager.hpp"
+#include "timeless/core.hpp" // TE::zoom(), design_size(), window_size()
 #include <algorithm>
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
@@ -29,12 +30,12 @@ float wrap_degrees(float a) {
 // the viewport as in TE::clicked_on_perspective.
 bool ground_under(const std::shared_ptr<Camera> &cam, glm::vec2 window_pos,
                   float zoom, glm::vec3 &out) {
-    glm::vec4 viewport(0.0f, 0.0f, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+    glm::vec4 viewport(0.0f, 0.0f, TE::design_size().x, TE::design_size().y);
     glm::mat4 view = cam->get_view_matrix();
-    glm::mat4 proj = cam->get_projection_matrix(TESettings::VIEWPORT_X,
-                                                TESettings::VIEWPORT_Y, zoom);
-    float x = window_pos.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
-    float y = viewport.w - window_pos.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
+    glm::mat4 proj = cam->get_projection_matrix(TE::design_size().x,
+                                                TE::design_size().y, zoom);
+    float x = window_pos.x * float(TE::design_size().x) / TE::window_size().x;
+    float y = viewport.w - window_pos.y * float(TE::design_size().y) / TE::window_size().y;
     glm::vec3 near_point = glm::unProject(glm::vec3(x, y, 0.0f), view, proj, viewport);
     glm::vec3 far_point  = glm::unProject(glm::vec3(x, y, 1.0f), view, proj, viewport);
     glm::vec3 dir = far_point - near_point;
@@ -51,10 +52,10 @@ void shift_camera(const std::shared_ptr<Camera> &cam, glm::vec3 by) {
 }
 
 MovementSystem::MovementSystem()
-    : x_bounds(glm::vec2(-TESettings::SCREEN_X, TESettings::SCREEN_X)),
-      y_bounds(glm::vec2(-TESettings::SCREEN_Y, TESettings::SCREEN_Y)),
-      walk_speed(1.0f), zoom_target(TESettings::ZOOM),
-      last_applied_zoom(TESettings::ZOOM) {
+    : x_bounds(glm::vec2(-TE::design_size().x, TE::design_size().x)),
+      y_bounds(glm::vec2(-TE::design_size().y, TE::design_size().y)),
+      walk_speed(1.0f), zoom_target(TE::zoom()),
+      last_applied_zoom(TE::zoom()) {
 #if TARGET_OS_IOS
     edge_margin = 0.0f;
 #endif
@@ -165,7 +166,7 @@ void MovementSystem::zoom_to(float zoom) {
 
 void MovementSystem::set_zoom(float zoom) {
     zoom_target       = std::clamp(zoom, zoom_limits[0], zoom_limits[1]);
-    TESettings::ZOOM  = zoom_target;
+    TE::set_zoom(zoom_target);
     last_applied_zoom = zoom_target;
 }
 
@@ -194,9 +195,9 @@ void MovementSystem::update_drag(ComponentManager &cm, WindowManager &wm) {
             // Zoom by how much the fingers spread (apart = in), then move the
             // camera so the ground that was between the fingers still is.
             glm::vec3 before, after;
-            bool found = ground_under(cam, pinch_centroid, TESettings::ZOOM, before);
-            set_zoom(TESettings::ZOOM * pinch_spread / spread);
-            if (found && ground_under(cam, centroid, TESettings::ZOOM, after))
+            bool found = ground_under(cam, pinch_centroid, TE::zoom(), before);
+            set_zoom(TE::zoom() * pinch_spread / spread);
+            if (found && ground_under(cam, centroid, TE::zoom(), after))
                 shift_camera(cam, before - after);
         }
         pinching       = true;
@@ -219,8 +220,8 @@ void MovementSystem::update_drag(ComponentManager &cm, WindowManager &wm) {
         drag_moved = true;
     }
     glm::vec3 before, after;
-    if (cam != nullptr && ground_under(cam, drag_last, TESettings::ZOOM, before) &&
-        ground_under(cam, cursor, TESettings::ZOOM, after))
+    if (cam != nullptr && ground_under(cam, drag_last, TE::zoom(), before) &&
+        ground_under(cam, cursor, TE::zoom(), after))
         shift_camera(cam, before - after);
     drag_last = cursor;
 }
@@ -310,8 +311,8 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
     // of switching on at full speed the moment it crosses the threshold.
     {
         glm::vec2 cursor = wm.get_cursor_position();
-        float win_w = static_cast<float>(TESettings::WINDOW_X);
-        float win_h = static_cast<float>(TESettings::WINDOW_Y);
+        float win_w = static_cast<float>(TE::window_size().x);
+        float win_h = static_cast<float>(TE::window_size().y);
         bool inside = cursor.x >= 0.0f && cursor.x <= win_w &&
                       cursor.y >= 0.0f && cursor.y <= win_h;
         // Not while dragging, which may well take the cursor near an edge.
@@ -336,7 +337,7 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
     if (main_camera != nullptr) {
         // Scale by zoom so the world slides past at a constant *screen* rate:
         // slow when zoomed in, fast when zoomed out.
-        float zoom_scale = std::pow(std::max(TESettings::ZOOM, 0.0001f),
+        float zoom_scale = std::pow(std::max(TE::zoom(), 0.0001f),
                                     zoom_pan_exponent);
         glm::vec2 target_velocity = dir * camera_speed * zoom_scale;
 
@@ -366,14 +367,16 @@ void MovementSystem::update(ComponentManager &cm, WindowManager &wm,
     }
 
     // -- zoom --------------------------------------------------------------
-    // Anything that writes TESettings::ZOOM directly (cutscenes, focus helpers)
-    // wins: adopt it as the new target rather than fighting it.
-    if (std::abs(TESettings::ZOOM - last_applied_zoom) > 1e-4f)
-        zoom_target = TESettings::ZOOM;
+    // Anything that sets the zoom directly (TE::set_zoom(): cutscenes, focus
+    // helpers) wins: adopt it as the new target rather than fighting it.
+    float zoom = TE::zoom();
+    if (std::abs(zoom - last_applied_zoom) > 1e-4f)
+        zoom_target = zoom;
 
     float zt = 1.0f - std::exp(-zoom_smoothing * dt);
-    TESettings::ZOOM = glm::mix(TESettings::ZOOM, zoom_target, zt);
-    if (std::abs(TESettings::ZOOM - zoom_target) < 1e-4f)
-        TESettings::ZOOM = zoom_target;
-    last_applied_zoom = TESettings::ZOOM;
+    zoom = glm::mix(zoom, zoom_target, zt);
+    if (std::abs(zoom - zoom_target) < 1e-4f)
+        zoom = zoom_target;
+    TE::set_zoom(zoom);
+    last_applied_zoom = zoom;
 }

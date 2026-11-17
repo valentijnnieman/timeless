@@ -3,6 +3,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
+#include "timeless/components/animation_data.hpp"
 #include "timeless/components/component.hpp"
 #include "timeless/components/mesh.hpp"
 #include "timeless/components/texture.hpp"
@@ -25,6 +26,11 @@ class Model : public Component {
 public:
   Assimp::Importer import;
   const aiScene *scene;  
+
+  // The scene's clips, converted once and shared by every SkeletalAnimation
+  // on this model (see SkeletalAnimation::loadAnimations()). Empty until the
+  // first one is made.
+  std::shared_ptr<const AnimationSet> animation_set;
 
   bool hidden = false;
 

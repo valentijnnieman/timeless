@@ -41,6 +41,7 @@ namespace
 
 	// time: how long a tick takes, and how the tiles ripple
 	const float SECONDS_PER_TICK = 0.25f;
+	const int TICKS = 200; // how many ticks time runs before it turns around
 	const float WAVE_HEIGHT = 12.0f;
 	const int WAVE_LENGTH = 8; // in tiles
 
@@ -55,6 +56,11 @@ namespace
 class Game
 {
 private:
+	// The engine: it opens the window and creates the OpenGL context. Declared
+	// first, so it's made before everything below and destroyed after it: the
+	// resources let go of their OpenGL objects while the context still exists.
+	std::unique_ptr<TE::Engine> engine;
+
 	// resources we reuse: shaders, fonts, textures, etc.
 	std::shared_ptr<Shader> screen_shader;
 	std::shared_ptr<Shader> rewind_shader;
@@ -113,7 +119,7 @@ private:
 				// take it back to tick i. Here that just moves the tile along the
 				// wave, by queueing the positions in between on its Transform.
 				std::vector<Instruction> instructions;
-				for (int i = 0; i < TESettings::MAX_TICKS; i++)
+				for (int i = 0; i < TICKS; i++)
 				{
 					instructions.push_back(Instruction([x, y, i, rest](Entity entity, bool reverse, float speed)
 						{
@@ -141,7 +147,7 @@ private:
 	{
 		// The ui camera looks at the middle of the screen, so (0, 0) is its
 		// centre and y runs down.
-		float top = -TESettings::VIEWPORT_Y * 0.5f;
+		float top = -TE::design_size().y * 0.5f;
 
 		// the current tick of the ai system, which updates the text itself
 		Entity tick_text = create_entity();
@@ -200,9 +206,10 @@ private:
 public:
 	Game()
 	{
-		// call init() to start up the engine: it opens the window and creates
-		// the OpenGL context, so it comes before anything that needs those.
-		TE::init();
+		// Start up the engine first: everything below needs its window and
+		// OpenGL context. A TE::EngineConfig can say how the window opens
+		// (its size, native resolution, fullscreen); the defaults are 1920x1080.
+		engine = std::make_unique<TE::Engine>();
 
 		// The engine's shaders are copied into Assets/shaders by the build.
 		screen_shader = std::shared_ptr<Shader>(new Shader("Assets/shaders/webgl_screen.vs", "Assets/shaders/webgl_screen.fs"));
@@ -263,20 +270,6 @@ public:
 		play(false);
 	}
 
-	~Game()
-	{
-		// let go of our own resources while there still is an OpenGL context,
-		// then shut down the engine.
-		screen_shader.reset();
-		rewind_shader.reset();
-		sprite_shader.reset();
-		text_shader.reset();
-		font.reset();
-		default_quad.reset();
-		tiles_texture.reset();
-		TE::cleanup();
-	}
-
 	// one frame
 	void loop()
 	{
@@ -299,14 +292,14 @@ public:
 				ai->update(cm);
 
 				// at either end of time, turn around
-				if (!rewinding && ai->main_index >= TESettings::MAX_TICKS)
+				if (!rewinding && ai->main_index >= TICKS)
 					play(true);
 				else if (rewinding && ai->main_index <= 0)
 					play(false);
 
 				// render the tiles into the framebuffer...
 				wm.select_framebuffer(0, true);
-				TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM, ai->main_index, delta_time);
+				TE::get_system<RenderingSystem>("TileRenderingSystem")->render(cm, TE::design_size().x, TE::design_size().y, TE::zoom(), ai->main_index, delta_time);
 				// ...then the framebuffer to the screen, through its screen shader. The
 				// screen has to be selected first: a framebuffer is drawn as a quad
 				// into whatever is bound, so that they can be chained.
@@ -314,7 +307,7 @@ public:
 				wm.render_framebuffer_as_quad(0, true, ai->main_index, true);
 
 				// render the ui on top, unaffected by the screen shader or the zoom
-				TE::get_system<RenderingSystem>("UITextRenderingSystem")->render(cm, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+				TE::get_system<RenderingSystem>("UITextRenderingSystem")->render(cm, TE::design_size().x, TE::design_size().y);
 
 				wm.swap_buffers();
 				wm.poll_events();
@@ -334,7 +327,7 @@ int main()
 	Game game;
 #ifdef __EMSCRIPTEN__
 	// the browser calls us once per frame
-	emscripten_set_canvas_element_size("canvas", TESettings::SCREEN_X, TESettings::SCREEN_Y);
+	emscripten_set_canvas_element_size("canvas", TE::design_size().x, TE::design_size().y);
 	emscripten_set_main_loop_arg(browser_frame, &game, 0, 1);
 #else
 	auto wm = TE::get_window_manager();
