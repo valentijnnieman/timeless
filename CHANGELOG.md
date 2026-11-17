@@ -7,6 +7,17 @@ the minor version (0.3 → 0.4), anything else the patch version.
 
 Each version is tagged in git (`v0.4.0`) on `main` once it's merged.
 
+## [0.4.1] - 2026-11-17
+
+### Fixed
+
+- **Typing text runs at the same speed at any frame rate.** A `Text` with a
+  `type_speed` added at most one character per rendered frame, so a small
+  `type_speed` typed at the frame rate: faster on high-refresh displays and in
+  WASM than in a native build with a frame cap. Characters now appear on a
+  clock (several in one frame on a slow display), and the typing callback runs
+  once per frame that adds characters instead of once per character.
+
 ## [0.4.0] - 2026-11-17
 
 ### Breaking
