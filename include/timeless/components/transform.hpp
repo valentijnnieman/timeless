@@ -9,7 +9,6 @@
 #include <cmath>
 #include <queue>
 #include <iostream>
-#include "timeless/settings.hpp"
 #include "timeless/components/component.hpp"
 #include "timeless/components/camera.hpp"
 
@@ -37,6 +36,11 @@ public:
     glm::mat4 light_view;
     glm::mat4 light_projection;
     glm::mat4 light_space;
+
+    // Hides this entity's model, whatever Model::hidden says. Model::hidden
+    // hides a model for every entity that shares it (a crowd on one model);
+    // this is for one entity alone.
+    bool hidden = false;
 
     glm::vec3 position;
     glm::vec3 start_position;

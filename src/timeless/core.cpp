@@ -3,23 +3,30 @@
 namespace TE
 {
 
-void init() {
+Engine::Engine(const EngineConfig &config) : config(config) {
+
+    if(TE::engine != nullptr) {
+      std::cerr << "An instance of the Timeless Engine already existed!" << std::endl;
+      std::abort();
+    }
+    TE::engine = this;
+
     cm = std::make_shared<ComponentManager>();
     tm = std::make_shared<TimerManager>();
     mis = std::make_shared<MouseInputSystem>();
-    wm = std::make_shared<WindowManager>(cm, mis);
+    wm = std::make_shared<WindowManager>(cm, mis, config);
 
-    grid = std::make_shared<Grid>(Grid());
-}
+    grid = std::make_shared<Grid>();
+  }
 
-void cleanup() {
-    std::cout << "TE Cleanup called" << std::endl;
-
+  Engine::~Engine() {
     for (const auto& [key, system] : systems)
     {
         if (system)
             system->purge();
     }
+
+    systems.clear();
 
     // mis.reset();
 
@@ -31,16 +38,39 @@ void cleanup() {
     wm->cleanup();
     wm.reset();
 
-    std::cout << "TE Cleanup finished" << std::endl;
+    TE::engine = nullptr;
+
+  }
+
+// The running engine, for the accessors below: they only make sense while
+// there is one, so without one they abort rather than read through null.
+static Engine &running() {
+  if (engine == nullptr) {
+    std::cerr << "TE: there's no Engine (yet)" << std::endl;
+    std::abort();
+  }
+  return *engine;
 }
 
+const EngineConfig &config() { return running().config; }
+
+glm::ivec2 window_size() {
+  return {running().wm->window_width, running().wm->window_height};
+}
+
+float zoom() { return running().zoom; }
+void set_zoom(float zoom) { running().zoom = zoom; }
+
+glm::vec4 clear_color() { return running().wm->clear_color; }
+void set_clear_color(const glm::vec4 &color) { running().wm->clear_color = color; }
+
 void remove_system(const std::string& key) {
-  systems[key]->purge();
-  systems.erase(key);
+  engine->systems[key]->purge();
+  engine->systems.erase(key);
 }
 
 void print_systems() {
-  for (const auto& [key, system] : systems)
+  for (const auto& [key, system] : engine->systems)
   {
       std::cout << "System Key: " << key << std::endl;
   }
@@ -48,14 +78,14 @@ void print_systems() {
 
 void remove_entity(Entity entity, bool destroy) {
     if (!active_entities.contains(entity)) return;
-    mis->remove_entity(entity);
-    mis->remove_move_entity(entity);
-    for (const auto& [key, system] : systems)
+    engine->mis->remove_entity(entity);
+    engine->mis->remove_move_entity(entity);
+    for (const auto& [key, system] : engine->systems)
     {
         if (system)
             system->remove_entity(entity);
     }
-    cm->remove_entity(entity, destroy);
+    engine->cm->remove_entity(entity, destroy);
 }
 
 bool clicked_on(MouseEvent* event, Entity entity, float zoom) {
@@ -238,17 +268,17 @@ if(transform != nullptr) {
     auto camera = transform->camera;
     if(camera != nullptr) {
       glm::mat4 view = camera->get_view_matrix();
-      glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
+      glm::mat4 proj = camera->get_projection_matrix(TE::design_size().x, TE::design_size().y, TE::zoom());
       // glm::mat4 proj = camera->get_projection_matrix();
 
       // glm::vec4 viewport = camera->get_viewport(); // (x, y, width, height)
-      glm::vec4 viewport = glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+      glm::vec4 viewport = glm::vec4(0, 0, TE::design_size().x, TE::design_size().y);
 
       // Scale raw window pixels to design-resolution (viewport) pixels before
       // unprojecting — raw_position is in OS window coords which may differ
-      // from the design resolution when WINDOW_X/Y != VIEWPORT_X/Y.
-      float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
-      float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
+      // from the design resolution when WINDOW_X/Y != TE::design_size().
+      float mouse_x = event->raw_position.x * float(TE::design_size().x) / TE::window_size().x;
+      float mouse_y = event->raw_position.y * float(TE::design_size().y) / TE::window_size().y;
       float win_x = mouse_x;
       float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
       glm::vec3 cam_pos = glm::vec3(glm::inverse(view)[3]);
@@ -312,14 +342,14 @@ bool hovered_over_perspective(MouseMoveEvent *event, Entity entity,
     auto camera = transform->camera;
     if (camera != nullptr) {
       glm::mat4 view = camera->get_view_matrix();
-      glm::mat4 proj = camera->get_projection_matrix(TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y, TESettings::ZOOM);
+      glm::mat4 proj = camera->get_projection_matrix(TE::design_size().x, TE::design_size().y, TE::zoom());
       // glm::mat4 proj = camera->get_projection_matrix();
       glm::vec4 viewport =
-          glm::vec4(0, 0, TESettings::VIEWPORT_X, TESettings::VIEWPORT_Y);
+          glm::vec4(0, 0, TE::design_size().x, TE::design_size().y);
 
       // Scale raw window pixels to design-resolution (viewport) pixels.
-      float mouse_x = event->raw_position.x * float(TESettings::VIEWPORT_X) / TESettings::WINDOW_X;
-      float mouse_y = event->raw_position.y * float(TESettings::VIEWPORT_Y) / TESettings::WINDOW_Y;
+      float mouse_x = event->raw_position.x * float(TE::design_size().x) / TE::window_size().x;
+      float mouse_y = event->raw_position.y * float(TE::design_size().y) / TE::window_size().y;
       float win_x = mouse_x;
       float win_y = viewport.w - mouse_y; // OpenGL's y is from bottom
 

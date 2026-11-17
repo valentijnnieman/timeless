@@ -19,6 +19,7 @@ public:
         : eventType(et)
     {
     }
+    virtual ~Event() = default;
 };
 
 class MouseEvent : public Event

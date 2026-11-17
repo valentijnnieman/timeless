@@ -92,6 +92,8 @@ public:
   // (the default) it's always day, as before.
   int sunriseTick = -1;
   int sunsetTick = -1;
+  // The day's length in ticks: the sun crosses the sky over it.
+  int dayTicks = 200;
   int twilightTicks = 12;
   float nightAmbient = 0.05f;
   // 0 (night) .. 1 (day) at this tick.

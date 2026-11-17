@@ -1,4 +1,5 @@
 #pragma once
+#include "timeless/components/animation_data.hpp" // BoneKeyframes, SkeletalAnimationData, AnimationSet
 #include "timeless/components/component.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -8,21 +9,6 @@
 #include <vector>
 
 class Model;
-
-// Keyframe data for a single bone
-struct BoneKeyframes {
-  std::vector<float> times;
-  std::vector<glm::vec3> positions;
-  std::vector<glm::quat> rotations;
-  std::vector<glm::vec3> scales;
-};
-
-// Animation data for all bones
-struct SkeletalAnimationData {
-  float duration = 0.0f;
-  bool loop = true;
-  std::unordered_map<std::string, BoneKeyframes> boneKeyframes;
-};
 
 class SkeletalAnimation : public Component {
 public:
@@ -37,8 +23,11 @@ public:
   // of freezing on the last frame.
   bool restWhenFinished = false;
 
-  // Animation name -> AnimationData
-  std::unordered_map<std::string, SkeletalAnimationData> animations;
+  // The model's clips (animation name -> data). Shared, read-only, by every
+  // SkeletalAnimation of the same Model (see Model::animation_set): a crowd
+  // of citizens on one model holds one copy, not one each. nullptr without a
+  // model.
+  std::shared_ptr<const AnimationSet> animations;
 
   // Extra per-bone, local-space transforms applied on top of the current clip
   // (e.g. procedural lip/jaw motion). Keyed by bone name.
@@ -75,6 +64,9 @@ public:
   void loadAnimations();
 
 private:
+  // The clip called `name`, or nullptr if there's none.
+  const SkeletalAnimationData *clip(const std::string &name) const;
+
   void computeBonePose(int boneIndex, const glm::mat4 &parentTransform);
 
   glm::mat4 getLocalTransform(const std::string &boneName,

@@ -93,7 +93,7 @@ public:
     void move_up(ComponentManager &cm);
 
     // Nudge the zoom target by a number of scroll notches (positive = zoom in).
-    // The visible TESettings::ZOOM eases toward the target in update().
+    // The visible zoom (TE::zoom()) eases toward the target in update().
     void zoom_by(float notches);
     // Ease toward an absolute zoom level.
     void zoom_to(float zoom);

@@ -3,8 +3,8 @@
 # shot. Run from the GAME's repo root (it uses ./ as the CMake source and
 # ./build/wasm as the build dir). Output: build/wasm/<exe-lowercased>.zip
 #
-# Defaults to the THREADED build (EMSCRIPTEN_PTHREADS=ON) so FMOD mixes on its
-# own worker thread and a main-thread stall doesn't drop audio. The threaded
+# Defaults to the THREADED build (EMSCRIPTEN_PTHREADS=ON) so the audio mixes in
+# an AudioWorklet, off the main thread, and a main-thread stall doesn't drop audio. The threaded
 # build needs cross-origin isolation: enable itch.io's "SharedArrayBuffer
 # support", and test locally with serve-wasm.py (NOT plain http.server).
 #

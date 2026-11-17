@@ -2,11 +2,11 @@
 #include "timeless/components/event_listener.hpp"
 #include "timeless/components/sprite.hpp"
 #include "timeless/components/transform.hpp"
-#include "timeless/settings.hpp"
+#include "timeless/core.hpp"
 #include "timeless/systems/event_system.hpp"
 
 void UIComponent::update_position() {
-  glm::vec2 resolution = glm::vec2(TESettings::SCREEN_X, TESettings::SCREEN_Y);
+  glm::vec2 resolution = glm::vec2(TE::design_size().x, TE::design_size().y);
   position.x = resolution.x * anchor.x + margin.x;
   position.y = resolution.y * anchor.y + margin.y;
 

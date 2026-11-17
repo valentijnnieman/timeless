@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "timeless/input.hpp"
+#include "timeless/engine_config.hpp"
 #include "timeless/components/transform.hpp"
 #include "timeless/systems/mouse_input_system.hpp"
 #include "timeless/systems/event_system.hpp"
@@ -74,9 +75,19 @@ public:
   // Backend window + GL context, hidden behind an opaque handle (PIMPL).
   std::unique_ptr<PlatformWindow> platform;
   bool quit_requested = false;
+  bool fullscreen = false; // set_fullscreen()'s last state
 
+  // The window's current size in screen pixels (TE::window_size()): what it
+  // opened at, then whatever it's resized to.
+  int window_width = 1920;
+  int window_height = 1080;
+  // What the screen is cleared to (TE::clear_color()).
+  glm::vec4 clear_color = glm::vec4(1.0f);
+
+  // Opens the window as `config` says.
   WindowManager(std::shared_ptr<ComponentManager> cm,
-                std::shared_ptr<MouseInputSystem> mis);
+                std::shared_ptr<MouseInputSystem> mis,
+                const TE::EngineConfig &config);
   ~WindowManager();
   void cleanup();
 
@@ -96,8 +107,9 @@ public:
   // is_key_pressed: the change from one frame to the next is the pan + pinch.
   bool get_touch_gesture(glm::vec2 &centroid, float &spread) const;
 
-  void add_framebuffer(std::shared_ptr<Shader> shader, int width = TESettings::RENDER_X, int height = TESettings::RENDER_Y, bool add_screen_shader = true, int extra_color_attachments = 0);
-  // Clearing also zeroes the extra colour attachments (not SCREEN_COLOR).
+  // A width or height of -1 is the render size (TE::render_size()).
+  void add_framebuffer(std::shared_ptr<Shader> shader, int width = -1, int height = -1, bool add_screen_shader = true, int extra_color_attachments = 0);
+  // Clearing also zeroes the extra colour attachments (not clear_color).
   void select_framebuffer(size_t idx, bool clear = true);
   // Which colour attachments of the bound framebuffer draws write to: the
   // first `count` (1 = only the main colour). Shaders that don't write an

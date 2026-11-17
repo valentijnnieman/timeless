@@ -120,7 +120,6 @@ glm::vec3 Transform::get_centered_position_from_camera() {
                 (p.y - offset.y) - camera_position.y, p.z - camera_position.z) +
       glm::vec3(0.5 * width, 0.5 * height, 0.0);
 
-  p_centered /= TESettings::VIEWPORT_SCALE;
   // Apply inverse camera rotation to get position in camera space
   // glm::vec3 camera_space = glm::inverse(glm::normalize(camera_rotation)) *
   // p_centered;

@@ -2,6 +2,9 @@ build
 wasm-build
 build-wasm
 
+# Python bytecode cache (the tools/ scripts)
+__pycache__/
+
 # CodeQL analysis files
 _codeql_detected_source_root
 

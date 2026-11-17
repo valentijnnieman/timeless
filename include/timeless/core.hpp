@@ -32,7 +32,6 @@
 
 // --- engine headers whose symbols the facade references directly ---
 #include "timeless/entity.hpp"          // Entity, active_entities
-#include "timeless/settings.hpp"        // TESettings::VIEWPORT_*, ZOOM, WINDOW_*
 #include "timeless/event.hpp"           // MouseEvent, MouseMoveEvent
 #include "timeless/timer.hpp"           // TimerManager
 #include "timeless/managers/component_manager.hpp" // ComponentManager
@@ -46,25 +45,71 @@
 #include "timeless/components/model.hpp"           // Model bounds for picking
 #include "timeless/components/skeletal_animation.hpp" // posed bounds for picking
 #include "timeless/components/mouse_input_listener.hpp" // add_component<MouseInputListener<...>>
+#include "timeless/engine_config.hpp"
 
-namespace TE
-{
-    inline std::map<std::string, std::shared_ptr<System>> systems;
+namespace TE {
 
-    inline std::shared_ptr<ComponentManager> cm;
-    inline std::shared_ptr<TimerManager> tm;
-    inline std::shared_ptr<MouseInputSystem> mis;
-    inline std::shared_ptr<WindowManager> wm;
-    inline std::shared_ptr<Grid> grid;
+    class Engine {
+    public:
+      // Starts the engine and opens its window, as `config` says.
+      explicit Engine(const EngineConfig &config = {});
+      ~Engine();
+      Engine & operator=(const Engine &) = delete;
+      Engine (const  Engine &) = delete;
 
-    void init();
+      // What it was started with; const, so it stays that way (TE::config()).
+      const EngineConfig config;
 
-    void cleanup();
+      // The world view's zoom (TE::zoom()).
+      float zoom = 1.0f;
+
+      std::map<std::string, std::shared_ptr<System>> systems;
+
+      std::shared_ptr<ComponentManager> cm;
+      std::shared_ptr<TimerManager> tm;
+      std::shared_ptr<MouseInputSystem> mis;
+      std::shared_ptr<WindowManager> wm;
+      std::shared_ptr<Grid> grid;
+    };
+
+   inline Engine* engine = nullptr; 
+
+    // --- the engine's settings (all abort without an Engine) ---
+
+    // What the engine was started with (EngineConfig), fixed from then on.
+    const EngineConfig &config();
+
+    // The design resolution (EngineConfig::design_width/height): the space
+    // all layout, cameras and picking work in, whatever the window's size.
+    inline glm::ivec2 design_size() {
+      return {config().design_width, config().design_height};
+    }
+    // EngineConfig::render_scale.
+    inline float render_scale() { return config().render_scale; }
+    // The offscreen framebuffers' size: the design size times render_scale().
+    inline glm::ivec2 render_size() {
+      return {int(config().design_width * config().render_scale + 0.5f),
+              int(config().design_height * config().render_scale + 0.5f)};
+    }
+
+    // The OS window's current size, in screen pixels: what it opened at, then
+    // whatever it's resized to (kept by the WindowManager).
+    glm::ivec2 window_size();
+
+    // The world view's zoom (1 = the design size; bigger is closer), which the
+    // world's render passes and picking use. The MovementSystem eases it
+    // toward its target every update.
+    float zoom();
+    void set_zoom(float zoom);
+
+    // The colour the screen is cleared to (kept by the WindowManager).
+    glm::vec4 clear_color();
+    void set_clear_color(const glm::vec4 &color);
 
     template <typename T>
     inline void create_system(const std::string& key, T* system)
     {
-        systems.insert_or_assign(key, std::shared_ptr<T>(system));
+        engine->systems.insert_or_assign(key, std::shared_ptr<T>(system));
     }
 
     void remove_system(const std::string& key);
@@ -79,15 +124,15 @@ namespace TE
     // each frame must therefore not mutate the map.
     template <typename T>
     inline std::shared_ptr<T> get_system(const std::string &key) {
-      auto it = systems.find(key);
-      if (it == systems.end())
+      auto it = engine->systems.find(key);
+      if (it == engine->systems.end())
         return nullptr;
       return std::dynamic_pointer_cast<T>(it->second);
     }
 
     template <typename T>
     const inline std::shared_ptr<T> get_component(Entity entity) {
-      return cm->get_component<T>(entity);
+      return engine->cm->get_component<T>(entity);
     }
 
     /** Finalizes the Grid by calculating near neighbours for every Node.
@@ -96,24 +141,24 @@ namespace TE
      */
     inline void calculate_grid()
     {
-        grid->calculate_nodes(cm->nodes);
+        engine->grid->calculate_nodes(engine->cm->nodes);
     }
 
     inline void clear_grid()
     {
-        grid->purge();
+        engine->grid->purge();
     }
 
     template <typename T>
     inline void add_component(Entity entity, T *comp)
     {
-        cm->add_component(entity, comp);
+        engine->cm->add_component(entity, comp);
     }
 
     template <typename T>
     inline void add_component(Entity entity, std::shared_ptr<T> comp)
     {
-        cm->add_component(entity, comp);
+        engine->cm->add_component(entity, comp);
     }
 
     void remove_entity(Entity entity, bool destroy = true);
@@ -124,53 +169,53 @@ namespace TE
      */
     template<> inline void add_component<MouseInputListener<MouseEvent>>(Entity entity, MouseInputListener<MouseEvent> *mouse_input)
     {
-        cm->add_component(entity, mouse_input);
-        mis->register_entity(entity);
+        engine->cm->add_component(entity, mouse_input);
+        engine->mis->register_entity(entity);
     }
     template<> inline void add_component<MouseInputListener<MouseMoveEvent>>(Entity entity, MouseInputListener<MouseMoveEvent> *mouse_input)
     {
-        cm->add_component(entity, mouse_input);
-        mis->register_move_entity(entity);
+        engine->cm->add_component(entity, mouse_input);
+        engine->mis->register_move_entity(entity);
     }
     template<> inline void add_component<Node>(Entity entity, Node *node)
     {
-        cm->add_component(entity, node);
+        engine->cm->add_component(entity, node);
         // grid->register_entity(entity);
     }
     template<> inline void add_component<Node>(Entity entity, std::shared_ptr<Node> node)
     {
-        cm->add_component(entity, node);
+        engine->cm->add_component(entity, node);
         // grid->register_entity(entity);
     }
 
     inline std::shared_ptr<ComponentManager> get_component_manager()
     {
-        return cm;
+        return engine->cm;
     }
     inline std::shared_ptr<TimerManager> get_timer_manager()
     {
-        return tm;
+        return engine->tm;
     }
     inline std::shared_ptr<Grid> get_grid()
     {
-        return grid;
+        return engine->grid;
     }
     inline std::shared_ptr<MouseInputSystem> get_mouse_input_system()
     {
-        return mis;
+        return engine->mis;
     }
     inline std::shared_ptr<WindowManager> get_window_manager()
     {
-        return wm;
+        return engine->wm;
     }
 
     inline void loop(std::function<void(WindowManager &wm, ComponentManager &cm)> loop_func)
     {
-        loop_func(*wm, *cm);
+        loop_func(*engine->wm, *engine->cm);
     }
     inline void quit()
     {
-        wm->running = false;
+        engine->wm->running = false;
     }
 
     // helper function that checks if mouse event position overlaps with
@@ -225,4 +270,4 @@ namespace TE
 
     bool hovered_over_perspective(MouseMoveEvent *event, Entity entity,
                                   float zoom = 1.0f);
-};
+    }; // namespace TE

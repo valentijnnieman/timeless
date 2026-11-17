@@ -77,10 +77,10 @@
 
     <!-- Allow the C++ to access the canvas element -->
     <script type='text/javascript'>
-        // Track every AudioContext the page creates. FMOD makes its own context
+        // Track every AudioContext the page creates. The audio engine makes its own context
         // during init; to unlock audio we must resume *that* exact context, not a
         // throwaway one. Patch the constructor here — before the Emscripten module
-        // (and thus FMOD) loads — so every instance is recorded in _audioContexts.
+        // (and thus the audio engine) loads — so every instance is recorded in _audioContexts.
         (function() {
             var Native = window.AudioContext || window.webkitAudioContext;
             if (!Native) return;
@@ -98,10 +98,10 @@
 
         var Module = {
             canvas: (function() { return document.getElementById('canvas'); })(),
-            // Marks when the wasm runtime is up (FMOD initialises just after, in
+            // Marks when the wasm runtime is up (the audio engine initialises just after, in
             // main()). The start gate uses this — not time-since-click — to decide
             // audio is unavailable, so a slow (large) download doesn't trip the
-            // fallback before FMOD has had a chance to create its context.
+            // fallback before the engine has had a chance to create its context.
             onRuntimeInitialized: function() { window._runtimeReady = Date.now(); }
         };
 
@@ -190,10 +190,13 @@
         document.addEventListener('click', resumeAllAudio);
         document.addEventListener('keydown', resumeAllAudio);
 
-        // FMOD's output AudioContext, once the module has created it.
-        function fmodContext() {
+        // The audio engine's output AudioContext, once the module has created
+        // it: the first one the page made (miniaudio, under tokkel, creates its
+        // context when SoundSystem::init() opens the device).
+        function engineContext() {
             var M = window.Module || {};
-            return M.mContext || M.context || (M.SDL2 && M.SDL2.audioContext) || null;
+            return (window._audioContexts && window._audioContexts[0]) ||
+                   M.mContext || M.context || (M.SDL2 && M.SDL2.audioContext) || null;
         }
 
         // Start gate. The game's main loop must freeze its simulation until
@@ -207,7 +210,7 @@
         //      gesture handler. Resuming from a timer/promise later does NOT work
         //      in a cross-origin iframe even after a prior gesture — that was why
         //      audio stayed silent until a second manual click.
-        // So we can't start on the first click if FMOD hasn't created its context
+        // So we can't start on the first click if the engine hasn't created its context
         // yet (a fast click beats the large wasm load). Instead we wait until the
         // context exists, THEN enable the prompt, so the click that starts the game
         // also resumes the context in-handler.
@@ -216,7 +219,7 @@
         var audioReady = false;
 
         var waitAudio = setInterval(function() {
-            var ctx = fmodContext();
+            var ctx = engineContext();
             // No context yet, but the runtime has been up a while → audio is
             // unavailable (e.g. no sound banks); allow starting without it.
             var noAudio = !ctx && window._runtimeReady &&
@@ -235,7 +238,7 @@
                 window._timelessStarted = true;
                 overlay.classList.add('hidden');
             }
-            var ctx = fmodContext();
+            var ctx = engineContext();
             // Must call resume() right here, in the gesture, for the iframe to
             // actually unlock audio. begin() either way so a no-audio build starts.
             if (ctx && ctx.resume) ctx.resume().then(begin, begin);

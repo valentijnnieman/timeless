@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Serve a timeless game's WASM build locally with the cross-origin isolation
-headers that SharedArrayBuffer (and therefore the pthreads/threaded-FMOD build)
+headers that SharedArrayBuffer (and therefore the threaded build)
 requires. Run from the GAME's repo root (it serves ./build/wasm).
 
 Plain `python3 -m http.server` does NOT send these headers, so the threaded

@@ -18,4 +18,5 @@ public:
   virtual void render(ComponentManager &cm, int x, int y, float zoom = 1.0,
                       int tick = 0) {}
   virtual void register_camera(Entity entity) {}
+  virtual ~System() = default;
 };

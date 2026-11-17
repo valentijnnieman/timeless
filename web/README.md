@@ -32,9 +32,9 @@ target linking timeless inherits it. To use your own branded shell, point
 ## Audio start-gate contract
 
 Browsers won't play audio until a user gesture *in the game's own document*
-(itch's "Run game" button is in the parent page and doesn't count), and FMOD's
-`AudioContext.resume()` must run synchronously inside that gesture. The shell
-shows a "Click to start" overlay, waits until FMOD's context exists, then on the
+(itch's "Run game" button is in the parent page and doesn't count), and the
+audio's `AudioContext.resume()` must run synchronously inside that gesture. The shell
+shows a "Click to start" overlay, waits until the audio's context exists, then on the
 click resumes it in-handler and sets `window._timelessStarted = true`.
 
 **Your game's main loop must freeze the simulation until that flag is set**, so
@@ -54,8 +54,8 @@ if (run_sim) { /* update scene / cutscene / animation / sound */ }
 
 ## Threaded build & itch.io
 
-The default build is threaded (`-DEMSCRIPTEN_PTHREADS=ON`) so FMOD mixes on a
-worker thread and main-thread stalls don't drop audio. SharedArrayBuffer
+The default build is threaded (`-DEMSCRIPTEN_PTHREADS=ON`) so the audio mixes
+in an AudioWorklet, off the main thread, and main-thread stalls don't drop audio. SharedArrayBuffer
 requires cross-origin isolation: **enable itch.io's "SharedArrayBuffer
 support"**, and locally use `serve-wasm.py` (plain `http.server` sends no
 COOP/COEP headers, so SAB is undefined and the threaded build won't start).
