@@ -12,7 +12,9 @@
 
 class Text : public Component {
 private:
-  std::unique_ptr<Timer> type_timer;
+  // When typing started (TE::now_seconds()); characters appear on this clock,
+  // one per type_speed seconds, however many frames that spans.
+  double type_start = 0.0;
   std::function<void()> typing_callback;
   std::queue<float> opacities;
 
@@ -25,6 +27,8 @@ public:
   bool center;
   bool hidden = false;
 
+  // Seconds per typed character; 0 shows the text at once. The typing
+  // callback runs once per frame that adds characters (not per character).
   float type_speed = 0.0f;
   bool completed = false;
   int print_length = 0;

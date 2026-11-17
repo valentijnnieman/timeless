@@ -1,5 +1,6 @@
 #include "timeless/components/text.hpp"
 #include "timeless/gl.hpp"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -10,7 +11,7 @@ Text::Text(std::string text, bool center, glm::vec3 color, float type_speed,
       type_speed(type_speed), typing_callback(typing_callback) {
   set_default_color_vector();
   if (type_speed > 0.0) {
-    type_timer = std::unique_ptr<Timer>(new Timer(type_speed));
+    type_start = TE::now_seconds();
     printed = "";
   } else {
     printed = text;
@@ -41,7 +42,7 @@ void Text::append_opacity_frames(float from, float to, float speed) {
 }
 
 void Text::reset_timer() {
-  type_timer = std::unique_ptr<Timer>(new Timer(type_speed));
+  type_start = TE::now_seconds();
   print_length = 0;
   completed = false;
 }
@@ -58,12 +59,17 @@ void Text::render(std::shared_ptr<Font> font, int x, int y, float height,
     }
     opacities.pop();
   }
-  if (type_timer != nullptr) {
-    if (print_length < text.length() && type_timer->pollTime()) {
-      print_length += 1;
-
-      typing_callback();
-    } else if (!completed && print_length >= text.length()) {
+  if (type_speed > 0.0f) {
+    // Time-based, so typing runs at the same speed at any frame rate: show
+    // every character due by now (several per frame on a slow display).
+    if (print_length < (int)text.length()) {
+      double due = (TE::now_seconds() - type_start) / type_speed;
+      int next = (int)std::min<double>(due, (double)text.length());
+      if (next > print_length) {
+        print_length = next;
+        typing_callback();
+      }
+    } else if (!completed) {
       completed = true;
     }
     printed = text.substr(0, print_length);
