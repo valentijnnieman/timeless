@@ -278,6 +278,6 @@ Contributions, bug reports, and feature requests are welcome. Feel free to open 
 
 ## License
 
-This project does not currently have an explicit license. Please contact the author before using it in your own projects.
+Timeless is released under the [MIT License](LICENSE). The libraries under `vendor/` keep their own licenses (SDL2: zlib, Assimp and cereal: BSD, GLM, nlohmann/json and GLAD: MIT, FreeType: the FreeType License, stb_image: public domain or MIT, tokkel: MIT).
 
 
