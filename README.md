@@ -6,6 +6,8 @@ A game engine written in C++ built around an **Entity Component System (ECS)** a
 
 > ⚠️ This engine is a work in progress. Breaking changes may occur.
 
+Versions follow [Semantic Versioning](https://semver.org/): below 1.0, a breaking change raises the minor version (0.3 → 0.4). Each release is tagged in git (`v0.4.0`), and [CHANGELOG.md](CHANGELOG.md) lists what changed, with how to update a game for each breaking change.
+
 ---
 
 ## Features
