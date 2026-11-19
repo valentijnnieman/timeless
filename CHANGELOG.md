@@ -7,7 +7,7 @@ the minor version (0.3 → 0.4), anything else the patch version.
 
 Each version is tagged in git (`v0.4.0`) on `main` once it's merged.
 
-## [Unreleased]
+## [0.5.0] - 2026-11-19
 
 ### Breaking
 
@@ -27,6 +27,16 @@ Each version is tagged in git (`v0.4.0`) on `main` once it's merged.
   how much day it is (0 night, 1 day, from `sunriseTick`/`sunsetTick`), for
   shaders that light by it themselves: `lightColor` can't carry it for models,
   as `Model::render()` sets it to white for every mesh.
+
+### Changed
+
+- **tokkel's synths cost nothing when silent.** A synth computed every voice
+  on every sample, playing or not (a `StringSynth` took 6–7% of a core either
+  way). Now finished voices are skipped, and a synth silent for 0.2 s rests
+  until its next note: a quiet instrument costs nothing, and a playing one far
+  less. A reused `StringSynth` voice starts on clean strings, not on the last
+  note's muted leftovers. Notes reach a synth's audio thread through a lock-free
+  ring instead of a mutex.
 
 ## [0.4.1] - 2026-11-17
 
