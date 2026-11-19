@@ -7,7 +7,7 @@ the minor version (0.3 → 0.4), anything else the patch version.
 
 Each version is tagged in git (`v0.4.0`) on `main` once it's merged.
 
-## [Unreleased]
+## [0.5.0] - 2026-11-19
 
 ### Breaking
 
