@@ -7,6 +7,27 @@ the minor version (0.3 → 0.4), anything else the patch version.
 
 Each version is tagged in git (`v0.4.0`) on `main` once it's merged.
 
+## [Unreleased]
+
+### Breaking
+
+- **Unused shaders are removed from `shaders/`.** 42 shaders no game used are
+  gone: the old non-WebGL set (`color.*`, `screen.*`, `sprite*.*`, `text.*`,
+  ...) and unused WebGL ones (`webgl_decal.*`, `webgl_model_phong.*`,
+  `webgl_model_water.*`, `webgl_sun.*`, `webgl_uibar*`, `webgl_uibutton.fs`,
+  ...). A game that loads one of them needs its own copy.
+- **`webgl_sobel.fs` and `webgl_screen_dithering.fs` are generic again.** The
+  sobel pass works on the screen image, not the geometry pass's normals and
+  depth, and the dithering pass no longer leaves marker pixels (alpha 0.5)
+  undithered. Game-specific versions belong in the game's own shaders.
+
+### Added
+
+- **A `daylight` uniform.** `RenderingSystem::calculate_lighting()` also sends
+  how much day it is (0 night, 1 day, from `sunriseTick`/`sunsetTick`), for
+  shaders that light by it themselves: `lightColor` can't carry it for models,
+  as `Model::render()` sets it to white for every mesh.
+
 ## [0.4.1] - 2026-11-17
 
 ### Fixed
