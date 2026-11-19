@@ -426,6 +426,11 @@ void RenderingSystem::calculate_lighting(std::shared_ptr<Shader> shader,
                glm::value_ptr(dirLightPos));
   glUniform3fv(shader->get_uniform("lightColor"), 1,
                glm::value_ptr(sun));
+  // How much day it is (daylight(): 0 night .. 1 day), for shaders that go
+  // by it themselves (Complot's citizen shader, say): lightColor can't carry
+  // it there, as Model::render() sets lightColor to white for every mesh.
+  // Ignored by shaders without it.
+  glUniform1f(shader->get_uniform("daylight"), day);
   glUniform3fv(shader->get_uniform("cameraPos"), 1,
                glm::value_ptr(cam_pos));
 
